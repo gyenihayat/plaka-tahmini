@@ -117,6 +117,10 @@ table.t td.mono{font-family:"IBM Plex Mono",monospace}
     <div class="tblwrap" id="t81-wrap" style="display:none"><table class="t" id="t81-tbl"></table></div>
   </div>
 
+  <div id="counter" style="display:none;align-items:center;gap:10px;margin-top:26px">
+    <span class="dim" style="font-size:13px">ziyaret</span>
+    <span class="plate sm"><span class="bandx">TR</span><span class="num" id="counter-num">—</span></span>
+  </div>
   <p class="foot" id="foot"></p>
 </div>
 
@@ -310,6 +314,18 @@ document.getElementById("btn-81").onclick = ()=>{
   wrap.style.display = "block";
 };
 
+(function(){
+  const base = "https://abacus.jasoncameron.dev", ns = "plaka-tahmini-vercel", key = "ziyaret";
+  let mode = "hit";
+  try { if (sessionStorage.getItem("pt-sayildi")) mode = "get"; } catch(e){}
+  fetch(base+"/"+mode+"/"+ns+"/"+key).then(r=>r.json()).then(d=>{
+    if (typeof d.value !== "number") return;
+    try { sessionStorage.setItem("pt-sayildi","1"); } catch(e){}
+    const s = String(d.value);
+    document.getElementById("counter-num").textContent = s.length > 3 ? (s.slice(0,-3)+" "+s.slice(-3)) : s.padStart(3,"0");
+    document.getElementById("counter").style.display = "inline-flex";
+  }).catch(()=>{});
+})();
 document.getElementById("foot").textContent = "Yöntem: her ilin günlük/haftalık tablolarındaki seri konumu (Şub 2024 – "+dstr(lastGlobalDay)+", "+DATA.iller[0].obs.length+"± gözlem/il) nominal bir sayıya çevrilir (harf sırası A-Z, ilk/son harfte I-O yok; seri başına 1000 numara) ve hız, son ~180 gündeki ardışık gözlem aralıklarının hızlarının medyanı olarak alınır. Bu, isim/rezerve atlamalarının olağan etkisini içerir ama tek seferlik büyük blok atlamalarını (örn. Kütahya'nın 30.04.2026'da ADZ'den AHZ'ye sıçraması) hıza karıştırmaz — böyle bir atlama tespit edilirse ayrıca belirtilir; gelecekte tekrarı öngörülemez, bu yüzden ulaşma tarihleri bu ihtimali içermez. Geriye dönük test: 30 Haziran'a kadar veriyle son gözlem konumu tahmin edildiğinde medyan hata ~7 gün, illerin %90'ında ≤ 15 gün; düzensiz ilerleyen küçük illerde (örn. Şanlıurfa, Diyarbakır, Hakkari) sapma büyük olabilir — güvenilirlik sütunu bu geriye dönük hatadan gelir. Numara kısmı yaklaşıktır (iller 001/012/101 gibi farklı başlangıçlar kullanır).";
 render();
 </script>
