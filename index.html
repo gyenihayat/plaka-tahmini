@@ -315,16 +315,44 @@ document.getElementById("btn-81").onclick = ()=>{
 };
 
 (function(){
-  const base = "https://abacus.jasoncameron.dev", ns = "plaka-tahmini-vercel", key = "ziyaret";
-  let mode = "hit";
-  try { if (sessionStorage.getItem("pt-sayildi")) mode = "get"; } catch(e){}
-  fetch(base+"/"+mode+"/"+ns+"/"+key).then(r=>r.json()).then(d=>{
-    if (typeof d.value !== "number") return;
+  const base = "https://abacus.jasoncameron.dev", ns = "plaka-tahmini-vercel";
+  const gun = () => { const d = new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0"); };
+  const hit = k => fetch(base+"/hit/"+ns+"/"+k).then(r=>r.json()).catch(()=>null);
+  const get = k => fetch(base+"/get/"+ns+"/"+k).then(r=>r.ok?r.json():{value:0}).catch(()=>null);
+  // --- ziyaret sayacı (oturum başına bir)
+  let yeni = true;
+  try { if (sessionStorage.getItem("pt-sayildi")) yeni = false; } catch(e){}
+  (yeni ? hit("ziyaret") : get("ziyaret")).then(d=>{
+    if (!d || typeof d.value !== "number") return;
     try { sessionStorage.setItem("pt-sayildi","1"); } catch(e){}
     const s = String(d.value);
     document.getElementById("counter-num").textContent = s.length > 3 ? (s.slice(0,-3)+" "+s.slice(-3)) : s.padStart(3,"0");
     document.getElementById("counter").style.display = "inline-flex";
-  }).catch(()=>{});
+  });
+  if (yeni) hit("z-"+gun());
+  // --- aktif süre: sekme görünürken her 30 sn'de bir tık (oturum başına en çok 40 = 20 dk)
+  let pings = 0;
+  setInterval(()=>{ if (document.visibilityState === "visible" && pings < 40){ pings++; hit("sure30"); hit("s-"+gun()); } }, 30000);
+  // --- gizli istatistik paneli (yalnızca #stat-yg26 ekiyle açılır)
+  if (location.hash === "#stat-yg26"){
+    const days = []; const now = new Date();
+    for (let i=0;i<7;i++){ const d = new Date(now.getTime()-i*86400000); days.push(d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")); }
+    Promise.all([get("ziyaret"), get("sure30")].concat(days.map(g=>get("z-"+g))).concat(days.map(g=>get("s-"+g)))).then(res=>{
+      const v = x => (x && typeof x.value==="number") ? x.value : 0;
+      const sure = sn => sn >= 3600 ? (sn/3600).toLocaleString("tr-TR",{maximumFractionDigits:1})+" sa" : sn >= 60 ? Math.round(sn/60)+" dk" : sn+" sn";
+      const top = v(res[0]), t30 = v(res[1]);
+      const card = document.createElement("div"); card.className = "card"; card.style.marginTop = "18px";
+      let html = '<h2>Site istatistikleri</h2><div class="meta" style="margin-bottom:10px">toplam ziyaret: <b>'+top.toLocaleString("tr-TR")+'</b> &nbsp;·&nbsp; toplam aktif süre: <b>'+sure(t30*30)+'</b> &nbsp;·&nbsp; ziyaret başına ort.: <b>'+(top? sure(Math.round(t30*30/top)) : "—")+'</b></div>';
+      html += '<table class="t"><tr><th>Gün</th><th>Ziyaret</th><th>Aktif süre</th><th>Ort./ziyaret</th></tr>';
+      for (let i=0;i<7;i++){
+        const z = v(res[2+i]), s3 = v(res[9+i]); const g = days[i];
+        html += '<tr><td>'+g.slice(6)+'.'+g.slice(4,6)+'.'+g.slice(0,4)+'</td><td class="n">'+z+'</td><td class="n">'+sure(s3*30)+'</td><td class="n">'+(z? sure(Math.round(s3*30/z)) : "—")+'</td></tr>';
+      }
+      html += '</table><p class="dim" style="font-size:12px;margin:10px 0 0">Süre = sekme görünürken geçen zaman, 30 sn çözünürlükte; arka plandaki sekmeler sayılmaz. Günlük sayaçlar 08.09.2026'dan itibaren tutuluyor. Bu panel yalnızca bu adres ekiyle görünür.</p>";
+      card.innerHTML = html;
+      document.querySelector(".wrap").appendChild(card);
+    });
+  }
 })();
 document.getElementById("foot").textContent = "Yöntem: her ilin günlük/haftalık tablolarındaki seri konumu (Şub 2024 – "+dstr(lastGlobalDay)+", "+DATA.iller[0].obs.length+"± gözlem/il) nominal bir sayıya çevrilir (harf sırası A-Z, ilk/son harfte I-O yok; seri başına 1000 numara) ve hız, son ~180 gündeki ardışık gözlem aralıklarının hızlarının medyanı olarak alınır. Bu, isim/rezerve atlamalarının olağan etkisini içerir ama tek seferlik büyük blok atlamalarını (örn. Kütahya'nın 30.04.2026'da ADZ'den AHZ'ye sıçraması) hıza karıştırmaz — böyle bir atlama tespit edilirse ayrıca belirtilir; gelecekte tekrarı öngörülemez, bu yüzden ulaşma tarihleri bu ihtimali içermez. Geriye dönük test: 30 Haziran'a kadar veriyle son gözlem konumu tahmin edildiğinde medyan hata ~7 gün, illerin %90'ında ≤ 15 gün; düzensiz ilerleyen küçük illerde (örn. Şanlıurfa, Diyarbakır, Hakkari) sapma büyük olabilir — güvenilirlik sütunu bu geriye dönük hatadan gelir. Numara kısmı yaklaşıktır (iller 001/012/101 gibi farklı başlangıçlar kullanır).";
 render();
