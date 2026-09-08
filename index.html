@@ -348,7 +348,7 @@ document.getElementById("btn-81").onclick = ()=>{
         const z = v(res[2+i]), s3 = v(res[9+i]); const g = days[i];
         html += '<tr><td>'+g.slice(6)+'.'+g.slice(4,6)+'.'+g.slice(0,4)+'</td><td class="n">'+z+'</td><td class="n">'+sure(s3*30)+'</td><td class="n">'+(z? sure(Math.round(s3*30/z)) : "—")+'</td></tr>';
       }
-      html += '</table><p class="dim" style="font-size:12px;margin:10px 0 0">Süre = sekme görünürken geçen zaman, 30 sn çözünürlükte; arka plandaki sekmeler sayılmaz. Günlük sayaçlar 08.09.2026 tarihinden itibaren tutuluyor. Bu panel yalnızca bu adres ekiyle görünür.</p>";
+      html += '</table><p class="dim" style="font-size:12px;margin:10px 0 0">Süre = sekme görünürken geçen zaman, 30 sn çözünürlükte; arka plandaki sekmeler sayılmaz. Günlük sayaçlar 08.09.2026 tarihinden itibaren tutuluyor. Bu panel yalnızca bu adres ekiyle görünür.</p>';
       card.innerHTML = html;
       document.querySelector(".wrap").appendChild(card);
     });
