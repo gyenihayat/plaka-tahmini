@@ -88,6 +88,12 @@ table.t td.mono{font-family:"IBM Plex Mono",monospace}
       <button id="btn-today">Bugün</button>
       <button id="btn-all">Tüm illeri göster</button>
     </div>
+    <div class="row" style="margin-top:10px">
+      <label for="excl">Atlanacak seriler:</label>
+      <input type="text" id="excl" placeholder="örn. SXX, TXX" spellcheck="false" style="width:230px">
+      <span class="dim">İsteğe bağlı; bu seriler hiç verilmeyecek sayılır. <code>TXX</code> = tüm T grubu, <code>RIX</code> = RIA–RIZ, <code>SAA</code> = tek seri, <code>TAA-TCZ</code> = aralık. Tüm hesaplara (tarih tahmini, hedef seri, tablolar) uygulanır.</span>
+    </div>
+    <div class="note" id="excl-warn"></div>
     <div class="result">
       <span class="plate" id="plate"><span class="bandx">TR</span><span class="num" id="plate-num">—</span></span>
       <span class="tag est" id="tag">TAHMİN</span>
@@ -138,6 +144,51 @@ const lastGlobalDay = Math.max(...DATA.iller.map(s=>s.obs[s.obs.length-1][0]));
 document.getElementById("last-global").textContent = dstr(lastGlobalDay);
 const todayDay = Math.floor((Date.now()-EPOCH)/DAY);
 
+let EXCL = [];   // dışlanan [başlangıç, bitiş) nominal aralıkları, sıralı ve birleşik
+function parseExcl(txt){
+  const items = [], bad = [];
+  const push = (a,b,lab)=>{ if (b>a) items.push([a,b,lab]); };
+  txt.toUpperCase().split(/[,;\s]+/).filter(Boolean).forEach(tok=>{
+    const t = tok.replace(/[^A-Z-]/g,"");
+    if (!t) return;
+    const range = t.match(/^([A-Z]{3})-([A-Z]{3})$/);
+    if (range){
+      const a = toN(range[1],1), b = toN(range[2],1);
+      if (a==null || b==null || b < a){ bad.push(tok); return; }
+      push(a-1, b-1+1000, range[1]+"–"+range[2]); return;
+    }
+    const p = t.replace(/X+$/,"");   // sondaki X'ler joker (X plakalarda zaten yok)
+    if (!/^[A-Z]{1,3}$/.test(p) || /X/.test(p)){ bad.push(tok); return; }
+    if (p[0] && !A1.includes(p[0])){ bad.push(tok); return; }
+    if (p[1] && !A2.includes(p[1])){ bad.push(tok); return; }
+    if (p.length===3 && !A3.includes(p[2])){ bad.push(tok); return; }
+    const first = p + "A".repeat(3-p.length);
+    const last  = p[0] + (p[1]||"Z") + (p.length===3 ? p[2] : "Z");
+    push(toN(first,1)-1, toN(last,1)-1+1000, p.length===1 ? p+" grubu" : (p.length===2 ? p+"A–"+p+"Z" : p));
+  });
+  items.sort((x,y)=>x[0]-y[0]);
+  const merged = [];
+  items.forEach(iv=>{ const m = merged[merged.length-1]; if (m && iv[0] <= m[1]) { m[1] = Math.max(m[1], iv[1]); m[2] += ", "+iv[2]; } else merged.push([...iv]); });
+  return {intervals: merged, bad};
+}
+function skipAdvance(cur, adv, intervals){
+  // cur'dan başlayıp adv kadar "verilebilir" nominal ilerledikten sonraki konum (dışlananların üstünden atlar)
+  let pos = cur, rem = adv;
+  for (const [a,b] of intervals){
+    if (b <= pos) continue;
+    if (pos >= a) { pos = b; continue; }        // dışlananın içindeysek sonuna atla
+    const gap = a - pos;
+    if (rem <= gap) { return pos + rem; }
+    rem -= gap; pos = b;
+  }
+  return pos + rem;
+}
+function exclOverlap(a, b, intervals){
+  let s = 0;
+  for (const [x,y] of intervals) s += Math.max(0, Math.min(b,y) - Math.max(a,x));
+  return s;
+}
+function inExcl(n, intervals){ for (const [a,b,l] of intervals) if (n >= a && n < b) return l; return null; }
 function fit(s, upto){
   // robust rate: median of interval rates (ΔN/Δt) — a one-off block skip (e.g. Kütahya ADZ→AHZ, 30.04.2026)
   // inflates an OLS slope for months; the median ignores it.
@@ -168,17 +219,21 @@ function estimateAt(s, day){
     return {n: lo[1] + t*(hi[1]-lo[1]), real: true};
   }
   const f = fit(s, o[o.length-1][0]);
-  return {n: o[o.length-1][1] + f.slope*(day - o[o.length-1][0]), real: false, f, err: errDays(s, f, day - o[o.length-1][0])};
+  const adv = f.slope*(day - o[o.length-1][0]);
+  return {n: skipAdvance(o[o.length-1][1], adv, EXCL), real: false, f, err: errDays(s, f, day - o[o.length-1][0])};
 }
 function reachDate(s, targetN){
   const o = s.obs; const last = o[o.length-1];
   if (targetN <= last[1]){  // passed: find crossing in history
     for (let i=0;i<o.length;i++){ if (o[i][1] >= targetN){ if (i===0) return {passed:true, day:o[0][0], approx:"öncesinde"}; const lo=o[i-1], hi=o[i]; const t=(targetN-lo[1])/(hi[1]-lo[1]); return {passed:true, day: Math.round(lo[0]+t*(hi[0]-lo[0]))}; } }
   }
+  const exLab = inExcl(targetN, EXCL);
+  if (exLab) return {excluded: exLab};
   const f = fit(s, last[0]);
   if (f.slope <= 0) return {never:true};
-  const d = last[0] + (targetN - last[1])/f.slope;
-  return {passed:false, day: Math.round(d), err: errDays(s, f, d - last[0]), f};
+  const dist = (targetN - last[1]) - exclOverlap(last[1], targetN, EXCL);
+  const d = last[0] + dist/f.slope;
+  return {passed:false, day: Math.round(d), err: errDays(s, f, d - last[0]), f, atlanan: Math.round(exclOverlap(last[1], targetN, EXCL)/1000)};
 }
 const relDot = s => { const e = s.bterr==null? 99 : s.bterr; const c = e<=7?"g":(e<=21?"o":"r"); const t = e<=7?"iyi":(e<=21?"orta":"düşük"); return '<span class="rel '+c+'"></span>'+t; };
 
@@ -191,6 +246,19 @@ const isoToday = new Date().toISOString().slice(0,10);
 dt.value = isoToday;
 document.getElementById("btn-today").onclick = ()=>{ dt.value = isoToday; render(); };
 selIl.addEventListener("change", render); dt.addEventListener("change", render);
+const exclInput = document.getElementById("excl");
+try { exclInput.value = localStorage.getItem("pt-excl") || ""; } catch(e){}
+function applyExcl(){
+  const {intervals, bad} = parseExcl(exclInput.value);
+  EXCL = intervals;
+  try { localStorage.setItem("pt-excl", exclInput.value); } catch(e){}
+  const w = document.getElementById("excl-warn");
+  if (bad.length){ w.style.display = "block"; w.textContent = "Anlaşılamayan seri girişleri: " + bad.join(", ") + " (X yalnız sonda joker olabilir; ilk/son harfte I-O olamaz)"; }
+  else w.style.display = "none";
+  render();
+  if (lastTarget) calcTarget();
+}
+exclInput.addEventListener("input", applyExcl);
 const pop = document.getElementById("pop");
 document.getElementById("btn-last").onclick = (e)=>{ pop.classList.toggle("open"); e.stopPropagation(); };
 document.addEventListener("click", ()=>pop.classList.remove("open"));
@@ -224,9 +292,14 @@ function render(){
   meta.innerHTML = parts.join(" &nbsp;·&nbsp; ");
   // warnings
   const w = document.getElementById("warn"); w.style.display = "none";
+  if (!est.real && EXCL.length){
+    const skippedHere = exclOverlap(last[1], est.n, EXCL);
+    if (skippedHere > 0){ w.style.display = "block"; w.textContent = "Bu tahmin, atlanacak girdiğiniz " + Math.round(skippedHere/1000) + " serinin (" + EXCL.map(x=>x[2]).join(" · ") + ") üstünden atlanarak hesaplandı."; }
+  }
   if (!est.real && inv && invN(last[1]).let[0] !== inv.let[0]){
+    const onceki = w.style.display === "block" ? w.textContent + " — " : "";
     w.style.display = "block";
-    w.textContent = "Tahmin bir harf grubu sınırını aşıyor ("+invN(last[1]).let[0]+" → "+inv.let[0]+"). Grup geçişlerinde il bazlı atlamalar (rezerve harfler, isim serileri) tahmini kaydırabilir" + (s.il==="İstanbul" ? " — İstanbul'da R'den sonra S (misafir) ve T (taksi) gruplarının atlanması bekleniyor." : ".");
+    w.textContent = onceki + "Tahmin bir harf grubu sınırını aşıyor ("+invN(last[1]).let[0]+" → "+inv.let[0]+"). Grup geçişlerinde il bazlı atlamalar (rezerve harfler, isim serileri) tahmini kaydırabilir" + (s.il==="İstanbul" ? " — İstanbul'da R'den sonra S (misafir) ve T (taksi) gruplarının atlanması bekleniyor." : ".");
   }
   if (est.extrap === "öncesi"){ w.style.display="block"; w.textContent = "Seçilen tarih veri başlangıcından (10.02.2024) önce; ilk gözlem gösteriliyor."; }
   renderAll();
@@ -276,11 +349,12 @@ function calcTarget(){
   document.getElementById("target-plate").textContent = kod+" "+let3+" "+String(num).padStart(3,"0");
   const r = reachDate(s, tN);
   const out = document.getElementById("target-out");
+  if (r.excluded){ out.innerHTML = "Bu seri, atlanacaklar listenizde (<b>"+r.excluded+"</b>) — bu varsayımla <b>hiç verilmeyecek</b>."; res.style.display="flex"; document.getElementById("btn-81").style.display="none"; return; }
   if (r.never) out.innerHTML = "Bu ilde seri ilerlemesi tespit edilemedi.";
   else if (r.passed) out.innerHTML = r.approx ? "<b class='ok'>Geçildi</b> — veri başlangıcından (10.02.2024) önce." : "<b class='ok'>Geçildi</b> — kayıtlara göre <b>"+dstr(r.day)+"</b> civarında verildi.";
   else {
     const yr = (r.day - todayDay)/365.25;
-    out.innerHTML = "Tahmini ulaşma: <b>"+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün" + (yr>1 ? " · "+yr.toLocaleString("tr-TR",{maximumFractionDigits:1})+" yıl sonra" : "") + ")";
+    out.innerHTML = "Tahmini ulaşma: <b>"+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün" + (yr>1 ? " · "+yr.toLocaleString("tr-TR",{maximumFractionDigits:1})+" yıl sonra" : "") + (r.atlanan ? " · aradaki "+r.atlanan+" atlanan seri düşüldü" : "") + ")";
     if (yr > 1.5) { tw.style.display="block"; tw.textContent = "Uzak tarih: hız değişimi ve harf grubu atlamaları nedeniyle belirsizlik büyüktür; tahmini kaba bir sıra göstergesi olarak okuyun."; }
     else if (invN(s.obs[s.obs.length-1][1]).let[0] !== let3[0]) { tw.style.display="block"; tw.textContent = "Hedef farklı bir harf grubunda; grup geçişindeki atlamalar tarihi öne/geriye alabilir."; }
   }
@@ -304,8 +378,8 @@ document.getElementById("btn-81").onclick = ()=>{
   const tb = document.createElement("tbody");
   rows.forEach((x,i)=>{
     const {s, r} = x; const tr = document.createElement("tr");
-    const durum = r.never ? "—" : r.passed ? (r.approx ? "geçildi (Şub 2024 öncesi)" : "geçildi · "+dstr(r.day)) : "tahmini "+dstr(r.day)+" (±"+r.err+" gün)";
-    const kalan = r.passed || r.never ? "" : ((tN - s.obs[s.obs.length-1][1])/1000).toLocaleString("tr-TR",{maximumFractionDigits:0})+" seri";
+    const durum = r.excluded ? "atlama listenizde — verilmeyecek" : r.never ? "—" : r.passed ? (r.approx ? "geçildi (Şub 2024 öncesi)" : "geçildi · "+dstr(r.day)) : "tahmini "+dstr(r.day)+" (±"+r.err+" gün)";
+    const kalan = r.passed || r.never || r.excluded ? "" : (((tN - s.obs[s.obs.length-1][1]) - exclOverlap(s.obs[s.obs.length-1][1], tN, EXCL))/1000).toLocaleString("tr-TR",{maximumFractionDigits:0})+" seri";
     [String(i+1), String(s.kod).padStart(2,"0"), s.il, x.cur, durum, kalan].forEach((c,j)=>{ const td=document.createElement("td"); td.textContent=c; if (j===3) td.className="mono"; if (j===4 && r.passed) td.classList.add("ok"); if (j===5) td.className="n"; tr.appendChild(td); });
     const td=document.createElement("td"); td.innerHTML = relDot(s); tr.appendChild(td);
     tb.appendChild(tr);
@@ -355,7 +429,7 @@ document.getElementById("btn-81").onclick = ()=>{
   }
 })();
 document.getElementById("foot").textContent = "Yöntem: her ilin günlük/haftalık tablolarındaki seri konumu (Şub 2024 – "+dstr(lastGlobalDay)+", "+DATA.iller[0].obs.length+"± gözlem/il) nominal bir sayıya çevrilir (harf sırası A-Z, ilk/son harfte I-O yok; seri başına 1000 numara) ve hız, son ~180 gündeki ardışık gözlem aralıklarının hızlarının medyanı olarak alınır. Bu, isim/rezerve atlamalarının olağan etkisini içerir ama tek seferlik büyük blok atlamalarını (örn. Kütahya'nın 30.04.2026'da ADZ'den AHZ'ye sıçraması) hıza karıştırmaz — böyle bir atlama tespit edilirse ayrıca belirtilir; gelecekte tekrarı öngörülemez, bu yüzden ulaşma tarihleri bu ihtimali içermez. Geriye dönük test: 30 Haziran'a kadar veriyle son gözlem konumu tahmin edildiğinde medyan hata ~7 gün, illerin %90'ında ≤ 15 gün; düzensiz ilerleyen küçük illerde (örn. Şanlıurfa, Diyarbakır, Hakkari) sapma büyük olabilir — güvenilirlik sütunu bu geriye dönük hatadan gelir. Numara kısmı yaklaşıktır (iller 001/012/101 gibi farklı başlangıçlar kullanır).";
-render();
+applyExcl();
 </script>
 
 </body>
