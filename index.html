@@ -114,6 +114,11 @@ table.t td.mono{font-family:"IBM Plex Mono",monospace}
       <button class="primary" id="btn-target">Hesapla</button>
       <span class="dim" id="target-hint">Harf grubu + istenirse numara; il yukarıdaki seçimden alınır.</span>
     </div>
+    <div class="row" style="margin-top:10px">
+      <label for="excl2">Atlanacak seriler:</label>
+      <input type="text" id="excl2" placeholder="örn. SXX, TXX" spellcheck="false" style="width:230px">
+      <span class="dim">Bu bloklar hiç verilmeyecek sayılır ve hedef tarihinden düşülür (yukarıdaki alanla aynıdır).</span>
+    </div>
     <div class="result" id="target-res" style="display:none">
       <span class="plate sm"><span class="bandx">TR</span><span class="num" id="target-plate"></span></span>
       <span class="meta" id="target-out"></span>
@@ -246,19 +251,22 @@ const isoToday = new Date().toISOString().slice(0,10);
 dt.value = isoToday;
 document.getElementById("btn-today").onclick = ()=>{ dt.value = isoToday; render(); };
 selIl.addEventListener("change", render); dt.addEventListener("change", render);
-const exclInput = document.getElementById("excl");
-try { exclInput.value = localStorage.getItem("pt-excl") || ""; } catch(e){}
-function applyExcl(){
-  const {intervals, bad} = parseExcl(exclInput.value);
+const exclInput = document.getElementById("excl"), exclInput2 = document.getElementById("excl2");
+try { exclInput.value = exclInput2.value = localStorage.getItem("pt-excl") || ""; } catch(e){}
+function applyExcl(from){
+  const v = (from && from.value !== undefined) ? from.value : exclInput.value;
+  [exclInput, exclInput2].forEach(e=>{ if (e !== from) e.value = v; });
+  const {intervals, bad} = parseExcl(v);
   EXCL = intervals;
-  try { localStorage.setItem("pt-excl", exclInput.value); } catch(e){}
+  try { localStorage.setItem("pt-excl", v); } catch(e){}
   const w = document.getElementById("excl-warn");
   if (bad.length){ w.style.display = "block"; w.textContent = "Anlaşılamayan seri girişleri: " + bad.join(", ") + " (X yalnız sonda joker olabilir; ilk/son harfte I-O olamaz)"; }
   else w.style.display = "none";
   render();
   if (lastTarget) calcTarget();
 }
-exclInput.addEventListener("input", applyExcl);
+exclInput.addEventListener("input", ()=>applyExcl(exclInput));
+exclInput2.addEventListener("input", ()=>applyExcl(exclInput2));
 const pop = document.getElementById("pop");
 document.getElementById("btn-last").onclick = (e)=>{ pop.classList.toggle("open"); e.stopPropagation(); };
 document.addEventListener("click", ()=>pop.classList.remove("open"));
@@ -355,7 +363,7 @@ function calcTarget(){
   else {
     const yr = (r.day - todayDay)/365.25;
     out.innerHTML = "Tahmini ulaşma: <b>"+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün" + (yr>1 ? " · "+yr.toLocaleString("tr-TR",{maximumFractionDigits:1})+" yıl sonra" : "") + (r.atlanan ? " · aradaki "+r.atlanan+" atlanan seri düşüldü" : "") + ")";
-    if (yr > 1.5) { tw.style.display="block"; tw.textContent = "Uzak tarih: hız değişimi ve harf grubu atlamaları nedeniyle belirsizlik büyüktür; tahmini kaba bir sıra göstergesi olarak okuyun."; }
+    if (yr > 1.5) { tw.style.display="block"; tw.textContent = "Uzak tarih: hız değişimi ve harf grubu atlamaları nedeniyle belirsizlik büyüktür; tahmini kaba bir sıra göstergesi olarak okuyun." + (EXCL.length ? "" : " İpucu: verilmeyeceğini düşündüğünüz gruplar varsa (örn. İstanbul için SXX, TXX) hemen üstteki \"Atlanacak seriler\" alanına yazın — tarih ona göre öne çekilir."); }
     else if (invN(s.obs[s.obs.length-1][1]).let[0] !== let3[0]) { tw.style.display="block"; tw.textContent = "Hedef farklı bir harf grubunda; grup geçişindeki atlamalar tarihi öne/geriye alabilir."; }
   }
   res.style.display = "flex";
