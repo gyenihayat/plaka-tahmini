@@ -73,6 +73,9 @@ for s in iller:
     sure = "birkaç gün" if hafta_seri > 3 else ("yaklaşık bir hafta" if hafta_seri > 0.9 else (f"yaklaşık {round(1/hafta_seri)} hafta" if hafta_seri > 0.12 else f"aylar"))
     title = f"{ad} Plaka Sırası Hangi Harfte? Güncel Seri ({today.year})"
     desc = f"{ad} plaka sırası hangi harfte? Güncel tahmini seri {kod} {el}; son gözlem {kod} {ll} {ln:03d} ({tr_date(last_d)}). İstediğiniz plakanın tahmini çıkış tarihini hesaplayın."
+    breadcrumb = json.dumps({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+        {"@type":"ListItem","position":1,"name":"Plaka Tahmini","item":f"{BASE}/"},
+        {"@type":"ListItem","position":2,"name":f"{ad} Plaka Sırası","item":f"{BASE}/il/{sl}"}]}, ensure_ascii=False, separators=(",",":"))
     page = f"""<!doctype html>
 <html lang="tr">
 <head>
@@ -80,12 +83,16 @@ for s in iller:
 <title>{html.escape(title)}</title>
 <meta name="description" content="{html.escape(desc)}">
 <link rel="canonical" href="{BASE}/il/{sl}">
+<meta property="og:type" content="website">
 <meta property="og:title" content="{html.escape(title)}"><meta property="og:description" content="{html.escape(desc)}">
-<meta property="og:url" content="{BASE}/il/{sl}"><meta property="og:image" content="{BASE}/og.png"><meta property="og:locale" content="tr_TR">
+<meta property="og:url" content="{BASE}/il/{sl}"><meta property="og:image" content="{BASE}/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:locale" content="tr_TR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{html.escape(title)}"><meta name="twitter:description" content="{html.escape(desc)}"><meta name="twitter:image" content="{BASE}/og.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono&display=swap">
 <style>{CSS}</style>
 <script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{{"@type":"Question","name":"{html.escape(ad)} bugün hangi plaka serisinde?","acceptedAnswer":{{"@type":"Answer","text":"Güncel tahmin: {kod} {el} serisi. Son doğrulanmış gözlem {tr_date(last_d)} tarihinde {kod} {ll} {ln:03d}."}}}},{{"@type":"Question","name":"{html.escape(ad)} plakada bir harf serisi ne kadar dayanıyor?","acceptedAnswer":{{"@type":"Answer","text":"Son aylarda haftada yaklaşık {hafta_seri:.1f} seri; 999 plakalık bir seri {sure} içinde tükeniyor."}}}}]}}</script>
+<script type="application/ld+json">{breadcrumb}</script>
 </head>
 <body><div class="wrap">
 <div class="eyebrow"><a href="/" style="color:inherit;text-decoration:none">Plaka Tahmini</a> · {kod} {html.escape(ad)}</div>
