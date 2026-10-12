@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """81 il sayfasını data/tahmin_data.json + data/seri_gecisleri.csv'den üretir; sitemap.xml'i yeniler."""
 import json, csv, datetime, statistics, html
+import forecast as fc
 
 A1="ABCDEFGHJKLMNPRSTUVYZ"; A2="ABCDEFGHIJKLMNOPRSTUVYZ"; A3="ABCDEFGHJKLMNPRSTUVYZ"
 def inv(n):
@@ -47,9 +48,11 @@ urls = [BASE + "/"]
 for s in iller:
     il = s["il"]; ad = TAM.get(il, il); sl = slug(ad); kod = f"{s['kod']:02d}"
     o = s["obs"]; last = o[-1]
-    rate = robust_rate(o)
+    rate = fc.slope(o, last[0])
     last_d = EPOCH + datetime.timedelta(days=last[0])
-    est_n = last[1] + rate * ((today - last_d).days)
+    _h = (today - last_d).days
+    _c = fc.clean(o)
+    est_n = last[1] + fc.advance(o, _c, last[0], _h, rate)
     el, en = inv(est_n); ll, ln = inv(last[1])
     hafta_seri = rate*7/1000
     trans = [t for t in gec if t["il"] == il]
