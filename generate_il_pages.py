@@ -9,7 +9,7 @@ def inv(n):
     n = round(n); num = max(1, min(999, n % 1000)); g = n // 1000
     return A1[g//len(A3)//len(A2)] + A2[g//len(A3)%len(A2)] + A3[g%len(A3)], num
 EPOCH = datetime.date(2024,1,1)
-BASE = "https://plaka-tahmini.vercel.app"
+BASE = "https://plakatahmini.com"
 TAM = {"K.Maraş":"Kahramanmaraş", "Afyon":"Afyonkarahisar"}
 def slug(s):
     t = str.maketrans("çğıöşüÇĞİÖŞÜâ. ","cgiosucgiosua--")
