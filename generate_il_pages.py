@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """81 il sayfasını data/tahmin_data.json + data/seri_gecisleri.csv'den üretir; sitemap.xml'i yeniler."""
-import json, csv, datetime, statistics, html
+import json, csv, datetime, statistics, html, bisect
 import forecast as fc
 
 A1="ABCDEFGHJKLMNPRSTUVYZ"; A2="ABCDEFGHIJKLMNOPRSTUVYZ"; A3="ABCDEFGHJKLMNPRSTUVYZ"
@@ -34,16 +34,93 @@ CSS = """*{box-sizing:border-box}body{margin:0;background:#f5f5f1;color:#15171c;
 .plate{display:inline-flex;align-items:stretch;border:2.5px solid #15171c;border-radius:8px;overflow:hidden;background:#fff;color:#111;font-family:"Barlow Condensed",sans-serif;font-weight:600;letter-spacing:.06em;font-size:38px;line-height:1;margin:16px 0 6px}
 .plate .band{background:#1f4fb0;color:#fff;font-size:12px;font-weight:600;display:flex;align-items:flex-end;justify-content:center;padding:5px 6px 4px;width:26px}
 .plate .num{padding:10px 15px 8px;white-space:nowrap}
+.plrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}.plrow .plate{margin:16px 0 6px}.plrow .tag{margin-left:0}.plrow .cta{margin:10px 0 4px}
 .tag{display:inline-block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600;color:#7a3fb3;border:1.5px solid currentColor;vertical-align:middle;margin-left:10px}
 .card{background:#fcfcfa;border:1px solid #dcdfe5;border-radius:12px;padding:16px 20px;margin:16px 0}
 .meta{font-size:14px;color:#4d5461}.meta b{color:#15171c}
-table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;padding:6px 8px;border-bottom:1px solid #e9ebef}
-th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#7d8491}
+table{border-collapse:collapse;width:100%;font-size:14px;border:1px solid #c5cad3}td,th{text-align:left;padding:6px 8px;border:1px solid #d5d9e0}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;background:#eef0f3}
 a{color:#2a78d6}.cta{display:inline-block;background:#e3eefb;border:1px solid #2a78d6;border-radius:9px;padding:10px 16px;font-weight:600;text-decoration:none;margin:8px 0}
 .nav{font-size:13px;color:#7d8491;border-top:1px solid #dcdfe5;padding-top:16px;margin-top:30px;line-height:2}
 .mono{font-family:"IBM Plex Mono",monospace}
 h2{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:17px;font-weight:600;margin:0 0 8px;line-height:1.3}
-h3{font-size:14px;font-weight:600;margin:12px 0 4px;line-height:1.4}"""
+h3{font-size:14px;font-weight:600;margin:12px 0 4px;line-height:1.4}
+.yoy{overflow-x:auto;-webkit-overflow-scrolling:touch}.yoy table{min-width:560px}.yoy td.n,.yoy th.n{text-align:right;white-space:nowrap}
+.yoy td.p{color:#7d8491;font-style:italic}.yoy tr.pct td{font-weight:600;background:#f3f4f7}.yoy .up{color:#1a7f4b}.yoy .dn{color:#b3402a}
+.fn{font-size:12px;color:#7d8491;margin:8px 0 0}"""
+
+# --- 2 aylık dönemlerde geçen yıla kıyasla ilerleme -------------------------------------------------
+DONEMLER = [(1,3,"Oca–Şub"),(3,5,"Mar–Nis"),(5,7,"May–Haz"),(7,9,"Tem–Ağu"),(9,11,"Eyl–Eki"),(11,13,"Kas–Ara")]
+def tn(x):
+    q = 10 if abs(x) < 2000 else 100
+    return f"{round(x/q)*q:,.0f}".replace(",", ".")
+def _gun(y, m, dd=1):
+    try: return (datetime.date(y, m, dd) - EPOCH).days
+    except ValueError: return (datetime.date(y, m, 28) - EPOCH).days
+def _raw_at(o, day):
+    xs = [x[0] for x in o]; i = bisect.bisect_left(xs, day)
+    if i < len(xs) and xs[i] == day: return o[i][1]
+    (x0,y0),(x1,y1) = o[i-1], o[i]
+    return y0 + (y1-y0)*(day-x0)/(x1-x0)
+def ilerleme(o, c, s_, e_):
+    """(deger, durum): 'ok' | 'yok' (veri kapsamı dışı) | 'sureksiz' (seride kırılma/blok atlaması: ham ve temizlenmiş fark >%2)."""
+    if s_ < o[0][0] or e_ > o[-1][0] or e_ <= s_: return None, "yok"
+    v = fc.at(c, e_) - fc.at(c, s_); rv = _raw_at(o, e_) - _raw_at(o, s_)
+    if abs(rv - v) > 0.02*max(v, 1): return None, "sureksiz"
+    return v, "ok"
+def yoy_blok(o, c, ad, last_d):
+    son_gun = o[-1][0]; Y = last_d.year; yillar = list(range(2024, Y+1))
+    ust = "".join(f"<th class='n'>{lab}</th>" for _,_,lab in DONEMLER)
+    satirlar = ""; vals = {}; kismi = {}; sureksiz_var = False
+    for y in yillar:
+        hucre = ""
+        for k,(a,b,lab) in enumerate(DONEMLER):
+            s_ = _gun(y,a); e_ = _gun(y+1,1) if b==13 else _gun(y,b)
+            if s_ > son_gun: v, st = None, "yok"
+            elif e_ > son_gun:  # dönem sürüyor: son gözlem tarihine kadar kısmi değer
+                v, st = ilerleme(o, c, s_, son_gun)
+                if st == "ok": kismi[(y,k)] = (v, _gun(y-1,a), _gun(y-1, last_d.month, last_d.day))
+            else: v, st = ilerleme(o, c, s_, e_)
+            vals[(y,k)] = v
+            if st == "sureksiz": sureksiz_var = True
+            if st == "ok" and (y,k) in kismi: hucre += f"<td class='n p'>~{tn(v)}*</td>"
+            elif st == "ok": hucre += f"<td class='n'>~{tn(v)}</td>"
+            elif st == "sureksiz": hucre += "<td class='n' title='Bu dönemde seri verisinde kırılma var'>—†</td>"
+            else: hucre += "<td class='n'>—</td>"
+        satirlar += f"<tr><td><b>{y}</b></td>{hucre}</tr>"
+    # son yıl / önceki yıl yüzde satırı (sürmekte olan dönemde aynı takvim penceresi karşılaştırılır)
+    pct = {}; kismi_notu = ""
+    for k in range(6):
+        cur = vals.get((Y,k)); prv = vals.get((Y-1,k))
+        if (Y,k) in kismi:
+            v, ps, pe = kismi[(Y,k)]; prv, st = ilerleme(o, c, ps, pe); cur = v
+            pencere = f"{tr_date(EPOCH+datetime.timedelta(days=_gun(Y,DONEMLER[k][0])))} – {tr_date(last_d)}"
+            if prv: kismi_notu = f"<p class='fn'>* {DONEMLER[k][2]} {Y} henüz bitmedi: {pencere} arası kısmi değer. {Y-1}'te aynı pencerede ilerleme ~{tn(prv)}; yüzde değişim bu pencereye göre hesaplandı.</p>"
+            else: kismi_notu = f"<p class='fn'>* {DONEMLER[k][2]} {Y} henüz bitmedi: {pencere} arası kısmi değer; {Y-1}'in aynı penceresi için güvenilir karşılaştırma yapılamadı.</p>"
+        pct[k] = (cur/prv - 1) if (cur and prv and prv > 0) else None
+    pcell = ""
+    for k in range(6):
+        if pct[k] is None: pcell += "<td class='n'>—</td>"
+        else:
+            r = pct[k]*100; cls = "up" if r >= 1 else ("dn" if r <= -1 else "")
+            pcell += f"<td class='n {cls}'>{'+' if r>=1 else ('−' if r<=-1 else '±')}%{abs(round(r))}</td>"
+    satirlar += f"<tr class='pct'><td>{Y} / {Y-1}</td>{pcell}</tr>"
+    # tek cümlelik özet: son tamamlanan ve iki yılda da verisi olan dönem
+    ozet = ""
+    for k in range(5,-1,-1):
+        cur = vals.get((Y,k)); prv = vals.get((Y-1,k))
+        if cur and prv and (Y,k) not in kismi:
+            r = (cur/prv - 1)*100; lab = DONEMLER[k][2]
+            yon = "yaklaşık aynı düzeyde" if abs(r) < 2 else (f"yaklaşık %{abs(round(r))} daha fazla" if r > 0 else f"yaklaşık %{abs(round(r))} daha az")
+            ozet = f"<p class='meta'>Son tamamlanan dönemde ({lab} {Y}) {html.escape(ad)} için plaka ilerlemesi ~{tn(cur)}; {Y-1}'in aynı dönemine (~{tn(prv)}) göre {yon}.</p>"
+            break
+    kucuk = max([v for v in vals.values() if v] or [0]) < 3000
+    dip = "<p class='fn'>— veri yok veya dönem başlamadı (kayıtlarımız Şubat 2024'te başlıyor)."
+    if sureksiz_var: dip += " † Bu dönemde seri verisinde kırılma var; yanlış bir sayı göstermemek için değer verilmedi."
+    dip += " Değerler, kayıtlı haftalık gözlemler arasında doğrusal interpolasyonla bulunan yaklaşık plaka numarası ilerlemesidir (yuvarlanmıştır); gerçek tescil sayısı değildir.</p>"
+    if kucuk: dip += "<p class='fn'>Düşük hacimli illerde küçük sayısal farklar büyük yüzde değişim olarak görünebilir.</p>"
+    return (f"<div class='card'><h2>Geçen yıla kıyasla durum — 2 aylık dönemler</h2>{ozet}"
+            f"<div class='yoy'><table><tr><th>Yıl</th>{ust}</tr>{satirlar}</table></div>{kismi_notu}{dip}</div>")
 urls = [BASE + "/"]
 for s in iller:
     il = s["il"]; ad = TAM.get(il, il); sl = slug(ad); kod = f"{s['kod']:02d}"
@@ -58,6 +135,7 @@ for s in iller:
     trans = [t for t in gec if t["il"] == il]
     rows = "".join(f"<tr><td>{t['ilk_gorulen_yeni_tarih'][8:10]}.{t['ilk_gorulen_yeni_tarih'][5:7]}.{t['ilk_gorulen_yeni_tarih'][:4]}</td><td class='mono'>{t['onceki_harf_grubu']} → {t['yeni_harf_grubu']}</td><td class='mono'>{html.escape(t['son_gorulen_eski'])} → {html.escape(t['ilk_gorulen_yeni'])}</td></tr>" for t in trans)
     gecis_html = f"<div class='card'><h2>Harf grubu geçişleri (Şubat 2024'ten beri)</h2><table><tr><th>Tarih</th><th>Grup</th><th>Seri</th></tr>{rows}</table></div>" if trans else f"<div class='card'><h2>Harf grubu geçişleri (Şubat 2024'ten beri)</h2><p class='meta' style='margin:0'>{html.escape(ad)}, Şubat 2024'ten bu yana <b>{ll[0]}</b> harf grubunda ilerliyor; bu dönemde grup değişimi yaşanmadı.</p></div>"
+    yoy_html = yoy_blok(o, _c, ad, last_d)
     obs5 = o[-5:]
     obs_rows = ""
     for day_, n_ in reversed(obs5):
@@ -101,12 +179,12 @@ for s in iller:
 <div class="eyebrow"><a href="/" style="color:inherit;text-decoration:none">Plaka Tahmini</a> · {kod} {html.escape(ad)}</div>
 <h1>{html.escape(ad)} Plaka Sırası Hangi Harfte?</h1>
 <p>Güncel gözlemlere göre {html.escape(ad)} ilinde plaka sırası şu anda tahmini olarak <b class="mono">{kod} {el}</b> serisi civarındadır. Son doğrulanmış gözlem {tr_date(last_d)} tarihinde <b class="mono">{kod} {ll} {ln:03d}</b> olarak kaydedilmiştir. Aşağıdaki araçla istediğiniz plakanın yaklaşık ne zaman çıkacağını görebilirsiniz.</p>
-<div><span class="plate"><span class="band">TR</span><span class="num">{kod} {el} {en:03d}</span></span><span class="tag">tahmin · {tr_date(today)}</span></div>
+<div class="plrow"><span class="plate"><span class="band">TR</span><span class="num">{kod} {el} {en:03d}</span></span><span class="tag">tahmin · {tr_date(today)}</span><a class="cta" href="/?il={s['kod']}">🔮 Canlı tahmin aracı →</a></div>
 <p class="meta">{html.escape(ad)} son aylarda haftada ortalama <b>{(s['hafta'] or 0):,} plaka</b> basıyor ve <b>~{hafta_seri:.1f} harf serisi</b> ilerliyor{" — bir seri (999 plaka) " + sure + " dayanıyor" if hafta_seri <= 3 else ""} (kaynak: wowTURKEY / Güven Hoca haftalık tabloları).</p>
+{yoy_html}
 {gozlem_html}
 {gecis_html}
-<p class="meta">Yukarıdaki güncel seri, ilin son aylardaki ilerleme hızının bugüne uzatılmış tahminidir ve her hafta yeni tablo verisiyle güncellenir. Belirli bir tarihte hangi serinin verileceğini, istediğiniz seriye ne zaman ulaşılacağını ve atlanacak serileri hesaba katan canlı aracı kullanın:</p>
-<a class="cta" href="/?il={s['kod']}">🔮 {html.escape(ad)} için canlı tahmin aracı →</a>
+<p class="meta">Yukarıdaki güncel seri, ilin son aylardaki ilerleme hızının bugüne uzatılmış tahminidir ve her hafta yeni tablo verisiyle güncellenir. Belirli bir tarihte hangi serinin verileceğini, istediğiniz seriye ne zaman ulaşılacağını ve atlanacak serileri hesaba katan canlı aracı, plakanın yanındaki «Canlı tahmin aracı» bağlantısından açabilirsiniz.</p>
 <div class="card">
 <h2>Sık sorulan sorular</h2>
 <h3>{html.escape(ad)} bugün hangi plaka serisinde?</h3>
