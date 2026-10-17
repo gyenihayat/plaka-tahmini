@@ -275,10 +275,26 @@ function estimateAt(s, day){
   const adv = advAt(s, f, day - o[o.length-1][0]);
   return {n: skipAdvance(o[o.length-1][1], adv, EXCL), real: false, f, err: errDays(s, f, day - o[o.length-1][0])};
 }
+// Kayıt öncesi plaka: ilk gözlemin ilk 365 gündeki medyan hızı ile ertesi yılın aynı takvim aralığının ilerlemesinin karışımı, geriye doğru.
+function backAdv(s, c, rate0, h){
+  const F = s.obs[0][0], Y = atC(c,F+365) - atC(c,F), k = Math.floor(h/365), rem = h - 365*k;
+  const seas = k*Y + atC(c,F+365) - atC(c,F+365-rem);
+  return 0.5*rate0*h + 0.5*seas;
+}
+function backEstimate(s, targetN){
+  const o = s.obs, F = o[0][0], dist = o[0][1] - targetN, c = cleanCum(s);
+  const rates = []; for (let i=1;i<o.length && o[i][0] <= F+365;i++){ const dt=o[i][0]-o[i-1][0]; if (dt>0) rates.push((o[i][1]-o[i-1][1])/dt); }
+  const med = a => { const b=[...a].sort((x,y)=>x-y); const m=b.length>>1; return b.length%2 ? b[m] : (b[m-1]+b[m])/2; };
+  const rate0 = Math.max(rates.length ? med(rates) : 0, 0.01);
+  let hi = Math.max(1, dist/rate0); while (backAdv(s,c,rate0,hi) < dist && hi < 80000) hi *= 2;
+  let lo = 0; for (let i=0;i<60;i++){ const m=(lo+hi)/2; if (backAdv(s,c,rate0,m) < dist) lo=m; else hi=m; }
+  const h = Math.round(hi);
+  return {passed:true, back:true, day: F - h, err: Math.max(7, Math.round(0.15*h)), back_h: h, first: o[0]};
+}
 function reachDate(s, targetN){
   const o = s.obs; const last = o[o.length-1];
   if (targetN <= last[1]){  // passed: find crossing in history
-    for (let i=0;i<o.length;i++){ if (o[i][1] >= targetN){ if (i===0) return {passed:true, day:o[0][0], approx:"öncesinde"}; const lo=o[i-1], hi=o[i]; const t=(targetN-lo[1])/(hi[1]-lo[1]); return {passed:true, day: Math.round(lo[0]+t*(hi[0]-lo[0]))}; } }
+    for (let i=0;i<o.length;i++){ if (o[i][1] >= targetN){ if (i===0) return targetN === o[0][1] ? {passed:true, day:o[0][0]} : backEstimate(s, targetN); const lo=o[i-1], hi=o[i]; const t=(targetN-lo[1])/(hi[1]-lo[1]); return {passed:true, day: Math.round(lo[0]+t*(hi[0]-lo[0]))}; } }
   }
   const exLab = inExcl(targetN, EXCL);
   if (exLab) return {excluded: exLab};
@@ -413,7 +429,13 @@ function calcTarget(){
   const out = document.getElementById("target-out");
   if (r.excluded){ out.innerHTML = "Bu seri, atlanacaklar listenizde (<b>"+r.excluded+"</b>) — bu varsayımla <b>hiç verilmeyecek</b>."; res.style.display="flex"; document.getElementById("btn-81").style.display="none"; return; }
   if (r.never) out.innerHTML = "Bu ilde seri ilerlemesi tespit edilemedi.";
-  else if (r.passed) out.innerHTML = r.approx ? "<b class='ok'>Geçildi</b> — veri başlangıcından (10.02.2024) önce." : "<b class='ok'>Geçildi</b> — kayıtlara göre <b>"+dstr(r.day)+"</b> civarında verildi.";
+  else if (r.back){
+    const fv = invN(r.first[1]);
+    out.innerHTML = "<b>Tahmini: "+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün · kayıtlarımızdan önce; geriye dönük tahmin)";
+    tw.style.display="block";
+    tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş, bu yüzden tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemi esas alınarak geriye doğru tahmin edilmiştir."+(r.back_h > 540 ? " Uzak geçmiş: hız o dönemde farklı olabilir, tarihi kaba bir gösterge olarak okuyun." : "");
+  }
+  else if (r.passed) out.innerHTML = "<b class='ok'>Geçildi</b> — kayıtlara göre <b>"+dstr(r.day)+"</b> civarında verildi.";
   else {
     const yr = (r.day - todayDay)/365.25;
     out.innerHTML = "Tahmini ulaşma: <b>"+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün" + (yr>1 ? " · "+yr.toLocaleString("tr-TR",{maximumFractionDigits:1})+" yıl sonra" : "") + (r.atlanan ? " · aradaki "+r.atlanan+" atlanan seri düşüldü" : "") + ")";
@@ -440,9 +462,9 @@ document.getElementById("btn-81").onclick = ()=>{
   const tb = document.createElement("tbody");
   rows.forEach((x,i)=>{
     const {s, r} = x; const tr = document.createElement("tr");
-    const durum = r.excluded ? "atlama listenizde — verilmeyecek" : r.never ? "—" : r.passed ? (r.approx ? "geçildi (Şub 2024 öncesi)" : "geçildi · "+dstr(r.day)) : "tahmini "+dstr(r.day)+" (±"+r.err+" gün)";
+    const durum = r.excluded ? "atlama listenizde — verilmeyecek" : r.never ? "—" : r.back ? "tahmini "+dstr(r.day)+" (kayıt öncesi, ±"+r.err+" gün)" : r.passed ? "geçildi · "+dstr(r.day) : "tahmini "+dstr(r.day)+" (±"+r.err+" gün)";
     const kalan = r.passed || r.never || r.excluded ? "" : (((tN - s.obs[s.obs.length-1][1]) - exclOverlap(s.obs[s.obs.length-1][1], tN, EXCL))/1000).toLocaleString("tr-TR",{maximumFractionDigits:0})+" seri";
-    [String(i+1), String(s.kod).padStart(2,"0"), s.il, x.cur, durum, kalan].forEach((c,j)=>{ const td=document.createElement("td"); td.textContent=c; if (j===3) td.className="mono"; if (j===4 && r.passed) td.classList.add("ok"); if (j===5) td.className="n"; tr.appendChild(td); });
+    [String(i+1), String(s.kod).padStart(2,"0"), s.il, x.cur, durum, kalan].forEach((c,j)=>{ const td=document.createElement("td"); td.textContent=c; if (j===3) td.className="mono"; if (j===4 && r.passed && !r.back) td.classList.add("ok"); if (j===5) td.className="n"; tr.appendChild(td); });
     const td=document.createElement("td"); td.innerHTML = relDot(s); tr.appendChild(td);
     tb.appendChild(tr);
   });
