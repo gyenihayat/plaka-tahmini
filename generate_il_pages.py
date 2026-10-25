@@ -3,6 +3,7 @@
 """81 il sayfasını data/tahmin_data.json + data/seri_gecisleri.csv'den üretir; sitemap.xml'i yeniler."""
 import json, csv, datetime, statistics, html, bisect
 import forecast as fc
+from is_gunu import RESMI_TATIL, onceki_is_gunu
 
 A1="ABCDEFGHJKLMNPRSTUVYZ"; A2="ABCDEFGHIJKLMNOPRSTUVYZ"; A3="ABCDEFGHJKLMNPRSTUVYZ"
 def inv(n):
@@ -16,6 +17,7 @@ def slug(s):
     return s.translate(t).lower().replace("-","")
 AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"]
 today = datetime.date.today()
+today = onceki_is_gunu(today)   # tescil iş günlerinde yapılır: hafta sonu/resmi tatilde en yakın önceki iş gününe çekilir
 d = json.load(open("data/tahmin_data.json"))
 gec = list(csv.DictReader(open("data/seri_gecisleri.csv")))
 def robust_rate(o):
@@ -26,6 +28,23 @@ def robust_rate(o):
     rates=[(w[i][1]-w[i-1][1])/(w[i][0]-w[i-1][0]) for i in range(1,len(w)) if w[i][0]>w[i-1][0]]
     return max(statistics.median(rates), 0.01) if rates else 0.01
 def tr_date(d_): return f"{d_.day} {AYLAR[d_.month-1]} {d_.year}"
+
+CANLI_JS = """(function(){
+var T=__TABLO__,S="__START__",K="__KOD__",H=__TATIL__;
+var A1="ABCDEFGHJKLMNPRSTUVYZ",A2="ABCDEFGHIJKLMNOPRSTUVYZ",A3="ABCDEFGHJKLMNPRSTUVYZ";
+var AY=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+function inv(n){n=Math.round(n);var num=Math.max(1,Math.min(999,n%1000)),g=Math.floor(n/1000);
+ return [A1[Math.floor(g/A3.length/A2.length)]+A2[Math.floor(g/A3.length)%A2.length]+A3[g%A3.length],num];}
+var d=new Date();d=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+function iso(x){return x.getFullYear()+"-"+("0"+(x.getMonth()+1)).slice(-2)+"-"+("0"+x.getDate()).slice(-2);}
+while(d.getDay()===0||d.getDay()===6||H.indexOf(iso(d))>=0)d.setDate(d.getDate()-1);
+var p=S.split("-"),s0=new Date(+p[0],+p[1]-1,+p[2]);
+var i=Math.round((d-s0)/864e5);if(i<0)i=0;if(i>=T.length)return;
+var r=inv(T[i]),n=("00"+r[1]).slice(-3);
+var v={seri:K+" "+r[0],plaka:K+" "+r[0]+" "+n,tarih:d.getDate()+" "+AY[d.getMonth()]+" "+d.getFullYear()};
+var e=document.querySelectorAll("[data-live]");
+for(var j=0;j<e.length;j++)e[j].textContent=v[e[j].getAttribute("data-live")];
+})();"""
 iller = sorted(d["iller"], key=lambda s: s["kod"])
 nav = " · ".join(f'<a href="/il/{slug(TAM.get(s["il"], s["il"]))}">{html.escape(TAM.get(s["il"], s["il"]))}</a>' for s in iller)
 CSS = """*{box-sizing:border-box}body{margin:0;background:#f5f5f1;color:#15171c;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:16px;line-height:1.55}
@@ -131,6 +150,9 @@ for s in iller:
     _c = fc.clean(o)
     est_n = last[1] + fc.advance(o, _c, last[0], _h, rate)
     el, en = inv(est_n); ll, ln = inv(last[1])
+    # ziyaretçinin tarihine göre sayfayı tarayıcıda güncellemek için: bugünden itibaren 180 günün tahmini plaka numarası
+    tablo = [round(last[1] + fc.advance(o, _c, last[0], _h + k, rate)) for k in range(181)]
+    canli_js = CANLI_JS.replace("__KOD__", kod).replace("__START__", today.isoformat()).replace("__TATIL__", json.dumps(sorted(t.isoformat() for t in RESMI_TATIL if today <= t <= today + datetime.timedelta(days=181)), separators=(",", ":"))).replace("__TABLO__", json.dumps(tablo, separators=(",", ":")))
     hafta_seri = rate*7/1000
     trans = [t for t in gec if t["il"] == il]
     rows = "".join(f"<tr><td>{t['ilk_gorulen_yeni_tarih'][8:10]}.{t['ilk_gorulen_yeni_tarih'][5:7]}.{t['ilk_gorulen_yeni_tarih'][:4]}</td><td class='mono'>{t['onceki_harf_grubu']} → {t['yeni_harf_grubu']}</td><td class='mono'>{html.escape(t['son_gorulen_eski'])} → {html.escape(t['ilk_gorulen_yeni'])}</td></tr>" for t in trans)
@@ -178,8 +200,8 @@ for s in iller:
 <body><div class="wrap">
 <div class="eyebrow"><a href="/" style="color:inherit;text-decoration:none">Plaka Tahmini</a> · {kod} {html.escape(ad)}</div>
 <h1>{html.escape(ad)} Plaka Sırası Hangi Harfte?</h1>
-<p>Güncel gözlemlere göre {html.escape(ad)} ilinde plaka sırası şu anda tahmini olarak <b class="mono">{kod} {el}</b> serisi civarındadır. Son doğrulanmış gözlem {tr_date(last_d)} tarihinde <b class="mono">{kod} {ll} {ln:03d}</b> olarak kaydedilmiştir. Aşağıdaki araçla istediğiniz plakanın yaklaşık ne zaman çıkacağını görebilirsiniz.</p>
-<div class="plrow"><span class="plate"><span class="band">TR</span><span class="num">{kod} {el} {en:03d}</span></span><span class="tag">tahmin · {tr_date(today)}</span><a class="cta" href="/?il={s['kod']}">🔮 Canlı tahmin aracı →</a></div>
+<p>Güncel gözlemlere göre {html.escape(ad)} ilinde plaka sırası şu anda tahmini olarak <b class="mono" data-live="seri">{kod} {el}</b> serisi civarındadır. Son doğrulanmış gözlem {tr_date(last_d)} tarihinde <b class="mono">{kod} {ll} {ln:03d}</b> olarak kaydedilmiştir. Aşağıdaki araçla istediğiniz plakanın yaklaşık ne zaman çıkacağını görebilirsiniz.</p>
+<div class="plrow"><span class="plate"><span class="band">TR</span><span class="num" data-live="plaka">{kod} {el} {en:03d}</span></span><span class="tag">tahmin · <span data-live="tarih">{tr_date(today)}</span></span><a class="cta" href="/?il={s['kod']}">🔮 Canlı tahmin aracı →</a></div>
 <p class="meta">{html.escape(ad)} son aylarda haftada ortalama <b>{(s['hafta'] or 0):,} plaka</b> basıyor ve <b>~{hafta_seri:.1f} harf serisi</b> ilerliyor{" — bir seri (999 plaka) " + sure + " dayanıyor" if hafta_seri <= 3 else ""} (kaynak: wowTURKEY / Güven Hoca haftalık tabloları).</p>
 {yoy_html}
 {gozlem_html}
@@ -188,7 +210,7 @@ for s in iller:
 <div class="card">
 <h2>Sık sorulan sorular</h2>
 <h3>{html.escape(ad)} bugün hangi plaka serisinde?</h3>
-<p class="meta" style="margin:0 0 6px">Güncel tahminimiz <span class="mono">{kod} {el}</span> serisi. Kayıtlı en son gözlem {tr_date(last_d)} tarihli haftalık tabloda <span class="mono">{kod} {ll} {ln:03d}</span> idi; aradaki günler ilin olağan hızıyla ileri sarılır ve sayfa her hafta yeni tabloyla güncellenir.</p>
+<p class="meta" style="margin:0 0 6px">Güncel tahminimiz <span class="mono" data-live="seri">{kod} {el}</span> serisi. Kayıtlı en son gözlem {tr_date(last_d)} tarihli haftalık tabloda <span class="mono">{kod} {ll} {ln:03d}</span> idi; aradaki günler ilin olağan hızıyla ileri sarılır ve sayfa her hafta yeni tabloyla güncellenir.</p>
 <h3>{html.escape(ad)} plakada bir harf serisi ne kadar dayanıyor?</h3>
 <p class="meta" style="margin:0 0 6px">Son aylarda haftada ~{hafta_seri:.1f} seri ilerliyor; yani 999 plakalık bir seri {sure} içinde tükeniyor.</p>
 <h3>Belirli bir plakaya ne zaman gelinir?</h3>
@@ -196,7 +218,8 @@ for s in iller:
 </div>
 <div class="nav"><b>Tüm iller:</b> {nav}</div>
 <p class="meta" style="font-size:12px;color:#7d8491;margin-top:14px">Veri: wowturkey.com "Türkiye Genelindeki Araç Plakalarının Gelişimi" başlığı (Güven_Hoca). Sayı biçimleri yaklaşıktır; ilk/son harfte I ve O kullanılmaz.</p>
-</div></body></html>"""
+</div>
+<script>{canli_js}</script></body></html>"""
     open(f"il/{sl}.html","w").write(page.replace(",", ".", 0))
     urls.append(f"{BASE}/il/{sl}")
 open("sitemap.xml","w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"  <url><loc>{u}</loc><lastmod>{today.isoformat()}</lastmod><changefreq>weekly</changefreq></url>" for u in urls) + "\n</urlset>\n")
