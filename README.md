@@ -13,5 +13,8 @@ toplam ve haftalar-arası tutarlılık kontrolleriyle doğrulanmıştır.
 seri başına 1000 numara); hız, son ~180 gündeki aralık hızlarının medyanıdır (tek seferlik blok
 atlamalarına dayanıklı). Geriye dönük testte medyan hata ~7 gün.
 
-Güncelleme: yeni haftalık tablo işlendiğinde `index.html` içindeki gömülü `DATA` yenilenip
-push edilir (üretim akışı: plakaTR projesindeki `scripts/`).
+Güncelleme: forumdaki yeni tablo okunup `plakalar.txt` ("01 BIE 404, ...") ve `hft.txt` ("İstanbul 9451", ...)
+dosyalarına yazıldıktan sonra
+`python3 tablo_ekle.py --tarih YYYY-MM-DD --plakalar plakalar.txt --hft hft.txt` çalıştırılır (önce `--kuru` ile doğrulanabilir).
+Tarih hafta sonu/resmi tatile denk gelirse bir önceki iş gününe çekilir (`is_gunu.py`); gömülü `DATA`,
+`data/` dosyaları, il sayfaları ve sitemap güncellenir. Ardından commit/push edilir.
