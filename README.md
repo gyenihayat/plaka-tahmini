@@ -18,3 +18,6 @@ dosyalarına yazıldıktan sonra
 `python3 tablo_ekle.py --tarih YYYY-MM-DD --plakalar plakalar.txt --hft hft.txt` çalıştırılır (önce `--kuru` ile doğrulanabilir).
 Tarih hafta sonu/resmi tatile denk gelirse bir önceki iş gününe çekilir (`is_gunu.py`); gömülü `DATA`,
 `data/` dosyaları, il sayfaları ve sitemap güncellenir. Ardından commit/push edilir.
+
+Sitemap `lastmod`: ana sayfada verideki en son gözlem günü; il sayfalarında yalnızca sayfanın anlamlı içeriği (canlı tahmin alanları ve JS hariç) değiştiyse üretim günü, aksi hâlde önceki değer korunur.
+`generate_il_pages.py --bugun YYYY-MM-DD` yalnızca tahmin tarihini sabitler; "son gözlem" tarihleri her zaman veriden gelir.
