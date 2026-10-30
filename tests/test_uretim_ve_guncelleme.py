@@ -8,7 +8,7 @@ from test_il_sayfasi import veri, slug, TAM, inv, tr, E0
 
 class ProductionYollari(unittest.TestCase):
     def test_varliklar_mevcut_ve_git_tarafindan_yok_sayilmiyor(self):
-        for f in ("assets/takvim.js", "assets/tahmin-motoru.js", "assets/il-arac.js", "assets/ana-sayfa.js"):
+        for f in ("assets/olcum.js", "assets/takvim.js", "assets/tahmin-motoru.js", "assets/il-arac.js", "assets/ana-sayfa.js"):
             self.assertTrue(os.path.isfile(os.path.join(u.ROOT, f)), f)
             self.assertEqual(subprocess.run(["git", "check-ignore", "-q", f], cwd=u.ROOT).returncode, 1, f"{f} .gitignore tarafından yok sayılıyor")
         self.assertNotIn("assets", u.oku(os.path.join(u.ROOT, ".gitignore")))
@@ -22,11 +22,11 @@ class ProductionYollari(unittest.TestCase):
         ana = u.oku(os.path.join(u.ROOT, "index.html")); self.assertLess(ana.index('src="/assets/takvim.js"'), ana.index('src="/assets/tahmin-motoru.js"')); self.assertLess(ana.index('src="/assets/tahmin-motoru.js"'), ana.index("const DATA = "))
         for yol in glob.glob(os.path.join(u.ROOT, "il", "*.html")):
             h = u.oku(yol); m = re.findall(r'<script src="(/assets/[^"]+)"( defer)?>', h)
-            self.assertEqual([x[0] for x in m], ["/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/il-arac.js"], yol); self.assertTrue(all(x[1] for x in m), yol)
+            self.assertEqual([x[0] for x in m], ["/assets/olcum.js", "/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/il-arac.js"], yol); self.assertTrue(all(x[1] for x in m), yol)
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_js_sozdizimi_gecerli(self):
-        for f in ("takvim.js", "tahmin-motoru.js", "il-arac.js", "ana-sayfa.js"):
+        for f in ("olcum.js", "takvim.js", "tahmin-motoru.js", "il-arac.js", "ana-sayfa.js"):
             r = subprocess.run([u.NODE, "--check", os.path.join(u.ROOT, "assets", f)], capture_output=True, text=True); self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_temiz_url_ve_varlik_http_200_dogru_icerik_turu(self):
@@ -39,7 +39,7 @@ class ProductionYollari(unittest.TestCase):
         s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
         srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(H, directory=u.ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start()
         try:
-            for yol in ("/il/konya", "/il/istanbul", "/", "/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/il-arac.js", "/assets/ana-sayfa.js"):
+            for yol in ("/il/konya", "/il/istanbul", "/", "/assets/olcum.js", "/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/il-arac.js", "/assets/ana-sayfa.js"):
                 with urllib.request.urlopen(f"http://127.0.0.1:{port}{yol}") as r: self.assertEqual(r.status, 200, yol); tur = r.headers.get_content_type()
                 if yol.endswith(".js"): self.assertIn(tur, ("text/javascript", "application/javascript"), yol)
         finally: srv.shutdown(); srv.server_close()

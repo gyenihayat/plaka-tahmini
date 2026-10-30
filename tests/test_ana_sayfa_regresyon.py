@@ -6,8 +6,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _util as u
 CHROME = next((p for p in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", shutil.which("google-chrome") or "", shutil.which("chromium") or "") if p and os.path.exists(p)), None)
 ESKI_COMMIT = "9b65ce4"
-# Testler üretim ziyaret sayacına ASLA istek atmamalı: ana sayfa abacus.jasoncameron.dev'e "ziyaret" vuruşu yapar; tarayıcıda bu ad çözümlenmez.
-CHROME_TEMEL = [CHROME, "--headless=new", "--disable-gpu", "--host-resolver-rules=MAP abacus.jasoncameron.dev ~NOTFOUND"]
+# Testler üretim sayaçlarına/analitiğe ASLA istek atmamalı: ana sayfa abacus.jasoncameron.dev'e "ziyaret" vuruşu yapar, olcum.js ise (yalnızca plakatahmini.com'da) GoatCounter'ı yükler.
+# Birinci koruma sayfa tarafındaki alan adı denetimi (olcum.js), ikincisi bu: tarayıcıda bu adlar çözümlenmez.
+ENGELLENEN_ALAN_ADLARI = ("abacus.jasoncameron.dev", "*.goatcounter.com", "gc.zgo.at")
+CHROME_TEMEL = [CHROME, "--headless=new", "--disable-gpu", "--host-resolver-rules=" + ", ".join(f"MAP {a} ~NOTFOUND" for a in ENGELLENEN_ALAN_ADLARI)]
 
 @unittest.skipUnless(CHROME and u.NODE, "Chrome/Node yok")
 class AnaSayfaRegresyon(unittest.TestCase):

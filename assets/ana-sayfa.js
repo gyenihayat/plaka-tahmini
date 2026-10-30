@@ -34,6 +34,8 @@ const PlakaAnaSayfa = (function () {
       k.querySelector('[data-kart="seri"]').textContent = b.seri; k.querySelector('[data-kart="tarih"]').textContent = b.tarih;
     });
   }
+  // Analitik olayı (olcum.js yüklü değilse ya da üretimde değilsek sessizce yok sayılır); yalnızca sabit olay adları, içerik gönderilmez
+  const olay = ad => { try { if (typeof PlakaOlcum !== "undefined") PlakaOlcum.olay(ad); } catch (e) { /* ölçüm hatası sayfayı etkilemez */ } };
   function uyar(doc, mesaj) { const u = doc.getElementById("kart-uyari"); if (u) { u.textContent = mesaj; u.hidden = false; } }
 
   function baslat() {
@@ -46,9 +48,16 @@ const PlakaAnaSayfa = (function () {
     const liste = [].map.call(document.querySelectorAll("#il-liste option"), o => ({ ad: o.getAttribute("data-ad"), kod: +o.getAttribute("data-kod"), slug: o.getAttribute("data-slug") }));
     form.addEventListener("submit", e => {
       e.preventDefault(); const o = ilBul(giris.value, liste);
-      if (o.tip === "tamam") { hata.textContent = ""; location.assign("/il/" + o.il.slug); return; }
-      hata.textContent = MESAJ(o, giris.value); giris.focus();
+      if (o.tip === "tamam") { hata.textContent = ""; olay("ana-il-ara"); location.assign("/il/" + o.il.slug); return; }
+      olay("ana-il-ara-hata"); hata.textContent = MESAJ(o, giris.value); giris.focus();
     });
+    // Üç büyük il kartı: tıklama (kart adresi herkese açık il adresidir)
+    document.querySelectorAll(".kart[data-il]").forEach(k => k.addEventListener("click", () => olay("ana-kart-tikla/" + String(k.getAttribute("href")).replace(/^\/il\//, ""))));
+    // Hesaplayıcı: index.html'deki calcTarget işleyicileri bu dinleyicilerden ÖNCE çalışır; sonuç kutusunun görünürlüğü sonucu söyler (içerik okunmaz/gönderilmez)
+    const sonuc = () => olay(document.getElementById("target-res").style.display === "none" ? "ana-hesapla-hata" : "ana-hesapla-sonuc");
+    const hBtn = document.getElementById("btn-target"), hGiris = document.getElementById("target");
+    if (hBtn) hBtn.addEventListener("click", () => { olay("ana-hesapla-basla"); sonuc(); });
+    if (hGiris) hGiris.addEventListener("keydown", e => { if (e.key === "Enter") { olay("ana-hesapla-basla"); sonuc(); } });
     const cta = document.querySelector('a.cta[href="#hesapla"]');
     if (cta) cta.addEventListener("click", () => setTimeout(() => { const h = document.getElementById("target"); if (h) h.focus({ preventScroll: true }); }, 0));
   }

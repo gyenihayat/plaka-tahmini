@@ -70,4 +70,11 @@ class MotorYuklenemezse(unittest.TestCase):
         self.assertTrue(r["uyari"])                                                      # canlı tahmin güncellenemediği kullanıcıya görünür
         self.assertEqual(r["sw"], r["cw"]); self.assertEqual(r["nwSatir"], 1)           # statik içerik ve yerleşim bozulmaz
 
+@unittest.skipUnless(CHROME, "Chrome yok")
+class AnalitikYuklenmezse(unittest.TestCase):
+    def test_olcum_betigi_yuklenemezse_arac_ve_sayfa_calisir(self):
+        r = calistir(["/il/konya"], [375], engelle=("/assets/olcum.js",))
+        il = r[0]; self.assertFalse(il["sonucTahmin"]["alert"]); self.assertIn("±", il["sonucTahmin"]["metin"]); self.assertTrue(il["sonucHata"]["alert"]); self.assertFalse(il["uyari"])      # analitik yok: araç sorunsuz
+        self.assertEqual(il["sw"], il["cw"])
+
 if __name__ == "__main__": unittest.main()

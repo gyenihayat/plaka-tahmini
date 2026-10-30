@@ -43,6 +43,11 @@ def tr_date(d_): return f"{d_.day} {AYLAR[d_.month-1]} {d_.year}"
 def sayi(n): return f"{n:,.0f}".replace(",", ".")                 # Türkçe binlik ayracı: 1.802
 def ondalik(x): return f"{x:.1f}".replace(".", ",")              # Türkçe ondalık ayracı: 1,8
 ANA_SAYFA_KARTLARI = (34, 6, 35)   # ana sayfadaki büyük il kartları (plaka kodu): İstanbul, Ankara, İzmir; değerler veriden hesaplanır, sabit yazılmaz
+# Analitik bilgilendirmesi (görünür, kısa). Doğrulanmamış iddia yok: çerez/saklama süresi gibi konular burada ele alınmaz, hizmetin kendi gizlilik sayfasına bağlanır.
+OLCUM_NOTU_IL = ('<p class="olcum-notu">Bu sitede sayfa görüntüleme ve özellik kullanımı (hesaplama, il arama gibi) sayıları, üçüncü taraf bir analitik hizmeti olan '
+                 '<a href="https://www.goatcounter.com/privacy" rel="noopener">GoatCounter</a> ile ölçülür; hizmete sayfa adresi, yönlendiren site ve tarayıcı/ekran bilgisi gibi standart ziyaret verileri iletilir. '
+                 'Girdiğiniz plaka, il arama metni veya forma yazdığınız diğer içerikler gönderilmez.</p>')
+OLCUM_NOTU_ANA = OLCUM_NOTU_IL[:-4] + ' Bu sayfadaki ziyaret sayacı da ayrı bir üçüncü taraf hizmete (abacus.jasoncameron.dev) istek gönderir.</p>'
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
 
 CANLI_JS = """(function(){
@@ -83,7 +88,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 .yoy{overflow-x:auto;-webkit-overflow-scrolling:touch}.yoy table{min-width:560px}.yoy td.n,.yoy th.n{text-align:right;white-space:nowrap}
 .yoy td.p{color:#5b6370;font-style:italic}.yoy tr.pct td{font-weight:600;background:#f3f4f7}.yoy .up{color:#1a7f4b}.yoy .dn{color:#b3402a}
 .kaydir{overflow-x:auto;-webkit-overflow-scrolling:touch}td.mono{white-space:nowrap}.fn{font-size:14px;color:#5b6370;margin:8px 0 0}
-.iller p{margin:0 0 8px;font-size:15px;line-height:1.9}.iller b{display:inline-block;min-width:1.4em;color:#5b6370}.iller a{margin-right:8px;white-space:nowrap}"""
+.olcum-notu{font-size:14px;line-height:1.5;color:#5b6370;margin:22px 0 0}.iller p{margin:0 0 8px;font-size:15px;line-height:1.9}.iller b{display:inline-block;min-width:1.4em;color:#5b6370}.iller a{margin-right:8px;white-space:nowrap}"""
 
 # --- 2 aylık dönemlerde geçen yıla kıyasla ilerleme -------------------------------------------------
 DONEMLER = [(1,3,"Oca–Şub"),(3,5,"Mar–Nis"),(5,7,"May–Haz"),(7,9,"Tem–Ağu"),(9,11,"Eyl–Eki"),(11,13,"Kas–Ara")]
@@ -242,9 +247,11 @@ def ana_sayfa_guncelle():
     h = _bolge(h, "<!--ANA:KARTLAR-->", "<!--/ANA:KARTLAR-->", kart_html)
     h = _bolge(h, "<!--ANA:IL-LISTE-->", "<!--/ANA:IL-LISTE-->", liste_html)
     h = _bolge(h, "<!--ANA:IL-BAGLANTILAR-->", "<!--/ANA:IL-BAGLANTILAR-->", bag_html)
+    h = _bolge(h, "<!--ANA:OLCUM-NOTU-->", "<!--/ANA:OLCUM-NOTU-->", OLCUM_NOTU_ANA)
     # Anlamlı içerik parmak izi: kartlardaki günlük seri/tarih değişimi tek başına yeni içerik SAYILMAZ; gözlem verisi (DATA), metin, şablon ve CSS değişimi sayılır.
     # İz index.html içinde saklanır (git'e ya da saate bağlı değil); değişmediyse sitemap lastmod'u korunur.
-    _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:seri|tarih)">)[^<]*', r"\1", h), flags=re.S)       # izin kendisi ve günlük değerler girdiye katılmaz
+    _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:seri|tarih)">)[^<]*', r"\1", h), flags=re.S)
+    _iz_girdisi = re.sub(r"<!--ANA:OLCUM-NOTU-->.*?<!--/ANA:OLCUM-NOTU-->\n|<!--OLCUM-->.*?<!--/OLCUM-->\n", "", _iz_girdisi, flags=re.S)       # analitik betiği/notu anlamlı içerik değildir       # izin kendisi ve günlük değerler girdiye katılmaz
     yeni_iz = hashlib.sha256(_iz_girdisi.encode("utf-8")).hexdigest()[:16]
     h = _bolge(h, "<!--ANA:SURUM-->", "<!--/ANA:SURUM-->", yeni_iz)
     with open("index.html", "w", encoding="utf-8") as f: f.write(h)
@@ -256,6 +263,7 @@ def ana_sayfa_guncelle():
 # metin/şablon değişikliği ya da başka bir gerçek içerik farkı varsa üretim günü (GERCEK_BUGUN) yazılır.
 ESKI_LASTMOD = dict(re.findall(r"<loc>([^<]+)</loc>\s*<lastmod>([^<]+)</lastmod>", open("sitemap.xml", encoding="utf-8").read())) if os.path.exists("sitemap.xml") else {}
 def anlamli(h):
+    h = re.sub(r"<!--OLCUM-->.*?<!--/OLCUM-->\n", "", h, flags=re.S)             # analitik betiği ve bilgilendirme notu lastmod'u oynatmaz
     h = re.sub(r"<script>\(function.*?</script>", "", h, flags=re.S)
     h = re.sub(r'data-baslangic="[^"]*"', 'data-baslangic=""', h)
     return re.sub(r'(data-live="\w+">)[^<]*', r"\1", h)
@@ -330,9 +338,9 @@ for s in iller:
     arac = (f'<section class="arac" id="hesapla" aria-labelledby="arac-baslik"><h2 id="arac-baslik">Hedef plakanın tahmini tarihi</h2>'
             f'<form id="hedef-form" action="/" method="get" autocomplete="off" novalidate><input type="hidden" name="il" value="{s["kod"]}">'
             f'<label for="hedef">{html.escape(ad)} için hedef plaka veya seri</label>'
-            f'<div class="alan"><input id="hedef" name="hedef" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="örn. {ll[0]}ZZ 999" aria-describedby="hedef-ipucu"><button type="submit">Hesapla</button></div>'
+            f'<div class="alan"><input id="hedef" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="örn. {ll[0]}ZZ 999" aria-describedby="hedef-ipucu"><button type="submit">Hesapla</button></div>'
             f'<p id="hedef-ipucu" class="ipucu">Harf grubu ve isteğe bağlı numara (örn. {ll} veya {ll} 500). İl bu sayfadan alınır. <a href="/?il={s["kod"]}">Ana sayfada aç</a></p>'
-            f'<details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary><label for="atla">Verilmeyeceğini düşündüğünüz seriler</label><input id="atla" name="atla" type="text" autocapitalize="characters" spellcheck="false" placeholder="örn. SXX, TXX" aria-describedby="atla-ipucu"><p id="atla-ipucu" class="ipucu">Harf, iki harf (X joker) veya aralık: SXX, TXX, BAA-BCZ.</p></details>'
+            f'<details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary><label for="atla">Verilmeyeceğini düşündüğünüz seriler</label><input id="atla" type="text" autocapitalize="characters" spellcheck="false" placeholder="örn. SXX, TXX" aria-describedby="atla-ipucu"><p id="atla-ipucu" class="ipucu">Harf, iki harf (X joker) veya aralık: SXX, TXX, BAA-BCZ.</p></details>'
             f'</form><div id="sonuc" class="sonuc" aria-live="polite"></div></section>')
     page = f"""<!doctype html>
 <html lang="tr">
@@ -377,9 +385,11 @@ for s in iller:
 {nasil}
 {kaynak}
 {DIGER_ILLER}
+<!--OLCUM-->{OLCUM_NOTU_IL}<!--/OLCUM-->
 </main>
 <script type="application/json" id="il-veri">{il_veri}</script>
 <script>{canli_js}</script>
+<!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->
 <script src="/assets/takvim.js" defer></script>
 <script src="/assets/tahmin-motoru.js" defer></script>
 <script src="/assets/il-arac.js" defer></script>

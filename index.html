@@ -57,7 +57,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 .yoy{overflow-x:auto;-webkit-overflow-scrolling:touch}.yoy table{min-width:560px}.yoy td.n,.yoy th.n{text-align:right;white-space:nowrap}
 .yoy td.p{color:#5b6370;font-style:italic}.yoy tr.pct td{font-weight:600;background:#f3f4f7}.yoy .up{color:#1a7f4b}.yoy .dn{color:#b3402a}
 .kaydir{overflow-x:auto;-webkit-overflow-scrolling:touch}td.mono{white-space:nowrap}.fn{font-size:14px;color:#5b6370;margin:8px 0 0}
-.iller p{margin:0 0 8px;font-size:15px;line-height:1.9}.iller b{display:inline-block;min-width:1.4em;color:#5b6370}.iller a{margin-right:8px;white-space:nowrap}
+.olcum-notu{font-size:14px;line-height:1.5;color:#5b6370;margin:22px 0 0}.iller p{margin:0 0 8px;font-size:15px;line-height:1.9}.iller b{display:inline-block;min-width:1.4em;color:#5b6370}.iller a{margin-right:8px;white-space:nowrap}
 /*/ANA:TEMEL-CSS*/
 :root{--ink:#15171c;--ink-2:#4d5461;--ink-3:#5b6370;--line:#dcdfe5;--line-2:#e9ebef;--surface:#fcfcfa;--accent:#1f63bb;--accent-soft:#e3eefb;--warn-bg:#fff6e0;--warn-ink:#7a4a00;--good:#0a7a2f;--est:#7a3fb3;--band:#1f4fb0}
 .alt-baslik{font-size:1.0625rem;color:var(--ink-2);margin:0 0 20px;max-width:640px}
@@ -191,9 +191,12 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
     <span class="dim" style="font-size:13px">ziyaret</span>
     <span class="plate sm"><span class="bandx">TR</span><span class="num" id="counter-num">—</span></span>
   </div>
+<!--ANA:OLCUM-NOTU-->
+<p class="olcum-notu">Bu sitede sayfa görüntüleme ve özellik kullanımı (hesaplama, il arama gibi) sayıları, üçüncü taraf bir analitik hizmeti olan <a href="https://www.goatcounter.com/privacy" rel="noopener">GoatCounter</a> ile ölçülür; hizmete sayfa adresi, yönlendiren site ve tarayıcı/ekran bilgisi gibi standart ziyaret verileri iletilir. Girdiğiniz plaka, il arama metni veya forma yazdığınız diğer içerikler gönderilmez. Bu sayfadaki ziyaret sayacı da ayrı bir üçüncü taraf hizmete (abacus.jasoncameron.dev) istek gönderir.</p>
+<!--/ANA:OLCUM-NOTU-->
 </main>
 <!--ANA:SURUM-->
-bd0835793b6d9051
+1bda21f7bec51ddb
 <!--/ANA:SURUM-->
 
 <script src="/assets/takvim.js"></script>
@@ -421,6 +424,7 @@ document.getElementById("btn-81").onclick = ()=>{
 document.getElementById("foot").textContent = "Yöntem: her ilin günlük/haftalık tablolarındaki seri konumu (Şub 2024 – "+dstr(lastGlobalDay)+", "+DATA.iller[0].obs.length+"± gözlem/il) nominal bir sayıya çevrilir (harf sırası A-Z, ilk/son harfte I-O yok; seri başına 1000 numara) ve hız, son 365 gündeki ardışık gözlem aralıklarının hızlarının medyanı olarak alınır. Gelecek tahmini, bu hız ile geçen yılın aynı takvim aralığındaki gerçek ilerlemenin ortalamasıdır (mevsim etkisi: bayram, yaz, yıl başı); 1 yıldan uzak tarihlerde geçen yıl tam yıl tekrarı sayılır. Bu, isim/rezerve atlamalarının olağan etkisini içerir ama tek seferlik büyük blok atlamalarını (örn. Kütahya'nın 30.04.2026'da ADZ'den AHZ'ye sıçraması) hıza karıştırmaz — böyle bir atlama tespit edilirse ayrıca belirtilir; gelecekte tekrarı öngörülemez, bu yüzden ulaşma tarihleri bu ihtimali içermez. Geriye dönük test (2025-2026, 81 il, haftalık başlangıçlar): yalnız son 180 günün hızına göre hata 30 günlük ufukta ~%20, 90 günlükte ~%25, 180 günlükte ~%30 azalır (medyan hata 60 günde ~5,5 gün, 90 günde ~8 gün); güvenilirlik sütunu 60 günlük ufuktaki bu geriye dönük hatadan gelir; düzensiz ilerleyen küçük illerde (örn. Şanlıurfa, Diyarbakır, Hakkari) sapma büyük olabilir. Numara kısmı yaklaşıktır (iller 001/012/101 gibi farklı başlangıçlar kullanır).";
 applyExcl();
 </script>
+<!--OLCUM--><script src="/assets/olcum.js"></script><!--/OLCUM-->
 <script src="/assets/ana-sayfa.js"></script>
 </body>
 </html>

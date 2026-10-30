@@ -38,6 +38,8 @@ const PlakaIlArac = (function () {
     return { tip: "tahmin", plaka, gun: r.day, err: r.err, yil, atlanan: r.atlanan || 0, sonGun, uyarilar };
   }
 
+  // Analitik olayı (olcum.js yüklü değilse ya da üretimde değilsek sessizce yok sayılır)
+  const olay = ad => { try { if (typeof PlakaOlcum !== "undefined") PlakaOlcum.olay(ad); } catch (e) { /* ölçüm hatası aracı etkilemez */ } };
   function satir(ad, metin) { const p = document.createElement("p"); p.className = ad; p.textContent = metin; return p; }
   function goster(kutu, o) {
     kutu.textContent = "";
@@ -79,9 +81,9 @@ const PlakaIlArac = (function () {
     try { const g = guncelTahmin(document, s); if (g.kapsamDisi) uyar(document, KAPSAM_DISI); } catch (err) { console.error("plakatahmini: canlı tahmin güncellenemedi", err); uyar(document, GUNCELLENEMEDI); }
     const bugunGun = () => trReferansGun().gun;                          // ana sayfadaki todayDay ile aynı: referans gün (önceki iş günü)
     form.addEventListener("submit", e => {
-      e.preventDefault();
-      try { goster(kutu, hesapla(s, hedef.value, atla ? atla.value : "", bugunGun())); }
-      catch (err) { console.error("plakatahmini: hesaplama başarısız", err); kutu.textContent = ""; const p = satir("hata", "Hesaplama yapılamadı. Ana sayfadaki aracı deneyin."); p.setAttribute("role", "alert"); kutu.appendChild(p); }
+      e.preventDefault(); olay("il-hesapla-basla");                      // anonim olay: yalnızca ad; girdi metni gönderilmez
+      try { const o = hesapla(s, hedef.value, atla ? atla.value : "", bugunGun()); goster(kutu, o); olay(o.tip === "hata" || o.tip === "baska_il" ? "il-hesapla-hata" : "il-hesapla-sonuc"); }
+      catch (err) { console.error("plakatahmini: hesaplama başarısız", err); olay("il-hesapla-hata"); kutu.textContent = ""; const p = satir("hata", "Hesaplama yapılamadı. Ana sayfadaki aracı deneyin."); p.setAttribute("role", "alert"); kutu.appendChild(p); }
     });
     const cta = document.querySelector('a[href="#hesapla"]');
     if (cta) cta.addEventListener("click", () => setTimeout(() => hedef.focus({ preventScroll: true }), 0));

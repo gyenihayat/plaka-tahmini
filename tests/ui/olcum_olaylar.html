@@ -1,0 +1,32 @@
+<!-- Analitik olay bağlantılarını (PlakaOlcum.kayit) ve engelleme korumasını gerçek tarayıcıda sınar. Test ortamında olcum.js hiçbir şey göndermez (host plakatahmini.com değil). tests/test_olcum.py kullanır. -->
+<!doctype html><meta charset="utf-8"><body><pre id="o">çalışıyor</pre><div id="k"></div>
+<script>
+const SAYFALAR = __SAYFALAR__, out = {sayfalar: [], il: {}, ana: {}, engel: {}};
+function yukle(src) { return new Promise(r => { const f = document.createElement("iframe"); f.style.cssText = "width:900px;height:700px;border:0"; f.onload = () => setTimeout(() => r(f), 80); f.src = src; document.getElementById("k").appendChild(f); }); }
+const ev = (f, e) => f.contentWindow.eval(e);
+(async () => {
+  // 0) engelleme: GoatCounter ve Abacus adresleri bu tarayıcıdan ulaşılamaz (yalnızca okuma/statik adresler denenir)
+  for (const [ad, url] of [["gc.zgo.at", "https://gc.zgo.at/count.js"], ["goatcounter.com", "https://plakatahmini.goatcounter.com/"], ["abacus", "https://abacus.jasoncameron.dev/get/plaka-tahmini-vercel/ziyaret"]]) {
+    out.engel[ad] = await fetch(url, {mode: "no-cors"}).then(() => "ULASILDI", () => "engelli");
+  }
+  // 1) 82 sayfa: olcum.js yüklü, üretim dışında çalışmıyor, GoatCounter betiği DOM'a eklenmemiş
+  for (const s of SAYFALAR) {
+    const f = await yukle(s);
+    out.sayfalar.push({s, tur: ev(f, "typeof PlakaOlcum"), uygun: ev(f, "PlakaOlcum.uygun()"), gc: !!f.contentWindow.document.querySelector("script[data-goatcounter]"), gcNesne: ev(f, "typeof window.goatcounter"), kayit: ev(f, "PlakaOlcum.kayit.length")});
+    f.remove();
+  }
+  // 2) il sayfası: hesaplayıcı olayları
+  { const f = await yukle("/il/konya"), w = f.contentWindow, d = w.document, form = d.getElementById("hedef-form"), g = (v, ex) => { d.getElementById("hedef").value = v; d.getElementById("atla").value = ex || ""; const once = ev(f, "PlakaOlcum.kayit.length"); form.dispatchEvent(new w.Event("submit", {cancelable: true})); return ev(f, "PlakaOlcum.kayit").slice(once); };
+    out.il = {gecerli: g("BZZ 999"), gecersiz: g("IAA"), bos: g(""), baska: g("06 GAA"), kod: g("99 AAA"), dislanan: g("BZZ 999", "BXX"), yok: g("BZZ 999", "SXY")}; f.remove(); }
+  // 3) ana sayfa: hesaplayıcı, il araması, kartlar
+  { const f = await yukle("/"), w = f.contentWindow, d = w.document, gi = id => d.getElementById(id), kayit = () => ev(f, "PlakaOlcum.kayit.slice()");
+    const sur = (v, enter) => { const once = kayit().length; gi("target").value = v; if (enter) gi("target").dispatchEvent(new w.KeyboardEvent("keydown", {key: "Enter", bubbles: true})); else gi("btn-target").click(); return kayit().slice(once); };
+    out.ana.hesapla = {gecerli: sur("BZZ 999"), gecersiz: sur("IAA"), enter: sur("BZZ 999", true), enterHata: sur("IAA", true)};
+    const gir = v => { const once = kayit().length; gi("il-ara").value = v; gi("il-form").dispatchEvent(new w.Event("submit", {cancelable: true})); return kayit().slice(once); };
+    out.ana.araHata = gir("k"); out.ana.araBos = gir(""); f.remove(); }
+  { const f = await yukle("/"), w = f.contentWindow, d = w.document; d.getElementById("il-ara").value = "Konya"; d.getElementById("il-form").dispatchEvent(new w.Event("submit", {cancelable: true})); out.ana.araBasari = ev(f, "PlakaOlcum.kayit.slice()"); f.remove(); }
+  out.ana.kartlar = [];
+  for (const sl of ["istanbul", "ankara", "izmir"]) { const f = await yukle("/"), d = f.contentWindow.document; d.querySelector('.kart[href="/il/' + sl + '"]').click(); out.ana.kartlar.push(ev(f, "PlakaOlcum.kayit.slice()")); f.remove(); }
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+})();
+</script>
