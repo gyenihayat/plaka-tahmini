@@ -7,14 +7,15 @@ import _util as u
 
 class YenidenUretimKararli(unittest.TestCase):
     def test_81_sayfa_ve_sitemap_baytca_ayni(self):
-        start = u.sayfa_bilgisi(os.path.join(u.ROOT, "il", "konya.html"))[0]
+        start = u.sayfa_bilgisi(os.path.join(u.ROOT, "il", "konya.html"))
         d = u.kopya(ekstra=("sitemap.xml",))
         try:
             shutil.copytree(os.path.join(u.ROOT, "il"), os.path.join(d, "il"), dirs_exist_ok=True)
+            os.makedirs(os.path.join(d, "assets"), exist_ok=True)
             r = u.uret(d, "--bugun", start); self.assertEqual(r.returncode, 0, r.stderr)
             sayfalar = sorted(glob.glob(os.path.join(u.ROOT, "il", "*.html"))); self.assertEqual(len(sayfalar), 81)
             farkli = []
-            for yol in sayfalar + [os.path.join(u.ROOT, "sitemap.xml")]:
+            for yol in sayfalar + [os.path.join(u.ROOT, "sitemap.xml"), os.path.join(u.ROOT, "assets", "takvim.js")]:
                 gorece = os.path.relpath(yol, u.ROOT)
                 with open(yol, "rb") as a, open(os.path.join(d, gorece), "rb") as b:
                     if a.read() != b.read(): farkli.append(gorece)

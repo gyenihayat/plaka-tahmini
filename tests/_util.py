@@ -22,12 +22,13 @@ def uret(dizin, *args):
 def oku(yol):
     with open(yol, encoding="utf-8") as f: return f.read()
 
-def js_sonuc(sayfa, tarihler, hata=False):
-    """Sayfadaki satır içi JS'i, tarayıcı tarihi 'tarihler' (ISO) olarak taklit edip çalıştırır."""
-    r = subprocess.run([NODE, JS_SIM, sayfa, ",".join(tarihler)] + (["hata"] if hata else []), capture_output=True, text=True, check=True)
-    return json.loads(r.stdout)
-
 def sayfa_bilgisi(sayfa):
-    """Sayfadan START tarihini ve JS tatil listesini (H) okur."""
-    h = oku(sayfa)
-    return re.search(r'S="([^"]+)"', h)[1], json.loads(re.search(r"H=(\[[^\]]*\])", h)[1])
+    """Sayfadan tahmin başlangıç tarihini (üretim günü, data-baslangic) okur."""
+    return re.search(r'data-baslangic="([^"]+)"', oku(sayfa))[1]
+
+def canli_sonuc(sayfa, anlar_ms, tz=None):
+    """Sayfadaki canlı güncellemeyi (güncellik denetimi + il-arac.js guncelTahmin) verilen UTC anlarında (ms) çalıştırır; TZ ortam değişkeniyle tarayıcı saat dilimi taklit edilir."""
+    env = dict(os.environ)
+    if tz: env["TZ"] = tz
+    r = subprocess.run([NODE, os.path.join(ROOT, "tests", "ui", "il_canli_cikti.js"), sayfa, ",".join(str(a) for a in anlar_ms)], capture_output=True, text=True, check=True, env=env)
+    return json.loads(r.stdout)

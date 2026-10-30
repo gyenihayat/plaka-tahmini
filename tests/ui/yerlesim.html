@@ -1,0 +1,25 @@
+<!-- İl sayfası yerleşim ve araç etkileşimi harness'ı: her sayfa her genişlikte bir iframe'de açılır ve ölçülür. tests/test_il_yerlesim.py kullanır. -->
+<!doctype html><meta charset="utf-8"><body style="margin:0"><pre id="o">çalışıyor</pre><div id="k"></div>
+<script>
+const SAYFALAR = __SAYFALAR__, GENISLIKLER = __GENISLIKLER__, ETKILESIM = __ETKILESIM__, YUKSEKLIK = 700, out = [];
+function yukle(src, w) { return new Promise(r => { const f = document.createElement("iframe"); f.style.cssText = `width:${w}px;height:${YUKSEKLIK}px;border:0;display:block`; f.onload = () => setTimeout(() => r(f), 30); f.src = src; document.getElementById("k").appendChild(f); }); }
+(async () => {
+  for (const sayfa of SAYFALAR) for (const w of GENISLIKLER) {
+    const f = await yukle(sayfa, w), win = f.contentWindow, d = win.document, de = d.documentElement, cw = de.clientWidth, r = {sayfa, w, cw, sw: de.scrollWidth, tasan: []};
+    const kapsam = e => !!e.closest(".yoy, .kaydir, details:not([open]) > :not(summary)");
+    d.querySelectorAll("body *").forEach(e => { const b = e.getBoundingClientRect(); if (b.width && b.right > cw + 0.5 && !kapsam(e)) r.tasan.push(e.tagName.toLowerCase() + "." + e.className); });
+    const q = s => d.querySelector(s), px = (e, p) => e ? parseFloat(win.getComputedStyle(e)[p]) : null;
+    const buyuk = q(".buyuk"), cta = q(".cta"), hedef = q("#hedef"), nw = q(".metrik .nw"), h1 = q("h1");
+    r.buyukPx = px(buyuk, "fontSize"); r.buyukSatir = buyuk ? Math.round(buyuk.getBoundingClientRect().height / px(buyuk, "lineHeight")) : null;
+    r.vPx = px(q(".metrik .v"), "fontSize"); r.h1Px = px(h1, "fontSize"); r.h2Px = px(q("details.bolum > summary h2"), "fontSize"); r.govdePx = px(d.body, "fontSize");
+    r.ctaAlt = cta ? Math.round(cta.getBoundingClientRect().bottom) : null; r.hedefUst = hedef ? Math.round(hedef.getBoundingClientRect().top) : null; r.nwSatir = nw ? nw.getClientRects().length : null;
+    r.uyari = !!(d.getElementById("guncellik") && !d.getElementById("guncellik").hidden); r.etiketli = !!(hedef && d.querySelector('label[for="hedef"]')) && hedef.getAttribute("aria-describedby") === "hedef-ipucu";
+    if (ETKILESIM && w === GENISLIKLER[0]) {
+      const form = d.getElementById("hedef-form"), sonuc = d.getElementById("sonuc"), gir = (v) => { hedef.value = v; form.dispatchEvent(new win.Event("submit", {cancelable: true})); return {metin: sonuc.textContent, alert: !!sonuc.querySelector('[role="alert"]')}; };
+      r.sonucTahmin = gir("BZZ 999"); r.sonucHata = gir("IAA"); r.sonucBos = gir(""); r.sonucBaska = gir("99 AAA");
+    }
+    f.remove(); out.push(r);
+  }
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+})();
+</script>

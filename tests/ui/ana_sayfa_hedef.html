@@ -1,0 +1,15 @@
+<!-- Ana sayfa hesaplayıcısını senaryolarla sürer ve #target-out/#target-warn metinlerini döndürür (il sayfası aracıyla eşlik testi). tests/test_il_arac.py kullanır. -->
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="/index.html" width="900" height="900"></iframe><pre id="o">çalışıyor</pre>
+<script>
+const SENARYOLAR = __SENARYOLAR__;
+document.getElementById("f").addEventListener("load", () => setTimeout(() => {
+  const w = document.getElementById("f").contentWindow, d = w.document, g = id => d.getElementById(id), out = [];
+  for (const sc of SENARYOLAR) {
+    g("il").value = sc.il; g("il").dispatchEvent(new w.Event("change"));
+    g("excl").value = sc.excl || ""; g("excl").dispatchEvent(new w.Event("input"));
+    g("target").value = sc.hedef; g("btn-target").click();
+    out.push({out: g("target-res").style.display === "none" ? "" : g("target-out").textContent, warn: g("target-warn").style.display === "none" ? "" : g("target-warn").textContent, res: g("target-res").style.display});
+  }
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+}, 100));
+</script>

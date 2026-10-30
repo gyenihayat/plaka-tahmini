@@ -1,0 +1,26 @@
+<!-- Ana sayfa "bugün" tahmini ile il sayfası büyük tahmini aynı (sabitlenmiş) anda karşılaştırılır. Date.now() her iframe'e enjekte edilir. tests/test_tarih_tutarliligi.py kullanır. -->
+<!doctype html><meta charset="utf-8"><body><pre id="o">çalışıyor</pre><div id="k"></div>
+<script>
+const ILLER = __ILLER__, ANLAR = __ANLAR__, BASLANGIC_MS = __BASLANGIC__, out = [];
+async function yukle(url, an) {
+  const t = await (await fetch(url)).text();
+  return new Promise(r => { const f = document.createElement("iframe"); f.style.cssText = "width:900px;height:700px;border:0"; f.onload = () => setTimeout(() => r(f), 30);
+    f.srcdoc = t.replace("<head>", "<head><script>Date.now=function(){return " + an + "}<\/script>"); document.getElementById("k").appendChild(f); });
+}
+(async () => {
+  for (const an of ANLAR) {
+    const m = await yukle("/index.html", an), md = m.contentWindow.document, sel = md.getElementById("il");
+    for (const il of ILLER) {
+      sel.value = il.il; sel.dispatchEvent(new m.contentWindow.Event("change"));
+      const kayit = {an, il: il.il, ana: md.getElementById("plate-num").textContent, anaDt: md.getElementById("dt").value, anaTag: md.getElementById("tag").textContent, seri: null, tarih: null, uyari: null};
+      if (an >= BASLANGIC_MS) {      // il sayfası başlangıç (üretim referans günü) öncesindeki saatlerde başlangıç tarihine sabitlenir; yalnızca ana sayfa kontrol edilir
+        const p = await yukle("/il/" + il.slug, an), d = p.contentWindow.document, g = s => { const e = d.querySelector(s); return e ? e.textContent : null; };
+        kayit.seri = g('.buyuk[data-live="seri"]'); kayit.tarih = g('.alt [data-live="tarih"]'); kayit.uyari = !d.getElementById("guncellik").hidden; p.remove();
+      }
+      out.push(kayit);
+    }
+    m.remove();
+  }
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+})();
+</script>
