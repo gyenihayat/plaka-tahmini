@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """81 il sayfasını data/tahmin_data.json + data/seri_gecisleri.csv'den üretir; sitemap.xml'i yeniler."""
-import json, csv, datetime, statistics, html, bisect
+import json, csv, datetime, statistics, html, bisect, argparse, sys
 import forecast as fc
 from is_gunu import RESMI_TATIL, onceki_is_gunu
 
@@ -16,8 +16,14 @@ def slug(s):
     t = str.maketrans("çğıöşüÇĞİÖŞÜâ. ","cgiosucgiosua--")
     return s.translate(t).lower().replace("-","")
 AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"]
-today = datetime.date.today()
-today = onceki_is_gunu(today)   # tescil iş günlerinde yapılır: hafta sonu/resmi tatilde en yakın önceki iş gününe çekilir
+_ap = argparse.ArgumentParser(description=__doc__)
+_ap.add_argument("--bugun", help="üretim tarihi (YYYY-MM-DD); varsayılan: bugün. Yalnızca tahmin tarihini/canlı tabloyu ve sitemap lastmod'unu etkiler; 'son gözlem' tarihleri her zaman data/tahmin_data.json'dan gelir")
+_ap.add_argument("--iller", help="yalnızca bu il sayfalarını yaz (virgülle ayrılmış slug'lar, örn. konya,denizli); verilirse sitemap yazılmaz")
+_args = _ap.parse_args()
+SADECE = set(_args.iller.split(",")) if _args.iller else None
+today = datetime.date.fromisoformat(_args.bugun) if _args.bugun else datetime.date.today()
+today = onceki_is_gunu(today)
+if _args.bugun: print(f"NOT: --bugun {today}: tahmin tarihi sabitlendi; son gözlem tarihleri veriden gelir", file=sys.stderr)   # tescil iş günlerinde yapılır: hafta sonu/resmi tatilde en yakın önceki iş gününe çekilir
 d = json.load(open("data/tahmin_data.json"))
 gec = list(csv.DictReader(open("data/seri_gecisleri.csv")))
 def robust_rate(o):
@@ -28,6 +34,10 @@ def robust_rate(o):
     rates=[(w[i][1]-w[i-1][1])/(w[i][0]-w[i-1][0]) for i in range(1,len(w)) if w[i][0]>w[i-1][0]]
     return max(statistics.median(rates), 0.01) if rates else 0.01
 def tr_date(d_): return f"{d_.day} {AYLAR[d_.month-1]} {d_.year}"
+def sayi(n): return f"{n:,.0f}".replace(",", ".")                 # Türkçe binlik ayracı: 1.802
+def ondalik(x): return f"{x:.1f}".replace(".", ",")              # Türkçe ondalık ayracı: 1,8
+# "Plaka sırasındaki son değişim" bölümü şimdilik yalnızca bu illerde (Türkçe sayı biçimi tüm illerde uygulanır)
+SON_DEGISIM_ILLERI = {"Konya", "Eskişehir", "Denizli"}
 
 CANLI_JS = """(function(){
 var T=__TABLO__,S="__START__",K="__KOD__",H=__TATIL__;
@@ -140,6 +150,34 @@ def yoy_blok(o, c, ad, last_d):
     if kucuk: dip += "<p class='fn'>Düşük hacimli illerde küçük sayısal farklar büyük yüzde değişim olarak görünebilir.</p>"
     return (f"<div class='card'><h2>Geçen yıla kıyasla durum — 2 aylık dönemler</h2>{ozet}"
             f"<div class='yoy'><table><tr><th>Yıl</th>{ust}</tr>{satirlar}</table></div>{kismi_notu}{dip}</div>")
+def _gozlem_yakin(o, gun, tol=3):
+    """Verilen güne en yakın gerçek gözlem; tol günden uzaksa None (interpolasyonla değer uydurulmaz)."""
+    b = min(o, key=lambda x: abs(x[0]-gun))
+    return b if abs(b[0]-gun) <= tol else None
+def son_degisim_blok(o, c, ad):
+    """Yalnızca kayıtlı gözlemlerden: son iki gözlem arası ilerleme ve son iki ~28 günlük dönemin karşılaştırması.
+    Tarihlerin hepsi o'daki gözlem günlerinden gelir (üretim tarihi/--bugun kullanılmaz).
+    Veri yetersizse ya da seride kırılma varsa ilgili cümle üretilmez; hiç cümle yoksa bölüm de yoktur."""
+    def ok(a, b): return ilerleme(o, c, a[0], b[0])[1] == "ok" and b[1] > a[1]
+    def tar(x): return EPOCH + datetime.timedelta(days=x)
+    def aralik(g0, g1):
+        a, b = tar(g0), tar(g1)
+        return f"{a.day} {AYLAR[a.month-1]} – {tr_date(b)}" if a.year == b.year else f"{tr_date(a)} – {tr_date(b)}"
+    son = o[-1]; cumle = ""
+    if len(o) >= 2 and 1 <= son[0]-o[-2][0] <= 14 and ok(o[-2], son):
+        on = o[-2]; g = son[0]-on[0]; a = son[1]-on[1]
+        cumle += f"<p class='meta'>{html.escape(ad)} için plaka sırası, son iki gözlem arasında ({aralik(on[0], son[0])}) {sayi(a)} sıra ilerledi; günlük ortalama yaklaşık {sayi(a/g)} sıra.</p>"
+    orta = _gozlem_yakin(o, son[0]-28); bas = _gozlem_yakin(o, son[0]-56)
+    if orta and bas and bas[0] < orta[0] < son[0] and ok(bas, orta) and ok(orta, son):
+        g1 = son[0]-orta[0]; g0 = orta[0]-bas[0]; a1 = son[1]-orta[1]; a0 = orta[1]-bas[1]
+        r1 = a1/g1*7; r0 = a0/g0*7; fark = (r1/r0-1)*100
+        if abs(fark) < 5: yon = "hız iki dönemde benzer düzeyde (fark %5'in altında)."
+        else: yon = f"hız önceki döneme göre yaklaşık %{abs(round(fark))} {'arttı' if fark > 0 else 'azaldı'}."
+        cumle += (f"<p class='meta'>Kayıtlı son {g1} günde ({aralik(orta[0], son[0])}) {sayi(a1)} sıra, bir önceki {g0} günde ({aralik(bas[0], orta[0])}) {sayi(a0)} sıra ilerledi. "
+                  f"Haftalık ortalama {sayi(r1)} sıra (önceki dönemde {sayi(r0)}); {yon}</p>")
+    if not cumle: return ""
+    return (f"<div class='card'><h2>Plaka sırasındaki son değişim</h2>{cumle}"
+            f"<p class='fn'>Son gözlem: {tr_date(tar(son[0]))}; sonrası için sayfadaki seri tahmindir. Sıra değerleri gözlenen plaka numaraları arasındaki farktır, tescil edilen araç sayısı değildir.</p></div>")
 urls = [BASE + "/"]
 for s in iller:
     il = s["il"]; ad = TAM.get(il, il); sl = slug(ad); kod = f"{s['kod']:02d}"
@@ -173,6 +211,10 @@ for s in iller:
         else:
             obs_ozet = f"<p class='meta'>Kayıtlı son gözlemlerde ({tr_date(d0)} – {tr_date(d1)}) {html.escape(ad)} plakaları <span class='mono'>{s0}</span> serisi içinde ilerlemiştir.</p>"
     gozlem_html = f"<div class='card'><h2>Son plaka gözlemleri</h2>{obs_ozet}<table><tr><th>Tarih</th><th>Gözlenen seri</th></tr>{obs_rows}</table></div>"
+    ozel = il in SON_DEGISIM_ILLERI
+    degisim_html = (son_degisim_blok(o, _c, ad) if ozel else "")
+    if degisim_html: degisim_html = "\n" + degisim_html
+    hafta_txt = sayi(s['hafta'] or 0); hs_txt = ondalik(hafta_seri)   # Türkçe biçim: 1.802 / 1,8 (görünen metin ve JSON-LD aynı değerleri kullanır)
     sure = "birkaç gün" if hafta_seri > 3 else ("yaklaşık bir hafta" if hafta_seri > 0.9 else (f"yaklaşık {round(1/hafta_seri)} hafta" if hafta_seri > 0.12 else f"aylar"))
     title = f"{ad} Plaka Sırası Hangi Harfte? Güncel Seri ({today.year})"
     desc = f"{ad} plaka sırası hangi harfte? Güncel tahmini seri {kod} {el}; son gözlem {kod} {ll} {ln:03d} ({tr_date(last_d)}). İstediğiniz plakanın tahmini çıkış tarihini hesaplayın."
@@ -194,7 +236,7 @@ for s in iller:
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono&display=swap">
 <style>{CSS}</style>
-<script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{{"@type":"Question","name":"{html.escape(ad)} bugün hangi plaka serisinde?","acceptedAnswer":{{"@type":"Answer","text":"Güncel tahmin: {kod} {el} serisi. Son doğrulanmış gözlem {tr_date(last_d)} tarihinde {kod} {ll} {ln:03d}."}}}},{{"@type":"Question","name":"{html.escape(ad)} plakada bir harf serisi ne kadar dayanıyor?","acceptedAnswer":{{"@type":"Answer","text":"Son aylarda haftada yaklaşık {hafta_seri:.1f} seri; 999 plakalık bir seri {sure} içinde tükeniyor."}}}}]}}</script>
+<script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{{"@type":"Question","name":"{html.escape(ad)} bugün hangi plaka serisinde?","acceptedAnswer":{{"@type":"Answer","text":"Güncel tahmin: {kod} {el} serisi. Son doğrulanmış gözlem {tr_date(last_d)} tarihinde {kod} {ll} {ln:03d}."}}}},{{"@type":"Question","name":"{html.escape(ad)} plakada bir harf serisi ne kadar dayanıyor?","acceptedAnswer":{{"@type":"Answer","text":"Son aylarda haftada yaklaşık {hs_txt} seri; 999 plakalık bir seri {sure} içinde tükeniyor."}}}}]}}</script>
 <script type="application/ld+json">{breadcrumb}</script>
 </head>
 <body><div class="wrap">
@@ -202,9 +244,9 @@ for s in iller:
 <h1>{html.escape(ad)} Plaka Sırası Hangi Harfte?</h1>
 <p>Güncel gözlemlere göre {html.escape(ad)} ilinde plaka sırası şu anda tahmini olarak <b class="mono" data-live="seri">{kod} {el}</b> serisi civarındadır. Son doğrulanmış gözlem {tr_date(last_d)} tarihinde <b class="mono">{kod} {ll} {ln:03d}</b> olarak kaydedilmiştir. Aşağıdaki araçla istediğiniz plakanın yaklaşık ne zaman çıkacağını görebilirsiniz.</p>
 <div class="plrow"><span class="plate"><span class="band">TR</span><span class="num" data-live="plaka">{kod} {el} {en:03d}</span></span><span class="tag">tahmin · <span data-live="tarih">{tr_date(today)}</span></span><a class="cta" href="/?il={s['kod']}">🔮 Canlı tahmin aracı →</a></div>
-<p class="meta">{html.escape(ad)} son aylarda haftada ortalama <b>{(s['hafta'] or 0):,} plaka</b> basıyor ve <b>~{hafta_seri:.1f} harf serisi</b> ilerliyor{" — bir seri (999 plaka) " + sure + " dayanıyor" if hafta_seri <= 3 else ""} (kaynak: wowTURKEY / Güven Hoca haftalık tabloları).</p>
+<p class="meta">{html.escape(ad)} son aylarda haftada ortalama <b>{hafta_txt} plaka</b> basıyor ve <b>~{hs_txt} harf serisi</b> ilerliyor{" — bir seri (999 plaka) " + sure + " dayanıyor" if hafta_seri <= 3 else ""} (kaynak: wowTURKEY / Güven Hoca haftalık tabloları).</p>
 {yoy_html}
-{gozlem_html}
+{gozlem_html}{degisim_html}
 {gecis_html}
 <p class="meta">Yukarıdaki güncel seri, ilin son aylardaki ilerleme hızının bugüne uzatılmış tahminidir ve her hafta yeni tablo verisiyle güncellenir. Belirli bir tarihte hangi serinin verileceğini, istediğiniz seriye ne zaman ulaşılacağını ve atlanacak serileri hesaba katan canlı aracı, plakanın yanındaki «Canlı tahmin aracı» bağlantısından açabilirsiniz.</p>
 <div class="card">
@@ -212,7 +254,7 @@ for s in iller:
 <h3>{html.escape(ad)} bugün hangi plaka serisinde?</h3>
 <p class="meta" style="margin:0 0 6px">Güncel tahminimiz <span class="mono" data-live="seri">{kod} {el}</span> serisi. Kayıtlı en son gözlem {tr_date(last_d)} tarihli haftalık tabloda <span class="mono">{kod} {ll} {ln:03d}</span> idi; aradaki günler ilin olağan hızıyla ileri sarılır ve sayfa her hafta yeni tabloyla güncellenir.</p>
 <h3>{html.escape(ad)} plakada bir harf serisi ne kadar dayanıyor?</h3>
-<p class="meta" style="margin:0 0 6px">Son aylarda haftada ~{hafta_seri:.1f} seri ilerliyor; yani 999 plakalık bir seri {sure} içinde tükeniyor.</p>
+<p class="meta" style="margin:0 0 6px">Son aylarda haftada ~{hs_txt} seri ilerliyor; yani 999 plakalık bir seri {sure} içinde tükeniyor.</p>
 <h3>Belirli bir plakaya ne zaman gelinir?</h3>
 <p class="meta" style="margin:0"><a href="/?il={s['kod']}">Tahmin aracına</a> istediğiniz seriyi yazın (örn. <span class="mono">{el[0]}ZZ 999</span>); verilmeyeceğini düşündüğünüz serileri de hesaptan çıkarabilirsiniz.</p>
 </div>
@@ -220,7 +262,8 @@ for s in iller:
 <p class="meta" style="font-size:12px;color:#7d8491;margin-top:14px">Veri: wowturkey.com "Türkiye Genelindeki Araç Plakalarının Gelişimi" başlığı (Güven_Hoca). Sayı biçimleri yaklaşıktır; ilk/son harfte I ve O kullanılmaz.</p>
 </div>
 <script>{canli_js}</script></body></html>"""
-    open(f"il/{sl}.html","w").write(page.replace(",", ".", 0))
+    if SADECE is None or sl in SADECE:
+        open(f"il/{sl}.html","w").write(page.replace(",", ".", 0))
     urls.append(f"{BASE}/il/{sl}")
-open("sitemap.xml","w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"  <url><loc>{u}</loc><lastmod>{today.isoformat()}</lastmod><changefreq>weekly</changefreq></url>" for u in urls) + "\n</urlset>\n")
+if SADECE is None: open("sitemap.xml","w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"  <url><loc>{u}</loc><lastmod>{today.isoformat()}</lastmod><changefreq>weekly</changefreq></url>" for u in urls) + "\n</urlset>\n")
 print(len(iller), "il sayfası +", "sitemap", len(urls), "URL")
