@@ -35,7 +35,7 @@ class SeoVeYapi(unittest.TestCase):
         self.assertLess(ANA.index('src="/assets/takvim.js"'), ANA.index('src="/assets/tahmin-motoru.js"')); self.assertLess(ANA.index('src="/assets/tahmin-motoru.js"'), ANA.index("const DATA = "))
         self.assertLess(ANA.index("const DATA = "), ANA.index('src="/assets/ana-sayfa.js"')); self.assertRegex(ANA, r"const DATA = .*?;\n")
         eski_idler = set(re.findall(r'id="([\w-]+)"', gv(ESKI))); yeni_idler = set(re.findall(r'id="([\w-]+)"', gv(ANA)))
-        self.assertEqual(eski_idler - yeni_idler, set(), "hesaplayıcı kimlikleri korunmalı")
+        self.assertEqual(eski_idler - yeni_idler - {"counter", "counter-num"}, set(), "hesaplayıcı kimlikleri korunmalı")        # tek bilinçli çıkarma: kaldırılan Abacus ziyaret rozeti
         for gizli in ('id="kart-uyari" role="status" hidden', 'id="il-hata" class="hata" role="alert"'): self.assertIn(gizli, ANA)
 
     def test_erisilebilirlik_etiketleri(self):
@@ -132,8 +132,8 @@ class TarayiciYerlesim(unittest.TestCase):
         self.assertEqual({r["w"] for r in self.sonuc}, {320, 375, 390, 768, 1440})
         for r in self.sonuc: self.assertLessEqual(r["sw"], r["cw"], f"{r['w']}px sayfa taşıyor"); self.assertEqual(r["tasan"], [], f"{r['w']}px")
 
-    def test_testler_uretim_ziyaret_sayacina_istek_atmaz(self):
-        for r in self.sonuc: self.assertEqual(r["sayac"], "none", "sayaç yüklendi: test tarayıcısı üretim sayacına istek atmış olabilir")
+    def test_testler_uretim_analitigine_istek_atmaz(self):
+        for r in self.sonuc: self.assertFalse(r["analitikBetigi"], "GoatCounter betiği yüklendi: test tarayıcısı üretim analitiğine istek atmış olabilir")
         for f in ("test_ana_sayfa_regresyon.py", "test_il_arac.py", "test_ana_sayfa_tasarim.py", "test_il_yerlesim.py", "test_tarih_tutarliligi.py"):
             self.assertNotIn("subprocess.run([" + "CHROME,", u.oku(os.path.join(u.ROOT, "tests", f)), f"{f}: Chrome CHROME_TEMEL ile başlatılmalı")
 

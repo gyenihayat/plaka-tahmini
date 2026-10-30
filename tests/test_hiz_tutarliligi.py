@@ -1,6 +1,6 @@
 """Ana sayfa hesaplayıcısındaki hız ve seri süresi anlatımı, il sayfalarındaki TEK hız tanımıyla aynıdır: tahmin motorunun hızı (son ~365 günlük aralık hızlarının
 medyanı, sıra/gün). Farklı yöntemle bulunan ölçüler (forum tablolarının haftalık ortalaması) aynı büyüklükmüş gibi sunulmaz. Bir serinin süresi (1.000 sıra) aynı hızdan,
-GÜN cinsinden ve "yaklaşık" olarak hesaplanır. Testler üretim ziyaret sayacına istek göndermez (Chrome CHROME_TEMEL ile başlatılır)."""
+GÜN cinsinden ve "yaklaşık" olarak hesaplanır. Testler üretim analitiğine (GoatCounter) istek göndermez (Chrome CHROME_TEMEL ile başlatılır)."""
 import functools, html, http.server, json, os, re, shutil, socket, subprocess, sys, tempfile, threading, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import _util as u

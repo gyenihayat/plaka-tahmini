@@ -6,7 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _util as u
 CHROME = next((p for p in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", shutil.which("google-chrome") or "", shutil.which("chromium") or "") if p and os.path.exists(p)), None)
 ESKI_COMMIT = "9b65ce4"
-# Testler üretim sayaçlarına/analitiğe ASLA istek atmamalı: ana sayfa abacus.jasoncameron.dev'e "ziyaret" vuruşu yapar, olcum.js ise (yalnızca plakatahmini.com'da) GoatCounter'ı yükler.
+# Testler üretim sayaçlarına/analitiğe ASLA istek atmamalı: olcum.js yalnızca plakatahmini.com'da GoatCounter'ı yükler. Güncel sayfalarda Abacus kodu yoktur; ancak karşılaştırma için
+# git geçmişinden alınan ESKI_COMMIT kopyası eski Abacus sayaç betiğini içerir, bu yüzden abacus.jasoncameron.dev adı tarayıcıda çözümlenmeyecek şekilde engeli korunur (kasıtlı).
 # Birinci koruma sayfa tarafındaki alan adı denetimi (olcum.js), ikincisi bu: tarayıcıda bu adlar çözümlenmez.
 ENGELLENEN_ALAN_ADLARI = ("abacus.jasoncameron.dev", "*.goatcounter.com", "gc.zgo.at")
 CHROME_TEMEL = [CHROME, "--headless=new", "--disable-gpu", "--host-resolver-rules=" + ", ".join(f"MAP {a} ~NOTFOUND" for a in ENGELLENEN_ALAN_ADLARI)]

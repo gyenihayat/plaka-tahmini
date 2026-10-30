@@ -47,7 +47,7 @@ ANA_SAYFA_KARTLARI = (34, 6, 35)   # ana sayfadaki büyük il kartları (plaka k
 OLCUM_NOTU_IL = ('<p class="olcum-notu">Bu sitede sayfa görüntüleme ve özellik kullanımı (hesaplama, il arama gibi) sayıları, üçüncü taraf bir analitik hizmeti olan '
                  '<a href="https://www.goatcounter.com/privacy" rel="noopener">GoatCounter</a> ile ölçülür; hizmete sayfa adresi, yönlendiren site ve tarayıcı/ekran bilgisi gibi standart ziyaret verileri iletilir. '
                  'Girdiğiniz plaka, il arama metni veya forma yazdığınız diğer içerikler gönderilmez.</p>')
-OLCUM_NOTU_ANA = OLCUM_NOTU_IL[:-4] + ' Bu sayfadaki ziyaret sayacı da ayrı bir üçüncü taraf hizmete (abacus.jasoncameron.dev) istek gönderir.</p>'
+OLCUM_NOTU_ANA = OLCUM_NOTU_IL   # ana sayfa ve il sayfaları aynı bilgilendirmeyi taşır (başka üçüncü taraf sayaç yok)
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
 
 CANLI_JS = """(function(){

@@ -14,7 +14,7 @@ function yukle(src, w) { return new Promise(r => { const f = document.createElem
     r.kartUst = kartlar.map(k => Math.round(k.getBoundingClientRect().top)); r.kartAlt = kartlar.map(k => Math.round(k.getBoundingClientRect().bottom));
     const cta = d.querySelector("a.cta"); r.ctaUst = cta ? Math.round(cta.getBoundingClientRect().top) : null; r.ctaAlt = cta ? Math.round(cta.getBoundingClientRect().bottom) : null;
     r.etiketli = ["il-ara", "il", "target", "dt", "excl", "excl2"].every(id => !!d.querySelector('label[for="' + id + '"]'));
-    r.sayac = d.getElementById("counter").style.display; { const m = d.getElementById("meta"), ps = [...m.querySelectorAll(".ms")]; r.metaPx = px(m, "fontSize"); r.metaTasma = m.scrollWidth > m.clientWidth + 1; r.metaParca = ps.length;
+    r.analitikBetigi = !!d.querySelector("script[data-goatcounter]"); { const m = d.getElementById("meta"), ps = [...m.querySelectorAll(".ms")]; r.metaPx = px(m, "fontSize"); r.metaTasma = m.scrollWidth > m.clientWidth + 1; r.metaParca = ps.length;
       r.metaSatir = ps.map(e => Math.round(e.getBoundingClientRect().height / (parseFloat(win.getComputedStyle(e).lineHeight) || px(e, "fontSize") * 1.5))); }
     r.kartMetin = kartlar.map(k => k.textContent.replace(/\s+/g, " ").trim());
     if (w === GENISLIKLER[0]) {

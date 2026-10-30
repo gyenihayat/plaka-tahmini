@@ -19,16 +19,21 @@ class SayfaKapsami(unittest.TestCase):
             h = u.oku(yol); self.assertRegex(h, r'<!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->\n<script src="/assets/takvim.js" defer></script>')   # il: defer, diğer betiklerden önce
         self.assertRegex(ANA, r'<!--OLCUM--><script src="/assets/olcum.js"></script><!--/OLCUM-->\n<script src="/assets/ana-sayfa.js"></script>')
 
-    def test_abacus_sayaci_ve_gizli_panel_korundu(self):
-        for ip in ('const base = "https://abacus.jasoncameron.dev", ns = "plaka-tahmini-vercel";', 'hit("ziyaret")', 'hit("sure30")', 'location.hash === "#stat-yg26"', 'id="counter"'): self.assertIn(ip, ANA, ip)
-        for yol in il_sayfalari(): self.assertNotIn("abacus", u.oku(yol))                 # il sayfalarında sayaç yok (değişmedi)
+    def test_abacus_sayaci_uretim_kaynaklarindan_tamamen_kaldirildi(self):
+        # Eski Abacus ziyaret sayacı (rozet, ziyaret/aktif süre vuruşları, 30 sn zamanlayıcı, gizli stat paneli) kaldırıldı; tek analitik GoatCounter'dır. Geçmiş yedekler (backups/) kapsam dışıdır.
+        uretim = [os.path.join(u.ROOT, a) for a in ("index.html", "vercel.json", "robots.txt", "sitemap.xml", "generate_il_pages.py")] + il_sayfalari() + sorted(glob.glob(os.path.join(u.ROOT, "assets", "*")))
+        self.assertGreaterEqual(len(uretim), 90)
+        for yol in uretim:
+            h = u.oku(yol).lower()
+            for yasak in ("abacus", "jasoncameron", "sure30", "pt-sayildi", "stat-yg26", 'id="counter"', "counter-num"): self.assertNotIn(yasak, h, f"{yol}: kaldırılan sayaç kalıntısı: {yasak}")
+        self.assertEqual(len(re.findall(r"\bfetch\(|\bXMLHttpRequest\b|sendBeacon", ANA)), 0, "ana sayfada sayfa kodundan doğrudan ağ isteği olmamalı (GoatCounter olcum.js üzerinden)")
 
     def test_gorunur_bilgilendirme_dogru_ve_dogrulanmamis_iddia_icermez(self):
         for yol in il_sayfalari() + [os.path.join(u.ROOT, "index.html")]:
             h = u.oku(yol); m = re.search(r'<p class="olcum-notu">(.*?)</p>', h, re.S); self.assertIsNotNone(m, yol); n = html.unescape(re.sub(r"<[^>]+>", "", m[1]))
             self.assertIn("GoatCounter", n); self.assertIn('href="https://www.goatcounter.com/privacy"', m[1]); self.assertIn("üçüncü taraf", n); self.assertIn("plaka", n); self.assertIn("gönderilmez", n)
             for yasak in ("çerez", "cookie", "KVKK", "GDPR", "tamamen anonim", "kişisel veri toplanmaz", "saklanmaz"): self.assertNotIn(yasak.lower(), n.lower(), f"{yol}: doğrulanmamış iddia: {yasak}")
-            self.assertEqual("abacus.jasoncameron.dev" in n, yol.endswith("index.html"), yol)          # ana sayfadaki ziyaret sayacı yalnızca ana sayfa notunda
+            self.assertNotIn("abacus", n.lower(), yol)                                                    # başka üçüncü taraf sayaç yok: ana sayfa ve il sayfaları aynı notu taşır
         self.assertLess(ANA.index('class="olcum-notu"'), ANA.index("</main>"))
 
     def test_jsiz_gonderimde_plaka_adrese_girmez(self):
