@@ -11,6 +11,7 @@ function yukle(src, w) { return new Promise(r => { const f = document.createElem
     const px = (e, p) => e ? parseFloat(win.getComputedStyle(e)[p]) : null, kartlar = [...d.querySelectorAll(".kart")];
     r.kartSayisi = kartlar.length; r.seriPx = px(d.querySelector(".k-seri"), "fontSize"); r.h1Px = px(d.querySelector("h1"), "fontSize"); r.govdePx = px(d.body, "fontSize");
     r.seriTekSatir = kartlar.every(k => { const e = k.querySelector(".k-seri"); return e.getBoundingClientRect().height < px(e, "lineHeight") * 1.4; });
+    r.seriSigar = kartlar.every(k => { const e = k.querySelector(".k-seri"), rg = d.createRange(); rg.selectNodeContents(e); const t = rg.getBoundingClientRect(), c = k.getBoundingClientRect(); return t.left >= c.left && t.right <= c.right; });
     r.kartUst = kartlar.map(k => Math.round(k.getBoundingClientRect().top)); r.kartAlt = kartlar.map(k => Math.round(k.getBoundingClientRect().bottom));
     const cta = d.querySelector("a.cta"); r.ctaUst = cta ? Math.round(cta.getBoundingClientRect().top) : null; r.ctaAlt = cta ? Math.round(cta.getBoundingClientRect().bottom) : null;
     r.etiketli = ["il-ara", "il", "target", "dt", "excl", "excl2"].every(id => !!d.querySelector('label[for="' + id + '"]'));

@@ -12,11 +12,11 @@ async function yukle(url, an) {
     const m = await yukle("/index.html", an), md = m.contentWindow.document, sel = md.getElementById("il");
     for (const il of ILLER) {
       sel.value = il.il; sel.dispatchEvent(new m.contentWindow.Event("change"));
-      const kayit = {an, il: il.il, ana: md.getElementById("plate-num").textContent, anaDt: md.getElementById("dt").value, anaTag: md.getElementById("tag").textContent, seri: null, tarih: null, uyari: null,
-        kart: (function () { var e = md.querySelector('.kart[data-il="' + il.il + '"]'); return e ? {seri: e.querySelector('[data-kart="seri"]').textContent, tarih: e.querySelector('[data-kart="tarih"]').textContent, bagl: e.getAttribute("href")} : null; })()};
+      const kayit = {an, il: il.il, ana: md.getElementById("plate-num").textContent, anaDt: md.getElementById("dt").value, anaTag: md.getElementById("tag").textContent, plaka: null, tarih: null, uyari: null,
+        kart: (function () { var e = md.querySelector('.kart[data-il="' + il.il + '"]'); return e ? {plaka: e.querySelector('[data-kart="plaka"]').textContent, tarih: e.querySelector('[data-kart="tarih"]').textContent, bagl: e.getAttribute("href")} : null; })()};
       if (an >= BASLANGIC_MS) {      // il sayfası başlangıç (üretim referans günü) öncesindeki saatlerde başlangıç tarihine sabitlenir; yalnızca ana sayfa kontrol edilir
         const p = await yukle("/il/" + il.slug, an), d = p.contentWindow.document, g = s => { const e = d.querySelector(s); return e ? e.textContent : null; };
-        kayit.seri = g('.buyuk[data-live="seri"]'); kayit.tarih = g('.alt [data-live="tarih"]'); kayit.uyari = !d.getElementById("guncellik").hidden; p.remove();
+        kayit.plaka = g('.buyuk[data-live="plaka"]'); kayit.tarih = g('.alt [data-live="tarih"]'); kayit.uyari = !d.getElementById("guncellik").hidden; p.remove();
       }
       out.push(kayit);
     }

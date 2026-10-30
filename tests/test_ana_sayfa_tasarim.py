@@ -4,7 +4,7 @@ import datetime as dt, functools, html, http.server, json, os, re, shutil, socke
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import _util as u
 import forecast as fc
-from test_il_sayfasi import veri, sayfa, slug, TAM, inv, tr, E0
+from test_il_sayfasi import veri, sayfa, slug, TAM, inv, tr, E0, tahmin_plaka
 from test_ana_sayfa_regresyon import CHROME, CHROME_TEMEL
 ANA = u.oku(os.path.join(u.ROOT, "index.html"))
 ESKI = subprocess.run(["git", "show", "7aff9ee:index.html"], cwd=u.ROOT, capture_output=True, text=True, check=True).stdout          # yenileme öncesi ana sayfa
@@ -49,8 +49,8 @@ class Kartlar(unittest.TestCase):
         iller = {s["il"]: s for s in veri()}
         for (il, kod, sl), (href, _, ic) in zip(KARTLAR, kartlar):
             s = iller[il]; h = sayfa(il); bas = dt.date.fromisoformat(re.search(r'data-baslangic="([^"]+)"', h)[1]); o = [tuple(x) for x in s["obs"]]; g, n = o[-1]; ld = E0 + dt.timedelta(days=g)
-            py = inv(round(n + fc.advance(o, fc.clean(o), g, (bas - ld).days, fc.slope(o, g))))[0]; sr, no = inv(n)
-            self.assertEqual(re.search(r'data-kart="seri">([^<]*)<', ic)[1], f"{kod:02d} {py}"); self.assertEqual(re.search(r'data-kart="seri">([^<]*)<', ic)[1], re.search(r'data-live="seri">([^<]*)<', h)[1])     # il sayfasıyla aynı
+            py = tahmin_plaka(kod, n + fc.advance(o, fc.clean(o), g, (bas - ld).days, fc.slope(o, g))); sr, no = inv(n)
+            self.assertEqual(re.search(r'data-kart="plaka">([^<]*)<', ic)[1], py); self.assertEqual(re.search(r'data-kart="plaka">([^<]*)<', ic)[1], re.search(r'data-live="plaka">([^<]*)<', h)[1])     # tam plaka: il sayfasıyla birebir aynı
             self.assertEqual(re.search(r'data-kart="tarih">([^<]*)<', ic)[1], tr(bas)); self.assertIn("itibarıyla", ic); self.assertIn("Tahmindir", ic)
             self.assertIn(f"Son gözlem: {kod:02d} {sr} {no:03d} · {tr(ld)}", metin(ic)); self.assertIn(f"{il} · {kod:02d}", metin(ic))                                                   # gözlem tahminden ayrı
             self.assertTrue(os.path.isfile(os.path.join(u.ROOT, href.lstrip("/") + ".html")))
@@ -64,10 +64,10 @@ class Kartlar(unittest.TestCase):
             ist = next(x for x in v["iller"] if x["il"] == "İstanbul"); ist["obs"][-1][1] += 90000                    # 90 seri ileri
             with open(yol, "w", encoding="utf-8") as f: json.dump(v, f, ensure_ascii=False, separators=(",", ":"))
             r = u.uret(d, "--bugun", "2026-10-30"); self.assertEqual(r.returncode, 0, r.stderr)
-            yeni = u.oku(os.path.join(d, "index.html")); eski_seri = re.search(r'data-il="İstanbul">.*?data-kart="seri">([^<]*)<', ANA, re.S)[1]
-            yeni_seri = re.search(r'data-il="İstanbul">.*?data-kart="seri">([^<]*)<', yeni, re.S)[1]; self.assertNotEqual(yeni_seri, eski_seri)
-            self.assertEqual(yeni_seri, re.search(r'data-live="seri">([^<]*)<', u.oku(os.path.join(d, "il", "istanbul.html")))[1])                  # kart = il sayfası
-            self.assertEqual(re.search(r'data-il="Ankara">.*?data-kart="seri">([^<]*)<', yeni, re.S)[1], re.search(r'data-il="Ankara">.*?data-kart="seri">([^<]*)<', ANA, re.S)[1])
+            yeni = u.oku(os.path.join(d, "index.html")); eski_seri = re.search(r'data-il="İstanbul">.*?data-kart="plaka">([^<]*)<', ANA, re.S)[1]
+            yeni_seri = re.search(r'data-il="İstanbul">.*?data-kart="plaka">([^<]*)<', yeni, re.S)[1]; self.assertNotEqual(yeni_seri, eski_seri)
+            self.assertEqual(yeni_seri, re.search(r'data-live="plaka">([^<]*)<', u.oku(os.path.join(d, "il", "istanbul.html")))[1])                  # kart = il sayfası
+            self.assertEqual(re.search(r'data-il="Ankara">.*?data-kart="plaka">([^<]*)<', yeni, re.S)[1], re.search(r'data-il="Ankara">.*?data-kart="plaka">([^<]*)<', ANA, re.S)[1])
         finally: shutil.rmtree(d, ignore_errors=True)
 
     def test_kart_tarihi_hafta_sonu_uretiminde_onceki_is_gunu(self):
@@ -139,8 +139,11 @@ class TarayiciYerlesim(unittest.TestCase):
 
     def test_uc_kart_buyuk_seri_ve_ilk_ekran(self):
         for r in self.sonuc:
-            self.assertEqual(r["kartSayisi"], 3); self.assertGreaterEqual(r["seriPx"], 36, r["w"]); self.assertTrue(r["seriTekSatir"], f"{r['w']}px: seri tek satır olmalı"); self.assertGreaterEqual(r["govdePx"], 16)
-            self.assertGreater(r["seriPx"], r["h1Px"] * 0.9, r["w"]); self.assertTrue(r["etiketli"], r["w"])
+            self.assertEqual(r["kartSayisi"], 3); self.assertTrue(r["seriTekSatir"], f"{r['w']}px: tam tahmini plaka (06 GGL 482) tek satır olmalı"); self.assertGreaterEqual(r["govdePx"], 16)
+            # tek sütunda (<700 px) plaka ≥ 36 px ve başlıktan büyük; 3 sütunda (≥700 px) kart içeriği ~190 px olduğundan 10 karakterlik plaka ≈ 30 px: yine gövdenin ≈ 1,9 katı ve kartta baskın
+            if r["w"] < 700: self.assertGreaterEqual(r["seriPx"], 36, r["w"]); self.assertGreater(r["seriPx"], r["h1Px"] * 0.9, r["w"])
+            else: self.assertGreaterEqual(r["seriPx"], 29, r["w"]); self.assertGreater(r["seriPx"], r["govdePx"] * 1.8, r["w"])
+            self.assertTrue(r["seriSigar"], f"{r['w']}px: plaka kart içine sığmalı"); self.assertTrue(r["etiketli"], r["w"])
             if r["w"] <= 390:
                 self.assertLess(r["kartUst"][2], 700, f"{r['w']}px: üçüncü kart ilk ekranda başlamalı"); self.assertLess(r["ctaUst"], 900, f"{r['w']}px: ana eylem kartların hemen altında")
             else: self.assertLess(r["ctaAlt"], 700, f"{r['w']}px: kartlar ve ana eylem ilk ekranda"); self.assertEqual(len(set(r["kartUst"])), 1 if r["w"] >= 768 else 3)

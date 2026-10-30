@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """81 il sayfasını data/tahmin_data.json + data/seri_gecisleri.csv'den üretir; sitemap.xml'i yeniler."""
-import json, csv, datetime, statistics, html, bisect, argparse, sys, re, os, hashlib
+import json, csv, datetime, statistics, html, bisect, argparse, sys, re, os, hashlib, math
 import forecast as fc
 from is_gunu import RESMI_TATIL, onceki_is_gunu, kapsam_kontrol, TakvimKapsamHatasi, TAHMIN_PENCERESI_GUN, TAKVIM_ILK_YIL, TAKVIM_SON_YIL
 
 A1="ABCDEFGHJKLMNPRSTUVYZ"; A2="ABCDEFGHIJKLMNOPRSTUVYZ"; A3="ABCDEFGHJKLMNPRSTUVYZ"
 def inv(n):
-    n = round(n); num = max(1, min(999, n % 1000)); g = n // 1000
+    # Yuvarlama JS'teki Math.round ile AYNI olmalı (yarım değer yukarı): Python round() yarım değeri çift sayıya yuvarlar ve tam .5 tahminlerde canlı JS ile 1 sıra ayrışırdı.
+    # Ham tahmin (forecast.py / ortak motor) iki tarafta bit-bit aynıdır; yalnızca gösterim yuvarlaması eşitlenir. Gözlemler tam sayıdır, etkilenmez.
+    n = math.floor(n + 0.5); num = max(1, min(999, n % 1000)); g = n // 1000
     return A1[g//len(A3)//len(A2)] + A2[g//len(A3)%len(A2)] + A3[g%len(A3)], num
 EPOCH = datetime.date(2024,1,1)
 BASE = "https://plakatahmini.com"
@@ -232,7 +234,7 @@ def ana_sayfa_guncelle():
     for kod_ in ANA_SAYFA_KARTLARI:
         k = KARTLAR[kod_]
         kartlar += (f'<a class="kart" href="/il/{k["slug"]}" data-il="{html.escape(k["il"])}"><span class="k-ust"><span class="k-il">{html.escape(k["ad"])} · {k["kod"]}</span><span class="etiket">Tahmindir</span></span>'
-                    f'<span class="k-seri mono" data-kart="seri">{k["seri"]}</span><span class="k-alt"><span data-kart="tarih">{k["tarih"]}</span> itibarıyla</span>'
+                    f'<span class="k-seri mono" data-kart="plaka">{k["plaka"]}</span><span class="k-alt"><span data-kart="tarih">{k["tarih"]}</span> itibarıyla</span>'
                     f'<span class="k-gozlem">Son gözlem: {k["g_plaka"]} · {k["g_tarih"]}</span></a>\n')
     son_gun = EPOCH + datetime.timedelta(days=max(x["obs"][-1][0] for x in iller))
     kart_html = ('<section aria-label="Büyük illerin güncel tahmini plaka serisi"><div class="kartlar">\n' + kartlar + '</div>\n'
@@ -250,7 +252,7 @@ def ana_sayfa_guncelle():
     h = _bolge(h, "<!--ANA:OLCUM-NOTU-->", "<!--/ANA:OLCUM-NOTU-->", OLCUM_NOTU_ANA)
     # Anlamlı içerik parmak izi: kartlardaki günlük seri/tarih değişimi tek başına yeni içerik SAYILMAZ; gözlem verisi (DATA), metin, şablon ve CSS değişimi sayılır.
     # İz index.html içinde saklanır (git'e ya da saate bağlı değil); değişmediyse sitemap lastmod'u korunur.
-    _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:seri|tarih)">)[^<]*', r"\1", h), flags=re.S)
+    _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:plaka|tarih)">)[^<]*', r"\1", h), flags=re.S)
     _iz_girdisi = re.sub(r"<!--ANA:OLCUM-NOTU-->.*?<!--/ANA:OLCUM-NOTU-->\n|<!--OLCUM-->.*?<!--/OLCUM-->\n", "", _iz_girdisi, flags=re.S)       # analitik betiği/notu anlamlı içerik değildir       # izin kendisi ve günlük değerler girdiye katılmaz
     yeni_iz = hashlib.sha256(_iz_girdisi.encode("utf-8")).hexdigest()[:16]
     h = _bolge(h, "<!--ANA:SURUM-->", "<!--/ANA:SURUM-->", yeni_iz)
@@ -287,7 +289,7 @@ for s in iller:
     est_n = last[1] + fc.advance(o, _c, last[0], _h, rate)
     el, en = inv(est_n); ll, ln = inv(last[1])
     if s["kod"] in ANA_SAYFA_KARTLARI:        # ana sayfa kartı: aynı hesap (aynı el/ll/ln), aynı referans gün
-        KARTLAR[s["kod"]] = {"il": il, "ad": ad, "kod": kod, "slug": sl, "seri": f"{kod} {el}", "tarih": tr_date(today), "g_plaka": f"{kod} {ll} {ln:03d}", "g_tarih": tr_date(last_d)}
+        KARTLAR[s["kod"]] = {"il": il, "ad": ad, "kod": kod, "slug": sl, "plaka": f"{kod} {el} {en:03d}", "tarih": tr_date(today), "g_plaka": f"{kod} {ll} {ln:03d}", "g_tarih": tr_date(last_d)}
     canli_js = CANLI_JS.replace("__GOZLEM__", last_d.isoformat()).replace("__ESIK__", str(BAYAT_ESIK_GUN))
     trans = [t for t in gec if t["il"] == il]
     rows = "".join(f"<tr><td>{t['ilk_gorulen_yeni_tarih'][8:10]}.{t['ilk_gorulen_yeni_tarih'][5:7]}.{t['ilk_gorulen_yeni_tarih'][:4]}</td><td class='mono'>{t['onceki_harf_grubu']} → {t['yeni_harf_grubu']}</td><td class='mono'>{html.escape(t['son_gorulen_eski'])} → {html.escape(t['ilk_gorulen_yeni'])}</td></tr>" for t in trans)
@@ -363,8 +365,8 @@ for s in iller:
 <div class="eyebrow"><a href="/">Plaka Tahmini</a> · {kod} {html.escape(ad)}</div>
 <h1>{html.escape(ad)} Plaka Sırası Hangi Harfte?</h1>
 <section aria-label="Özet" data-baslangic="{today.isoformat()}">
-<p class="e">Tahmini güncel seri</p>
-<p class="buyuk mono" data-live="seri">{kod} {el}</p>
+<p class="e">Tahmini güncel plaka</p>
+<p class="buyuk mono" data-live="plaka">{kod} {el} {en:03d}</p>
 <p class="alt"><span data-live="tarih">{tr_date(today)}</span> itibarıyla · tahmindir</p>
 <dl class="metrik">
 <div><dt>Son kayıtlı gözlem</dt><dd class="v mono nw">{kod} {ll} {ln:03d}</dd><dd class="k">{tr_date(last_d)}</dd></div>

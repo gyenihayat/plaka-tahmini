@@ -130,7 +130,8 @@ class JavascriptKapaliyken(unittest.TestCase):
         urller = ["file://" + os.path.join(u.ROOT, "il", sl + ".html") for sl in ("konya", "istanbul", "kutahya")] + ["file://" + os.path.join(u.ROOT, "index.html")]
         r = subprocess.run([u.NODE, os.path.join(u.ROOT, "tests", "ui", "jssiz.js"), CHROME, *urller], capture_output=True, text=True, timeout=120); self.assertEqual(r.returncode, 0, r.stderr)
         for x in json.loads(r.stdout):
-            self.assertNotIn("hata", x, x); self.assertIn("Plaka Sırası", x["h1"]); self.assertTrue(x["seri"]); self.assertTrue(x["gozlem"]); self.assertEqual(x["linkler"], 84 if x["url"].endswith("index.html") else 81, x["url"])         # il: 81 bağlantı; ana sayfa: 81 + 3 kart
+            self.assertNotIn("hata", x, x); self.assertIn("Plaka Sırası", x["h1"]); self.assertRegex(x["seri"], r"^\d\d [A-Z]{3} \d{3}$", x["url"]); self.assertTrue(x["gozlem"])        # JS kapalıyken statik HTML tam tahmini plakayı (3 haneli sıra) gösterir
+            self.assertEqual(x["linkler"], 84 if x["url"].endswith("index.html") else 81, x["url"])         # il: 81 bağlantı; ana sayfa: 81 + 3 kart
             self.assertTrue(x["not"]); self.assertFalse(x["betikGC"]); self.assertEqual(x["olcum"], "undefined"); self.assertLessEqual(x["sw"], x["cw"])             # betik çalışmaz: GoatCounter yüklenmez, içerik ve il bağlantıları HTML'de
             if x["url"].endswith("index.html"): self.assertEqual(x["formAction"], "/")
 

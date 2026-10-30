@@ -68,9 +68,9 @@ class SayfaIciTutarlilik(unittest.TestCase):
                 for (a, gercek, ref, ack), r in zip(ANLAR, u.canli_sonuc(yol, [x[0] for x in ANLAR], tz=tz)):
                     ad = os.path.basename(yol); self.assertIsNone(r["hata"], (tz, ad, ack)); self.assertEqual(r["ana"]["tr"], gercek.isoformat(), (tz, ack))   # Türkiye takvim günü doğru
                     self.assertEqual(r["ana"]["iso"], ref.isoformat(), (tz, ack)); self.assertEqual(r["canli"]["tarih"], tr(ref), (tz, ad, ack))
-                    self.assertEqual(r["canli"]["seri"], r["ana"]["seri"], (tz, ad, ack)); self.assertEqual(r["canli"]["grup"], r["canli"]["seri"].split()[1][0])
+                    self.assertEqual(r["canli"]["plaka"], r["ana"]["plaka"], (tz, ad, ack)); self.assertRegex(r["canli"]["plaka"], r"^\d\d [A-Z]{3} \d{3}$"); self.assertEqual(r["canli"]["grup"], r["canli"]["plaka"].split()[1][0])
                     self.assertIsNone(r["uyari"], (tz, ack)); self.assertFalse(r["ana"]["kapsamDisi"])
-                    tum[(ad, a)] = (r["canli"]["seri"], r["canli"]["tarih"], r["bayat"])
+                    tum[(ad, a)] = (r["canli"]["plaka"], r["canli"]["tarih"], r["bayat"])
             if referans is None: referans = tum
             else: self.assertEqual(tum, referans, f"{tz}: tarayıcı saat diliminden bağımsız olmalı")
 
@@ -80,8 +80,8 @@ class SayfaIciTutarlilik(unittest.TestCase):
         for yol in tum_sayfalar():
             r = u.canli_sonuc(yol, [cuma, an(2026, 10, 30, 21), cts, paz, paz_gece, pzt]); ad = os.path.basename(yol)
             for x in r[1:5]:
-                self.assertEqual((x["canli"]["seri"], x["canli"]["tarih"], x["ana"]["n"]), (r[0]["canli"]["seri"], r[0]["canli"]["tarih"], r[0]["ana"]["n"]), ad)     # Cuma = Cumartesi = Pazar (sayısal olarak da aynı)
-            self.assertEqual(r[0]["canli"]["tarih"], "30 Ekim 2026", ad); self.assertEqual(r[5]["canli"]["tarih"], "2 Kasım 2026", ad); self.assertGreater(r[5]["ana"]["n"], r[0]["ana"]["n"], ad)
+                self.assertEqual((x["canli"]["plaka"], x["canli"]["tarih"], x["ana"]["n"], x["ana"]["plaka"]), (r[0]["canli"]["plaka"], r[0]["canli"]["tarih"], r[0]["ana"]["n"], r[0]["ana"]["plaka"]), ad)     # Cuma = Cumartesi = Pazar (tam plaka ve sıra numarası dahil, sayısal olarak da aynı)
+            self.assertEqual(r[0]["canli"]["tarih"], "30 Ekim 2026", ad); self.assertEqual(r[5]["canli"]["tarih"], "2 Kasım 2026", ad); self.assertGreater(r[5]["ana"]["n"], r[0]["ana"]["n"], ad); self.assertNotEqual(r[5]["canli"]["plaka"], r[0]["canli"]["plaka"], ad)          # Pazartesi: yeni iş günü, tam plaka (sıra numarası) ilerler
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_29_ekim_resmi_tatilinde_28_ekim_tahmini_81_il(self):
@@ -91,7 +91,7 @@ class SayfaIciTutarlilik(unittest.TestCase):
             cars, per, cum = an(2026, 10, 28, 9), an(2026, 10, 29, 9), an(2026, 10, 30, 9)
             for yol in sorted(glob.glob(os.path.join(d, "il", "*.html"))):
                 a, b, c = u.canli_sonuc(yol, [cars, per, cum]); ad = os.path.basename(yol)
-                self.assertEqual((b["canli"]["seri"], b["canli"]["tarih"], b["ana"]["n"]), (a["canli"]["seri"], "28 Ekim 2026", a["ana"]["n"]), ad)   # 29 Ekim (tatil) = 28 Ekim
+                self.assertEqual((b["canli"]["plaka"], b["canli"]["tarih"], b["ana"]["n"]), (a["canli"]["plaka"], "28 Ekim 2026", a["ana"]["n"]), ad)   # 29 Ekim (tatil) = 28 Ekim
                 self.assertEqual(b["ana"]["iso"], "2026-10-28"); self.assertEqual(c["canli"]["tarih"], "30 Ekim 2026")
         finally: shutil.rmtree(d, ignore_errors=True)
 
@@ -103,14 +103,16 @@ class SayfaIciTutarlilik(unittest.TestCase):
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_python_statik_ile_js_ayni_gun_en_fazla_1_sira(self):
-        """Üretimde Python'un yazdığı statik başlık tahmini ile aynı referans günün JS (ortak motor) tahmini: ≤ 1 sıra; seri harfleri yalnızca 1000'lik sınırda ayrışabilir."""
+        """Üretimde Python'un yazdığı statik başlık tahmini (tam plaka) ile aynı referans günün JS (ortak motor) tahmini BİREBİR aynı olmalı (sıra numarası dahil, tolerans yok).
+        Ham tahmin iki tarafta bit-bit aynıdır; eski sapmanın nedeni Python round() (yarım değer çifte) ile JS Math.round (yarım yukarı) farkıydı (test_tam_plaka.py ayrıntılı)."""
         for s in veri():
             h = sayfa(s["il"]); bas = D.fromisoformat(re.search(r'data-baslangic="([^"]+)"', h)[1]); o = [tuple(x) for x in s["obs"]]; g, n = o[-1]
             self.assertEqual(bas, ig.onceki_is_gunu(bas))                                                   # üretim referans günü iş günü
-            py = round(n + fc.advance(o, fc.clean(o), g, (bas - (E0 + dt.timedelta(days=g))).days, fc.slope(o, g)))
+            ham = n + fc.advance(o, fc.clean(o), g, (bas - (E0 + dt.timedelta(days=g))).days, fc.slope(o, g))
             r = u.canli_sonuc(os.path.join(u.ROOT, "il", slug(TAM.get(s["il"], s["il"])) + ".html"), [an(bas.year, bas.month, bas.day, 9)])[0]
-            self.assertLessEqual(abs(r["ana"]["n"] - py), 1, s["il"]); statik = re.search(r'data-live="seri">\d\d ([A-Z]{3})<', h)[1]
-            if abs(py % 1000 - 500) < 498: self.assertEqual(statik, inv(py)[0], s["il"])
+            self.assertEqual(r["ana"]["n"], ham, s["il"])                                                    # ham tahmin bit-bit aynı
+            statik = re.search(r'data-live="plaka">([^<]*)<', h)[1]
+            self.assertEqual(statik, r["ana"]["plaka"], s["il"]); self.assertEqual(statik, r["canli"]["plaka"], s["il"])
 
 class UretimTarihi(unittest.TestCase):
     def test_python_uretim_gunu_turkiye_tarihinin_onceki_is_gunu_ve_saat_diliminden_bagimsiz(self):
@@ -135,7 +137,7 @@ class UretimTarihi(unittest.TestCase):
             # aynı referans günündeki statik seri hafta sonu üretimiyle Cuma üretiminde aynıdır
             seri = {}
             for bugun in ("2026-10-30", "2026-10-31", "2026-11-01"):
-                u.uret(d, "--bugun", bugun, "--iller", "konya"); seri[bugun] = re.search(r'data-live="seri">([^<]*)<', u.oku(os.path.join(d, "il", "konya.html")))[1]
+                u.uret(d, "--bugun", bugun, "--iller", "konya"); seri[bugun] = re.search(r'data-live="plaka">([^<]*)<', u.oku(os.path.join(d, "il", "konya.html")))[1]
             self.assertEqual(len(set(seri.values())), 1, seri)
         finally: shutil.rmtree(d, ignore_errors=True)
 
@@ -180,10 +182,10 @@ class TarayiciAnaSayfaIlSayfasi(unittest.TestCase):
             gun = ref[r["an"]]
             self.assertEqual(r["anaDt"], gun.isoformat(), r)                               # ana sayfa tarih alanı = referans gün (Python onceki_is_gunu ile aynı)
             if r["kart"]:                                                                  # ana sayfa kartı: seri ve tarih, ana sayfa aracı/il sayfasıyla aynı referans gün ve motor
-                self.assertEqual(r["kart"]["seri"], " ".join(r["ana"].split()[:2]), r); self.assertEqual(r["kart"]["tarih"], tr(gun), r)
-            if r["seri"] is None: continue                                                 # başlangıçtan önceki saat: yalnızca ana sayfa
+                self.assertEqual(r["kart"]["plaka"], " ".join(r["ana"].split()[:3]), r); self.assertEqual(r["kart"]["tarih"], tr(gun), r)
+            if r["plaka"] is None: continue                                                 # başlangıçtan önceki saat: yalnızca ana sayfa
             self.assertEqual(r["tarih"], tr(gun), r)                                       # il sayfası etiketi aynı referans gün
-            self.assertEqual(r["seri"], " ".join(r["ana"].split()[:2]), r)                 # il büyük tahmini = ana sayfa güncel tahmini
+            self.assertEqual(r["plaka"], " ".join(r["ana"].split()[:3]), r)                # il büyük tahmini (tam plaka) = ana sayfa güncel tahmini
             self.assertFalse(r["uyari"], r)
         self.assertEqual({r["il"] for r in sonuc if r["kart"]}, {"İstanbul", "Ankara", "İzmir"})
         for il in {r["il"] for r in sonuc}:                                                # hafta sonu = Cuma (ana sayfa plakası numarasıyla birebir)

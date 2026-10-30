@@ -1,6 +1,6 @@
 """81 il sayfası: sade ilk ekran, veriyle eşleşen ilk cevap, gözlem/tahmin ayrımı, hız/seri süresi tutarlılığı, güncellik uyarısı,
 açılır bölümler, gerçek il bağlantıları, SEO etiketleri ve yapısal veri. Beklenenler data/tahmin_data.json ve forecast.py'den bağımsız hesaplanır."""
-import datetime as dt, glob, html, json, os, re, shutil, subprocess, sys, unittest
+import datetime as dt, glob, html, json, math, os, re, shutil, subprocess, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import _util as u
 import forecast as fc
@@ -10,6 +10,10 @@ AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eyl
 TAM = {"K.Maraş": "Kahramanmaraş", "Afyon": "Afyonkarahisar"}
 def inv(n):
     g = n // 1000; return A1[g//len(A3)//len(A2)] + A2[g//len(A3) % len(A2)] + A3[g % len(A3)], n % 1000
+def yuvarla(x): return math.floor(x + 0.5)                      # JS Math.round ile aynı (yarım değer yukarı); Python round() yarım değeri çifte yuvarlar ve canlı JS ile ayrışırdı
+def tahmin_plaka(kod, ham):
+    """Ham tahmin sıra değerinden tam plaka: İL KODU + ÜÇ HARF + ÜÇ HANELİ SIRA (numara 001–999 aralığına kısıtlanır, başındaki sıfırlar korunur). Üretimden bağımsız yazılmıştır."""
+    n = yuvarla(ham); harf, no = inv(n); return f"{kod:02d} {harf} {max(1, min(999, no)):03d}"
 def tr(d): return f"{d.day} {AY[d.month-1]} {d.year}"
 def sayi(n): return f"{round(n):,}".replace(",", ".")
 def slug(s):
@@ -53,12 +57,13 @@ class IlkEkran(unittest.TestCase):
         for s in veri():
             h = sayfa(s["il"]); o = [tuple(x) for x in s["obs"]]; c = fc.clean(o); g, n = o[-1]; sr, no = inv(n); ld = E0 + dt.timedelta(days=g)
             start = dt.date.fromisoformat(re.search(r'data-baslangic="([^"]+)"', h)[1]); rate = fc.slope(o, g)
-            est = inv(round(n + fc.advance(o, c, g, (start - ld).days, rate)))[0]; kod = f"{s['kod']:02d}"
-            self.assertEqual(re.search(r'class="buyuk mono" data-live="seri">([^<]*)<', h)[1], f"{kod} {est}", s["il"])
+            est = tahmin_plaka(s["kod"], n + fc.advance(o, c, g, (start - ld).days, rate)); kod = f"{s['kod']:02d}"
+            self.assertEqual(re.search(r'class="buyuk mono" data-live="plaka">([^<]*)<', h)[1], est, s["il"])                   # tam tahmini plaka: il kodu + 3 harf + 3 haneli sıra
+            self.assertIn('<p class="e">Tahmini güncel plaka</p>', h)
             self.assertIn(f"<span data-live=\"tarih\">{tr(start)}</span> itibarıyla · tahmindir", h)
             self.assertRegex(h, rf'<dt>Son kayıtlı gözlem</dt><dd class="v mono nw">{kod} {sr} {no:03d}</dd><dd class="k">{tr(ld)}</dd>')
             self.assertRegex(h, rf'<dt>Harf grubu</dt><dd class="v mono">{sr[0]}</dd><dd class="k">gözlenen · serinin ilk harfi</dd>')
-            self.assertEqual(est[0] == sr[0], bool(re.search(r'id="tahmin-grup"[^>]*\bhidden\b', h)), s["il"])    # tahmini grup farklıysa ayrıca gösterilir
+            self.assertEqual(est.split()[1][0] == sr[0], bool(re.search(r'id="tahmin-grup"[^>]*\bhidden\b', h)), s["il"])    # tahmini grup farklıysa ayrıca gösterilir
 
     def test_28_gunluk_degisim_ham_gozlemden(self):
         for s in veri():

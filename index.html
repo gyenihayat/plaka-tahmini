@@ -97,7 +97,7 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 .foot{font-size:15px;color:var(--ink-2);margin:0}
 .meta .ms{display:block;margin:0 0 4px}
 .hata{color:#9b2c1d;font-weight:600;font-size:15px;margin:8px 0 0}#il-ara{text-transform:none;font-family:"IBM Plex Sans",system-ui,sans-serif;font-weight:400}.iller-liste h2{margin:0 0 8px}.iller-liste .iller p{margin:0 0 8px;font-size:15px;line-height:1.9}
-@media (min-width:700px){.kartlar{grid-template-columns:repeat(3,1fr)}.wrap{padding-top:36px}}
+@media (min-width:700px){.kartlar{grid-template-columns:repeat(3,1fr)}.wrap{padding-top:36px}.k-seri{font-size:clamp(1.65rem,4.2vw,1.9rem);letter-spacing:.01em}}   /* 3 sütunda kart içeriği ~190 px: tam plaka (10 karakter) tek satıra sığsın */
 </style>
 </head>
 <body>
@@ -109,9 +109,9 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 
 <!--ANA:KARTLAR-->
 <section aria-label="Büyük illerin güncel tahmini plaka serisi"><div class="kartlar">
-<a class="kart" href="/il/istanbul" data-il="İstanbul"><span class="k-ust"><span class="k-il">İstanbul · 34</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="seri">34 RME</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 34 RLN 835 · 23 Ekim 2026</span></a>
-<a class="kart" href="/il/ankara" data-il="Ankara"><span class="k-ust"><span class="k-il">Ankara · 06</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="seri">06 GGL</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 06 GGD 591 · 23 Ekim 2026</span></a>
-<a class="kart" href="/il/izmir" data-il="İzmir"><span class="k-ust"><span class="k-il">İzmir · 35</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="seri">35 DGA</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 35 DFU 602 · 23 Ekim 2026</span></a>
+<a class="kart" href="/il/istanbul" data-il="İstanbul"><span class="k-ust"><span class="k-il">İstanbul · 34</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="plaka">34 RME 845</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 34 RLN 835 · 23 Ekim 2026</span></a>
+<a class="kart" href="/il/ankara" data-il="Ankara"><span class="k-ust"><span class="k-il">Ankara · 06</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="plaka">06 GGL 096</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 06 GGD 591 · 23 Ekim 2026</span></a>
+<a class="kart" href="/il/izmir" data-il="İzmir"><span class="k-ust"><span class="k-il">İzmir · 35</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="plaka">35 DGA 546</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 35 DFU 602 · 23 Ekim 2026</span></a>
 </div>
 <p class="veri-tarihi">Son kayıtlı veri: <span id="last-global">23.10.2026</span> · kaynak: wowTURKEY / Güven_Hoca haftalık tabloları</p></section>
 <!--/ANA:KARTLAR-->
@@ -192,7 +192,7 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 <!--/ANA:OLCUM-NOTU-->
 </main>
 <!--ANA:SURUM-->
-4d4211f0308ed252
+ffabc2e6fe25a4ff
 <!--/ANA:SURUM-->
 
 <script src="/assets/takvim.js"></script>

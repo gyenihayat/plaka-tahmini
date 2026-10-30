@@ -1,4 +1,4 @@
-// Ana sayfa: (1) üç büyük ilin güncel tahmin kartlarını ortak motorla günceller, (2) il adı/plaka kodu ile il sayfasına yönlendirir.
+// Ana sayfa: (1) üç büyük ilin güncel tahmini plaka (il kodu + harf serisi + 3 haneli sıra) kartlarını ortak motorla günceller, (2) il adı/plaka kodu ile il sayfasına yönlendirir.
 // Klasik script: sayfadaki DATA, byName ve REF (index.html) ile ortak motorun (tahmin-motoru.js) global bildirimlerini kullanır; index.html'in inline betiğinden SONRA yüklenir.
 // Kartlar il sayfalarındaki büyük tahminle AYNI fonksiyonu (guncelSeriBilgisi) ve AYNI referans günü (trReferansGun) kullanır; hesap burada tekrarlanmaz.
 const PlakaAnaSayfa = (function () {
@@ -31,7 +31,7 @@ const PlakaAnaSayfa = (function () {
     doc.querySelectorAll(".kart[data-il]").forEach(k => {
       const s = iller[k.getAttribute("data-il")]; if (!s) throw new Error("kart ili veride yok: " + k.getAttribute("data-il"));
       const b = guncelSeriBilgisi(s, ref.gun); if (!b) throw new Error("tahmin alfabe dışında");
-      k.querySelector('[data-kart="seri"]').textContent = b.seri; k.querySelector('[data-kart="tarih"]').textContent = b.tarih;
+      k.querySelector('[data-kart="plaka"]').textContent = b.plaka; k.querySelector('[data-kart="tarih"]').textContent = b.tarih;
     });
   }
   // Analitik olayı (olcum.js yüklü değilse ya da üretimde değilsek sessizce yok sayılır); yalnızca sabit olay adları, içerik gönderilmez
