@@ -26,91 +26,133 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-:root{
-  --bg:#f5f5f1; --surface:#fcfcfa; --ink:#15171c; --ink-2:#4d5461; --ink-3:#7d8491;
-  --line:#dcdfe5; --line-2:#e9ebef; --band:#1f4fb0; --accent:#2a78d6; --accent-soft:#e3eefb;
-  --warn-bg:#fff6e0; --warn-ink:#7a4a00; --good:#0a7a2f; --est:#7a3fb3;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#121418; --surface:#191c22; --ink:#eef0f4; --ink-2:#b7bdc8; --ink-3:#858c99;
-    --line:#2c313a; --line-2:#242830; --band:#2f63c9; --accent:#5d9cf0; --accent-soft:#1c2a40;
-    --warn-bg:#2d2410; --warn-ink:#f3c76b; --good:#4cc04c; --est:#b98be0;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#121418; --surface:#191c22; --ink:#eef0f4; --ink-2:#b7bdc8; --ink-3:#858c99;
-  --line:#2c313a; --line-2:#242830; --band:#2f63c9; --accent:#5d9cf0; --accent-soft:#1c2a40;
-  --warn-bg:#2d2410; --warn-ink:#f3c76b; --good:#4cc04c; --est:#b98be0;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:clamp(34px,5vw,52px);font-weight:700;line-height:1.05;margin:0;text-wrap:balance}
-h2{font-family:"Barlow Condensed",sans-serif;font-size:26px;font-weight:600;margin:0 0 8px}
-.wrap{max-width:1060px;margin:0 auto;padding:40px 24px 60px}
-.eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
-.lede{color:var(--ink-2);max-width:780px;margin:12px 0 20px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:18px}
-.row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:14px;color:var(--ink-2)}
-select,input[type=date],input[type=text]{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
-input[type=text]{width:170px;font-family:"IBM Plex Mono",monospace;text-transform:uppercase}
-button{font:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink-2);cursor:pointer}
-button:hover{background:var(--accent-soft);color:var(--ink)}
-button.primary{background:var(--accent-soft);color:var(--ink);font-weight:600;border-color:var(--accent)}
-:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.plate{display:inline-flex;align-items:stretch;border:2.5px solid #15171c;border-radius:8px;overflow:hidden;background:#fff;color:#111;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;letter-spacing:.06em;font-size:40px;line-height:1;vertical-align:middle}
-.plate .bandx{background:var(--band);color:#fff;font-size:13px;font-weight:600;display:flex;align-items:flex-end;justify-content:center;padding:5px 6px 4px;width:28px}
-.plate .num{padding:11px 16px 9px;white-space:nowrap}
-.plate.sm{font-size:18px;border-width:1.5px;border-radius:5px}.plate.sm .bandx{width:15px;font-size:8px;padding:3px}.plate.sm .num{padding:5px 8px 4px}
-.result{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin:16px 0 6px}
-.tag{display:inline-block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600}
-.tag.est{color:var(--est);border:1.5px solid currentColor}
-.tag.real{color:var(--good);border:1.5px solid currentColor}
-.meta{font-size:13px;color:var(--ink-2)}
-.meta b{color:var(--ink)}
-.lastbtn{display:inline-flex;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:13px}
-.pop{position:relative;display:inline-block}
-.pop .panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:9;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:10px 14px;min-width:230px}
-.pop.open .panel{display:block}
-.pop .panel table{font-size:12.5px;border-collapse:collapse}
-.pop .panel td{padding:3px 8px;border-bottom:1px solid var(--line-2);font-variant-numeric:tabular-nums}
-.pop .panel td:last-child{font-family:"IBM Plex Mono",monospace}
-.note{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:9px 13px;font-size:13px;margin-top:10px;display:none}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
-@media (max-width:860px){.grid2{grid-template-columns:1fr}}
-table.t{border-collapse:collapse;width:100%;font-size:13.5px}
-table.t th,table.t td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap}
-table.t th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);position:sticky;top:0;background:var(--surface);z-index:1}
-table.t td.n{text-align:right;font-variant-numeric:tabular-nums}
-table.t td.mono{font-family:"IBM Plex Mono",monospace}
-.tblwrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:12px}
-.ok{color:var(--good)} .dim{color:var(--ink-3)}
-.foot{font-size:13px;color:var(--ink-3);margin-top:16px;max-width:840px}
-.rel{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:baseline}
-.rel.g{background:var(--good)} .rel.o{background:#eda100} .rel.r{background:#d03b3b}
+/*ANA:TEMEL-CSS*/
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f5f5f1;color:#15171c;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 56px}a{color:#1f63bb}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#5b6370;margin-bottom:8px}.eyebrow a{color:inherit;text-decoration:none}
+h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:clamp(1.75rem,7vw,2.5rem);font-weight:700;line-height:1.1;margin:0 0 18px}
+.e{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#5b6370;margin:0}
+.buyuk{font-size:clamp(2.5rem,11vw,3.5rem);font-weight:600;line-height:1.05;letter-spacing:.02em;margin:4px 0 2px;white-space:nowrap}
+.alt{margin:0;font-size:16px;color:#4d5461}.mono{font-family:"IBM Plex Mono",monospace}.nw{white-space:nowrap}
+.metrik{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:18px 20px;margin:22px 0 4px}.metrik>div{margin:0}
+.metrik dt{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#5b6370}
+.metrik dd{margin:2px 0 0}.metrik .v{font-size:1.25rem;font-weight:600;line-height:1.3}.metrik .k{font-size:15px;color:#5b6370;line-height:1.4}
+.cta{display:block;margin:22px 0 10px;background:#1f4fb0;color:#fff;text-align:center;font-weight:600;font-size:1.0625rem;padding:13px 16px;border-radius:10px;text-decoration:none}
+.cta:hover{background:#18408f}.not{font-size:15px;color:#4d5461;margin:0 0 8px}
+.uyari{background:#fff6e0;border:1px solid #e3c36a;color:#7a4a00;border-radius:9px;padding:10px 14px;font-size:15px;margin:10px 0}
+.arac{margin:26px 0 8px;padding:18px 0;border-top:1px solid #dcdfe5}
+h2{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:1.25rem;font-weight:600;margin:0 0 10px;line-height:1.3}
+label{display:block;font-weight:600;font-size:15px;margin-bottom:6px}
+.alan{display:flex;gap:8px}.alan input{flex:1;min-width:0;font:600 1.125rem "IBM Plex Mono",monospace;text-transform:uppercase;padding:11px 12px;border:1.5px solid #8b94a5;border-radius:8px;background:#fff;color:#15171c}
+.alan button{font:600 1rem "IBM Plex Sans",system-ui,sans-serif;padding:0 18px;border:1px solid #2a78d6;border-radius:8px;background:#e3eefb;color:#1f4fb0;cursor:pointer}
+input:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #f0a000;outline-offset:2px}
+.alan input::placeholder,.gelismis input::placeholder{text-transform:none;color:#6b7280}.ipucu{font-size:15px;color:#4d5461;margin:8px 0 0}.gelismis{margin-top:10px;font-size:15px}.gelismis summary{cursor:pointer;color:#1f4fb0}.gelismis input{width:100%;margin-top:6px;font:600 1rem "IBM Plex Mono",monospace;text-transform:uppercase;padding:9px 10px;border:1.5px solid #8b94a5;border-radius:8px}
+.sonuc{margin-top:14px;min-height:1px}.sonuc .s-b{font-size:1.5rem;font-weight:600;line-height:1.25;margin:0}.sonuc .s-a{font-size:15px;color:#4d5461;margin:2px 0 0}.sonuc .s-u{font-size:15px;color:#7a4a00;margin:6px 0 0}.sonuc .hata{color:#9b2c1d;font-weight:600;margin:0}
+details.bolum{border-top:1px solid #dcdfe5;padding:12px 0}details.bolum>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.bolum>summary::-webkit-details-marker{display:none}details.bolum>summary::after{content:"+";font-size:1.5rem;line-height:1;color:#5b6370}details.bolum[open]>summary::after{content:"−"}
+details.bolum>summary h2{margin:0;font-size:1.25rem}.ic{padding-top:10px}.ic ul{padding-left:20px;margin:0}.ic li{margin:0 0 8px;font-size:15px}
+.meta{font-size:15px;color:#4d5461;margin:0 0 8px}.meta b{color:#15171c}
+table{border-collapse:collapse;width:100%;font-size:14px;border:1px solid #c5cad3}td,th{text-align:left;padding:6px 8px;border:1px solid #d5d9e0}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;background:#eef0f3}
+.yoy{overflow-x:auto;-webkit-overflow-scrolling:touch}.yoy table{min-width:560px}.yoy td.n,.yoy th.n{text-align:right;white-space:nowrap}
+.yoy td.p{color:#5b6370;font-style:italic}.yoy tr.pct td{font-weight:600;background:#f3f4f7}.yoy .up{color:#1a7f4b}.yoy .dn{color:#b3402a}
+.kaydir{overflow-x:auto;-webkit-overflow-scrolling:touch}td.mono{white-space:nowrap}.fn{font-size:14px;color:#5b6370;margin:8px 0 0}
+.iller p{margin:0 0 8px;font-size:15px;line-height:1.9}.iller b{display:inline-block;min-width:1.4em;color:#5b6370}.iller a{margin-right:8px;white-space:nowrap}
+/*/ANA:TEMEL-CSS*/
+:root{--ink:#15171c;--ink-2:#4d5461;--ink-3:#5b6370;--line:#dcdfe5;--line-2:#e9ebef;--surface:#fcfcfa;--accent:#1f63bb;--accent-soft:#e3eefb;--warn-bg:#fff6e0;--warn-ink:#7a4a00;--good:#0a7a2f;--est:#7a3fb3;--band:#1f4fb0}
+.alt-baslik{font-size:1.0625rem;color:var(--ink-2);margin:0 0 20px;max-width:640px}
+.kartlar{display:grid;grid-template-columns:1fr;gap:12px;margin:0 0 6px}
+.kart{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--ink);text-decoration:none}
+.kart:hover{border-color:#8b94a5}.kart:focus-visible{outline:3px solid #f0a000;outline-offset:2px}
+.k-ust{display:flex;justify-content:space-between;align-items:center;gap:6px}.k-il{font-size:13px;font-weight:600;letter-spacing:.03em;white-space:nowrap;text-transform:uppercase;color:var(--ink-3)}
+.etiket{font-size:12px;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;white-space:nowrap;border-radius:99px;font-weight:600;color:var(--est);border:1.5px solid currentColor}
+.k-seri{display:block;font-size:clamp(2.25rem,9vw,2.75rem);font-weight:600;line-height:1.1;letter-spacing:.02em;margin:4px 0 2px;white-space:nowrap}
+.k-alt{display:block;font-size:15px;color:var(--ink-2)}.k-gozlem{display:block;font-size:15px;color:var(--ink-3);margin-top:2px}
+.veri-tarihi{font-size:15px;color:var(--ink-3);margin:10px 0 0}
+.il-bolum{margin:26px 0 0;padding-top:18px;border-top:1px solid var(--line)}
+.arac{margin:26px 0 8px;padding:18px 0 4px;border-top:1px solid var(--line)}
+.arac h3{font-size:1.125rem;font-weight:600;margin:22px 0 8px}.arac>.alan2{margin:0 0 14px}
+select,input[type=date]{font:inherit;font-size:1rem;padding:10px 12px;border:1.5px solid #8b94a5;border-radius:8px;background:#fff;color:var(--ink);max-width:100%}
+.alan input[type=text],.gelismis input[type=text]{font-family:"IBM Plex Mono",monospace}
+.row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;font-size:15px;color:var(--ink-2)}.dim{color:var(--ink-3)}.ok{color:var(--good)}
+button{font:inherit;font-size:.9375rem;padding:9px 14px;border:1px solid #8b94a5;border-radius:8px;background:#fff;color:var(--ink-2);cursor:pointer}button:hover{background:var(--accent-soft);color:var(--ink)}
+button.primary{background:var(--accent-soft);color:#1f4fb0;font-weight:600;border-color:#2a78d6}
+.plate{display:inline-flex;align-items:stretch;border:2.5px solid #15171c;border-radius:8px;overflow:hidden;background:#fff;color:#111;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;letter-spacing:.06em;font-size:2.5rem;line-height:1;vertical-align:middle}
+.plate .bandx{background:var(--band);color:#fff;font-size:13px;font-weight:600;display:flex;align-items:flex-end;justify-content:center;padding:5px 6px 4px;width:28px}.plate .num{padding:11px 16px 9px;white-space:nowrap}
+.plate.sm{font-size:1.25rem;border-width:1.5px;border-radius:5px}.plate.sm .bandx{width:16px;font-size:9px;padding:3px}.plate.sm .num{padding:5px 8px 4px}
+.result{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin:14px 0 6px}
+.tag{display:inline-block;font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600}.tag.est{color:var(--est);border:1.5px solid currentColor}.tag.real{color:var(--good);border:1.5px solid currentColor}
+.meta{font-size:15px;color:var(--ink-2)}.meta b{color:var(--ink)}
+.lastbtn{display:inline-flex;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;font-size:.875rem}
+.pop{position:relative;display:inline-block}.pop .panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:9;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:10px 14px;min-width:230px;max-width:calc(100vw - 32px)}
+.pop.open .panel{display:block}.pop .panel table{font-size:13px;border-collapse:collapse;border:0}.pop .panel td{padding:3px 8px;border:0;border-bottom:1px solid var(--line-2)}.pop .panel td:last-child{font-family:"IBM Plex Mono",monospace}
+.note{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:9px 13px;font-size:15px;margin-top:10px;display:none}
+.alan2{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.alan2 label{margin:0}
+table.t{border-collapse:collapse;width:100%;font-size:14px;border:0}table.t th,table.t td{text-align:left;padding:6px 10px;border:0;border-bottom:1px solid var(--line-2);white-space:nowrap}
+table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);position:sticky;top:0;background:#fff;z-index:1}table.t td.n{text-align:right}table.t td.mono{font-family:"IBM Plex Mono",monospace}
+.tblwrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:12px}
+.rel{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}.rel.g{background:var(--good)}.rel.o{background:#eda100}.rel.r{background:#d03b3b}
+.gelismis code{font-family:"IBM Plex Mono",monospace;font-size:.9em}
+.iller-liste{margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}
+.foot{font-size:15px;color:var(--ink-2);margin:0}
+.meta .ms{display:block;margin:0 0 4px}
+.hata{color:#9b2c1d;font-weight:600;font-size:15px;margin:8px 0 0}#il-ara{text-transform:none;font-family:"IBM Plex Sans",system-ui,sans-serif;font-weight:400}.iller-liste h2{margin:0 0 8px}.iller-liste .iller p{margin:0 0 8px;font-size:15px;line-height:1.9}
+@media (min-width:700px){.kartlar{grid-template-columns:repeat(3,1fr)}.wrap{padding-top:36px}}
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <div class="eyebrow">wowturkey.com verisi · Güven_Hoca tabloları · son veri: <span id="last-global"></span></div>
-  <h1>Plaka Tahmini</h1>
-  <p class="lede">Bir ilin bugün (ya da vereceğiniz bir tarihte) <b>tahminen hangi seriyi verdiğini</b> gösterir; bir seri girerseniz <b>o seriye ne zaman ulaşılacağını</b> kestirir. Tahmin, ilin son bir yıllık ilerleme hızı ile geçen yılın aynı dönemindeki ilerlemenin karışımıdır (isim/atlama kayıpları dahil); geçmiş tarihler doğrudan kayıtlı gözlemlerden okunur.</p>
+<main class="wrap">
+  <div class="eyebrow">Plaka Tahmini</div>
+  <h1>Türkiye Plaka Sırası Tahminleri</h1>
+  <p class="alt-baslik">81 il için güncel tahmini plaka serilerini inceleyin, istediğiniz plakanın yaklaşık çıkış tarihini hesaplayın.</p>
 
-  <div class="card">
-    <h2>Şu an hangi seride?</h2>
-    <div class="row">
-      <label for="il">İl:</label> <select id="il"></select>
-      <label for="dt">Tarih:</label> <input type="date" id="dt">
-      <button id="btn-today">Bugün</button>
-      <button id="btn-all">Tüm illeri göster</button>
+<!--ANA:KARTLAR-->
+<section aria-label="Büyük illerin güncel tahmini plaka serisi"><div class="kartlar">
+<a class="kart" href="/il/istanbul" data-il="İstanbul"><span class="k-ust"><span class="k-il">İstanbul · 34</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="seri">34 RME</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 34 RLN 835 · 23 Ekim 2026</span></a>
+<a class="kart" href="/il/ankara" data-il="Ankara"><span class="k-ust"><span class="k-il">Ankara · 06</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="seri">06 GGL</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 06 GGD 591 · 23 Ekim 2026</span></a>
+<a class="kart" href="/il/izmir" data-il="İzmir"><span class="k-ust"><span class="k-il">İzmir · 35</span><span class="etiket">Tahmindir</span></span><span class="k-seri mono" data-kart="seri">35 DGA</span><span class="k-alt"><span data-kart="tarih">30 Ekim 2026</span> itibarıyla</span><span class="k-gozlem">Son gözlem: 35 DFU 602 · 23 Ekim 2026</span></a>
+</div>
+<p class="veri-tarihi">Son kayıtlı veri: <span id="last-global">23.10.2026</span> · kaynak: wowTURKEY / Güven_Hoca haftalık tabloları</p></section>
+<!--/ANA:KARTLAR-->
+  <div class="uyari" id="kart-uyari" role="status" hidden></div>
+  <a class="cta" href="#hesapla">Plakamın tarihini hesapla</a>
+
+  <section class="il-bolum" aria-labelledby="il-baslik">
+    <h2 id="il-baslik">İlinizin plaka sırasını öğrenin</h2>
+    <form id="il-form" action="/" autocomplete="off" novalidate>
+      <label for="il-ara">İl adı veya plaka kodu</label>
+      <div class="alan"><input id="il-ara" type="text" list="il-liste" placeholder="örn. Konya veya 42" aria-describedby="il-ipucu il-hata" autocapitalize="words" spellcheck="false"><button type="submit" class="primary">İl sayfasına git</button></div>
+<!--ANA:IL-LISTE-->
+<datalist id="il-liste"><option value="Adana (01)" data-ad="Adana" data-kod="1" data-slug="adana"></option><option value="Adıyaman (02)" data-ad="Adıyaman" data-kod="2" data-slug="adiyaman"></option><option value="Afyonkarahisar (03)" data-ad="Afyonkarahisar" data-kod="3" data-slug="afyonkarahisar"></option><option value="Ağrı (04)" data-ad="Ağrı" data-kod="4" data-slug="agri"></option><option value="Aksaray (68)" data-ad="Aksaray" data-kod="68" data-slug="aksaray"></option><option value="Amasya (05)" data-ad="Amasya" data-kod="5" data-slug="amasya"></option><option value="Ankara (06)" data-ad="Ankara" data-kod="6" data-slug="ankara"></option><option value="Antalya (07)" data-ad="Antalya" data-kod="7" data-slug="antalya"></option><option value="Ardahan (75)" data-ad="Ardahan" data-kod="75" data-slug="ardahan"></option><option value="Artvin (08)" data-ad="Artvin" data-kod="8" data-slug="artvin"></option><option value="Aydın (09)" data-ad="Aydın" data-kod="9" data-slug="aydin"></option><option value="Balıkesir (10)" data-ad="Balıkesir" data-kod="10" data-slug="balikesir"></option><option value="Bartın (74)" data-ad="Bartın" data-kod="74" data-slug="bartin"></option><option value="Batman (72)" data-ad="Batman" data-kod="72" data-slug="batman"></option><option value="Bayburt (69)" data-ad="Bayburt" data-kod="69" data-slug="bayburt"></option><option value="Bilecik (11)" data-ad="Bilecik" data-kod="11" data-slug="bilecik"></option><option value="Bingöl (12)" data-ad="Bingöl" data-kod="12" data-slug="bingol"></option><option value="Bitlis (13)" data-ad="Bitlis" data-kod="13" data-slug="bitlis"></option><option value="Bolu (14)" data-ad="Bolu" data-kod="14" data-slug="bolu"></option><option value="Burdur (15)" data-ad="Burdur" data-kod="15" data-slug="burdur"></option><option value="Bursa (16)" data-ad="Bursa" data-kod="16" data-slug="bursa"></option><option value="Çanakkale (17)" data-ad="Çanakkale" data-kod="17" data-slug="canakkale"></option><option value="Çankırı (18)" data-ad="Çankırı" data-kod="18" data-slug="cankiri"></option><option value="Çorum (19)" data-ad="Çorum" data-kod="19" data-slug="corum"></option><option value="Denizli (20)" data-ad="Denizli" data-kod="20" data-slug="denizli"></option><option value="Diyarbakır (21)" data-ad="Diyarbakır" data-kod="21" data-slug="diyarbakir"></option><option value="Düzce (81)" data-ad="Düzce" data-kod="81" data-slug="duzce"></option><option value="Edirne (22)" data-ad="Edirne" data-kod="22" data-slug="edirne"></option><option value="Elazığ (23)" data-ad="Elazığ" data-kod="23" data-slug="elazig"></option><option value="Erzincan (24)" data-ad="Erzincan" data-kod="24" data-slug="erzincan"></option><option value="Erzurum (25)" data-ad="Erzurum" data-kod="25" data-slug="erzurum"></option><option value="Eskişehir (26)" data-ad="Eskişehir" data-kod="26" data-slug="eskisehir"></option><option value="Gaziantep (27)" data-ad="Gaziantep" data-kod="27" data-slug="gaziantep"></option><option value="Giresun (28)" data-ad="Giresun" data-kod="28" data-slug="giresun"></option><option value="Gümüşhane (29)" data-ad="Gümüşhane" data-kod="29" data-slug="gumushane"></option><option value="Hakkari (30)" data-ad="Hakkari" data-kod="30" data-slug="hakkari"></option><option value="Hatay (31)" data-ad="Hatay" data-kod="31" data-slug="hatay"></option><option value="Iğdır (76)" data-ad="Iğdır" data-kod="76" data-slug="igdir"></option><option value="Isparta (32)" data-ad="Isparta" data-kod="32" data-slug="isparta"></option><option value="İstanbul (34)" data-ad="İstanbul" data-kod="34" data-slug="istanbul"></option><option value="İzmir (35)" data-ad="İzmir" data-kod="35" data-slug="izmir"></option><option value="Kahramanmaraş (46)" data-ad="Kahramanmaraş" data-kod="46" data-slug="kahramanmaras"></option><option value="Karabük (78)" data-ad="Karabük" data-kod="78" data-slug="karabuk"></option><option value="Karaman (70)" data-ad="Karaman" data-kod="70" data-slug="karaman"></option><option value="Kars (36)" data-ad="Kars" data-kod="36" data-slug="kars"></option><option value="Kastamonu (37)" data-ad="Kastamonu" data-kod="37" data-slug="kastamonu"></option><option value="Kayseri (38)" data-ad="Kayseri" data-kod="38" data-slug="kayseri"></option><option value="Kırıkkale (71)" data-ad="Kırıkkale" data-kod="71" data-slug="kirikkale"></option><option value="Kırklareli (39)" data-ad="Kırklareli" data-kod="39" data-slug="kirklareli"></option><option value="Kırşehir (40)" data-ad="Kırşehir" data-kod="40" data-slug="kirsehir"></option><option value="Kilis (79)" data-ad="Kilis" data-kod="79" data-slug="kilis"></option><option value="Kocaeli (41)" data-ad="Kocaeli" data-kod="41" data-slug="kocaeli"></option><option value="Konya (42)" data-ad="Konya" data-kod="42" data-slug="konya"></option><option value="Kütahya (43)" data-ad="Kütahya" data-kod="43" data-slug="kutahya"></option><option value="Malatya (44)" data-ad="Malatya" data-kod="44" data-slug="malatya"></option><option value="Manisa (45)" data-ad="Manisa" data-kod="45" data-slug="manisa"></option><option value="Mardin (47)" data-ad="Mardin" data-kod="47" data-slug="mardin"></option><option value="Mersin (33)" data-ad="Mersin" data-kod="33" data-slug="mersin"></option><option value="Muğla (48)" data-ad="Muğla" data-kod="48" data-slug="mugla"></option><option value="Muş (49)" data-ad="Muş" data-kod="49" data-slug="mus"></option><option value="Nevşehir (50)" data-ad="Nevşehir" data-kod="50" data-slug="nevsehir"></option><option value="Niğde (51)" data-ad="Niğde" data-kod="51" data-slug="nigde"></option><option value="Ordu (52)" data-ad="Ordu" data-kod="52" data-slug="ordu"></option><option value="Osmaniye (80)" data-ad="Osmaniye" data-kod="80" data-slug="osmaniye"></option><option value="Rize (53)" data-ad="Rize" data-kod="53" data-slug="rize"></option><option value="Sakarya (54)" data-ad="Sakarya" data-kod="54" data-slug="sakarya"></option><option value="Samsun (55)" data-ad="Samsun" data-kod="55" data-slug="samsun"></option><option value="Siirt (56)" data-ad="Siirt" data-kod="56" data-slug="siirt"></option><option value="Sinop (57)" data-ad="Sinop" data-kod="57" data-slug="sinop"></option><option value="Sivas (58)" data-ad="Sivas" data-kod="58" data-slug="sivas"></option><option value="Şanlıurfa (63)" data-ad="Şanlıurfa" data-kod="63" data-slug="sanliurfa"></option><option value="Şırnak (73)" data-ad="Şırnak" data-kod="73" data-slug="sirnak"></option><option value="Tekirdağ (59)" data-ad="Tekirdağ" data-kod="59" data-slug="tekirdag"></option><option value="Tokat (60)" data-ad="Tokat" data-kod="60" data-slug="tokat"></option><option value="Trabzon (61)" data-ad="Trabzon" data-kod="61" data-slug="trabzon"></option><option value="Tunceli (62)" data-ad="Tunceli" data-kod="62" data-slug="tunceli"></option><option value="Uşak (64)" data-ad="Uşak" data-kod="64" data-slug="usak"></option><option value="Van (65)" data-ad="Van" data-kod="65" data-slug="van"></option><option value="Yalova (77)" data-ad="Yalova" data-kod="77" data-slug="yalova"></option><option value="Yozgat (66)" data-ad="Yozgat" data-kod="66" data-slug="yozgat"></option><option value="Zonguldak (67)" data-ad="Zonguldak" data-kod="67" data-slug="zonguldak"></option></datalist>
+<!--/ANA:IL-LISTE-->
+      <p id="il-ipucu" class="ipucu">Listeden seçin ya da yazın; 81 ilin tamamı aşağıdaki bağlantılarda da bulunur.</p>
+      <p id="il-hata" class="hata" role="alert"></p>
+    </form>
+  </section>
+
+  <section class="arac" id="hesapla" aria-labelledby="arac-baslik">
+    <h2 id="arac-baslik">Plakam ne zaman çıkar?</h2>
+    <noscript><p class="note" style="display:block">Hesaplayıcı JavaScript gerektirir. JavaScript olmadan kartlardaki tahmini serilere ve aşağıdaki 81 il bağlantısına bakabilirsiniz.</p></noscript>
+    <div class="alan2"><label for="il">İl</label> <select id="il"></select></div>
+    <label for="target">Hedef plaka veya seri</label>
+    <div class="alan"><input id="target" type="text" placeholder="örn. SAA 500" spellcheck="false" autocapitalize="characters" aria-describedby="target-hint"><button class="primary" id="btn-target">Hesapla</button></div>
+    <p class="ipucu" id="target-hint">Harf grubu ve isteğe bağlı numara; il yukarıdaki seçimden alınır. İl kodunu başa yazarak da seçebilirsiniz (örn. 34 SAA 001).</p>
+    <div class="result" id="target-res" style="display:none" aria-live="polite">
+      <span class="plate sm"><span class="bandx">TR</span><span class="num" id="target-plate"></span></span>
+      <span class="meta" id="target-out"></span>
     </div>
-    <div class="row" style="margin-top:10px">
-      <label for="excl">Atlanacak seriler:</label>
-      <input type="text" id="excl" placeholder="örn. SXX, TXX" spellcheck="false" style="width:230px">
-      <span class="dim">İsteğe bağlı; bu seriler hiç verilmeyecek sayılır. <code>TXX</code> = tüm T grubu, <code>RIX</code> = RIA–RIZ, <code>SAA</code> = tek seri, <code>TAA-TCZ</code> = aralık. Tüm hesaplara (tarih tahmini, hedef seri, tablolar) uygulanır.</span>
-    </div>
-    <div class="note" id="excl-warn"></div>
+    <div class="note" id="target-warn" role="status"></div>
+    <details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary>
+      <label for="excl2">Verilmeyeceğini düşündüğünüz seriler</label>
+      <input type="text" id="excl2" placeholder="örn. SXX, TXX" spellcheck="false" autocapitalize="characters" aria-describedby="excl-ipucu">
+      <p class="ipucu" id="excl-ipucu"><code>TXX</code> = tüm T grubu, <code>RIX</code> = RIA–RIZ, <code>SAA</code> = tek seri, <code>TAA-TCZ</code> = aralık. Hedef tarihinden düşülür; tüm hesaplara (tarih tahmini, hedef seri, tablolar) uygulanır ve aşağıdaki alanla aynıdır.</p>
+    </details>
+    <div class="row" style="margin-top:8px"><button id="btn-81" style="display:none">Bu seride 81 il ne durumda?</button></div>
+    <div class="tblwrap" id="t81-wrap" style="display:none"><table class="t" id="t81-tbl"></table></div>
+
+    <h3>Belirli bir tarihte hangi seride?</h3>
+    <div class="row"><label for="dt">Tarih</label> <input type="date" id="dt"> <button id="btn-today">Bugün</button> <button id="btn-all">Tüm illeri göster</button></div>
     <div class="result">
       <span class="plate" id="plate"><span class="bandx">TR</span><span class="num" id="plate-num">—</span></span>
       <span class="tag est" id="tag">TAHMİN</span>
@@ -120,38 +162,39 @@ table.t td.mono{font-family:"IBM Plex Mono",monospace}
       </span>
     </div>
     <div class="meta" id="meta"></div>
-    <div class="note" id="warn"></div>
+    <div class="note" id="warn" role="status"></div>
+    <details class="gelismis"><summary>Atlanacak seriler (bu tarih tahmini için)</summary>
+      <label for="excl">Verilmeyeceğini düşündüğünüz seriler</label>
+      <input type="text" id="excl" placeholder="örn. SXX, TXX" spellcheck="false" autocapitalize="characters">
+      <div class="note" id="excl-warn"></div>
+    </details>
     <div class="tblwrap" id="all-wrap" style="display:none"><table class="t" id="all-tbl"></table></div>
-  </div>
+  </section>
 
-  <div class="card">
-    <h2>Bu seriye ne zaman ulaşır?</h2>
-    <div class="row">
-      <label for="target">Seri:</label> <input type="text" id="target" placeholder="örn. SAA veya SAA 500" spellcheck="false">
-      <button class="primary" id="btn-target">Hesapla</button>
-      <span class="dim" id="target-hint">Harf grubu + istenirse numara; il yukarıdaki seçimden alınır.</span>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <label for="excl2">Atlanacak seriler:</label>
-      <input type="text" id="excl2" placeholder="örn. SXX, TXX" spellcheck="false" style="width:230px">
-      <span class="dim">Bu bloklar hiç verilmeyecek sayılır ve hedef tarihinden düşülür (yukarıdaki alanla aynıdır).</span>
-    </div>
-    <div class="result" id="target-res" style="display:none">
-      <span class="plate sm"><span class="bandx">TR</span><span class="num" id="target-plate"></span></span>
-      <span class="meta" id="target-out"></span>
-    </div>
-    <div class="note" id="target-warn"></div>
-    <div class="row" style="margin-top:8px"><button id="btn-81" style="display:none">Bu seride 81 il ne durumda?</button></div>
-    <div class="tblwrap" id="t81-wrap" style="display:none"><table class="t" id="t81-tbl"></table></div>
-  </div>
+  <details class="bolum"><summary><h2>Tahminler nasıl hesaplanıyor?</h2></summary><div class="ic">
+    <p class="meta">Bir ilin güncel (ya da seçtiğiniz bir tarihteki) <b>tahmini serisi</b> ve bir seriye <b>ulaşma tarihi</b>, ilin son bir yıllık ilerleme hızı ile geçen yılın aynı dönemindeki ilerlemenin karışımıyla hesaplanır; geçmiş tarihler doğrudan kayıtlı gözlemlerden okunur. Güncel tahminin referans günü, Türkiye tarihinin en yakın önceki iş günüdür (hafta sonu ve resmî tatilde değişmez).</p>
+    <p class="meta" id="foot"></p>
+  </div></details>
+  <details class="bolum"><summary><h2>Son gözlemler ve veri kaynağı</h2></summary><div class="ic">
+    <p class="meta">Veri: wowturkey.com "Türkiye Genelindeki Araç Plakalarının Gelişimi" başlığında Güven_Hoca'nın paylaştığı haftalık tablolar (Şubat 2024'ten beri). Son kayıtlı veri tarihi yukarıda belirtilmiştir; bir ilin son gözlemlerini aracın "Son veri" düğmesinde, ayrıntılı tabloları il sayfalarında bulabilirsiniz. Kayıtlar resmî tahsis kaydı değildir.</p>
+  </div></details>
+  <details class="bolum"><summary><h2>Tahminlerin sınırlamaları</h2></summary><div class="ic"><ul>
+    <li>Değerler tahmindir; kesin tarih ya da resmî tahsis bilgisi değildir. ± gün, ilin geçmiş tahmin doğruluğundan türetilen sezgisel hata payıdır, istatistiksel güven aralığı değildir.</li>
+    <li>"Sıra" plaka numaraları arasındaki farktır; gerçek tescil sayısı değildir.</li>
+    <li>Tek seferlik büyük blok atlamaları ve harf grubu geçişleri tahmini kaydırabilir; küçük ve düzensiz ilerleyen illerde sapma büyük olabilir.</li>
+  </ul></div></details>
 
-  <nav class="ilnav" style="font-size:13px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:16px;margin-top:26px;line-height:2" aria-label="İl sayfaları"><h2 style="font-size:20px;margin:0 0 4px">İllere Göre Güncel Plaka Serileri</h2><a href="/il/adana">Adana</a> · <a href="/il/adiyaman">Adıyaman</a> · <a href="/il/afyonkarahisar">Afyonkarahisar</a> · <a href="/il/agri">Ağrı</a> · <a href="/il/amasya">Amasya</a> · <a href="/il/ankara">Ankara</a> · <a href="/il/antalya">Antalya</a> · <a href="/il/artvin">Artvin</a> · <a href="/il/aydin">Aydın</a> · <a href="/il/balikesir">Balıkesir</a> · <a href="/il/bilecik">Bilecik</a> · <a href="/il/bingol">Bingöl</a> · <a href="/il/bitlis">Bitlis</a> · <a href="/il/bolu">Bolu</a> · <a href="/il/burdur">Burdur</a> · <a href="/il/bursa">Bursa</a> · <a href="/il/canakkale">Çanakkale</a> · <a href="/il/cankiri">Çankırı</a> · <a href="/il/corum">Çorum</a> · <a href="/il/denizli">Denizli</a> · <a href="/il/diyarbakir">Diyarbakır</a> · <a href="/il/edirne">Edirne</a> · <a href="/il/elazig">Elazığ</a> · <a href="/il/erzincan">Erzincan</a> · <a href="/il/erzurum">Erzurum</a> · <a href="/il/eskisehir">Eskişehir</a> · <a href="/il/gaziantep">Gaziantep</a> · <a href="/il/giresun">Giresun</a> · <a href="/il/gumushane">Gümüşhane</a> · <a href="/il/hakkari">Hakkari</a> · <a href="/il/hatay">Hatay</a> · <a href="/il/isparta">Isparta</a> · <a href="/il/mersin">Mersin</a> · <a href="/il/istanbul">İstanbul</a> · <a href="/il/izmir">İzmir</a> · <a href="/il/kars">Kars</a> · <a href="/il/kastamonu">Kastamonu</a> · <a href="/il/kayseri">Kayseri</a> · <a href="/il/kirklareli">Kırklareli</a> · <a href="/il/kirsehir">Kırşehir</a> · <a href="/il/kocaeli">Kocaeli</a> · <a href="/il/konya">Konya</a> · <a href="/il/kutahya">Kütahya</a> · <a href="/il/malatya">Malatya</a> · <a href="/il/manisa">Manisa</a> · <a href="/il/kahramanmaras">Kahramanmaraş</a> · <a href="/il/mardin">Mardin</a> · <a href="/il/mugla">Muğla</a> · <a href="/il/mus">Muş</a> · <a href="/il/nevsehir">Nevşehir</a> · <a href="/il/nigde">Niğde</a> · <a href="/il/ordu">Ordu</a> · <a href="/il/rize">Rize</a> · <a href="/il/sakarya">Sakarya</a> · <a href="/il/samsun">Samsun</a> · <a href="/il/siirt">Siirt</a> · <a href="/il/sinop">Sinop</a> · <a href="/il/sivas">Sivas</a> · <a href="/il/tekirdag">Tekirdağ</a> · <a href="/il/tokat">Tokat</a> · <a href="/il/trabzon">Trabzon</a> · <a href="/il/tunceli">Tunceli</a> · <a href="/il/sanliurfa">Şanlıurfa</a> · <a href="/il/usak">Uşak</a> · <a href="/il/van">Van</a> · <a href="/il/yozgat">Yozgat</a> · <a href="/il/zonguldak">Zonguldak</a> · <a href="/il/aksaray">Aksaray</a> · <a href="/il/bayburt">Bayburt</a> · <a href="/il/karaman">Karaman</a> · <a href="/il/kirikkale">Kırıkkale</a> · <a href="/il/batman">Batman</a> · <a href="/il/sirnak">Şırnak</a> · <a href="/il/bartin">Bartın</a> · <a href="/il/ardahan">Ardahan</a> · <a href="/il/igdir">Iğdır</a> · <a href="/il/yalova">Yalova</a> · <a href="/il/karabuk">Karabük</a> · <a href="/il/kilis">Kilis</a> · <a href="/il/osmaniye">Osmaniye</a> · <a href="/il/duzce">Düzce</a></nav>
+<!--ANA:IL-BAGLANTILAR-->
+<nav class="iller-liste" aria-label="İl sayfaları"><h2>İllere Göre Güncel Plaka Serileri</h2><div class="iller"><p><b>A</b> <a href="/il/adana">Adana</a> <a href="/il/adiyaman">Adıyaman</a> <a href="/il/afyonkarahisar">Afyonkarahisar</a> <a href="/il/agri">Ağrı</a> <a href="/il/aksaray">Aksaray</a> <a href="/il/amasya">Amasya</a> <a href="/il/ankara">Ankara</a> <a href="/il/antalya">Antalya</a> <a href="/il/ardahan">Ardahan</a> <a href="/il/artvin">Artvin</a> <a href="/il/aydin">Aydın</a></p><p><b>B</b> <a href="/il/balikesir">Balıkesir</a> <a href="/il/bartin">Bartın</a> <a href="/il/batman">Batman</a> <a href="/il/bayburt">Bayburt</a> <a href="/il/bilecik">Bilecik</a> <a href="/il/bingol">Bingöl</a> <a href="/il/bitlis">Bitlis</a> <a href="/il/bolu">Bolu</a> <a href="/il/burdur">Burdur</a> <a href="/il/bursa">Bursa</a></p><p><b>Ç</b> <a href="/il/canakkale">Çanakkale</a> <a href="/il/cankiri">Çankırı</a> <a href="/il/corum">Çorum</a></p><p><b>D</b> <a href="/il/denizli">Denizli</a> <a href="/il/diyarbakir">Diyarbakır</a> <a href="/il/duzce">Düzce</a></p><p><b>E</b> <a href="/il/edirne">Edirne</a> <a href="/il/elazig">Elazığ</a> <a href="/il/erzincan">Erzincan</a> <a href="/il/erzurum">Erzurum</a> <a href="/il/eskisehir">Eskişehir</a></p><p><b>G</b> <a href="/il/gaziantep">Gaziantep</a> <a href="/il/giresun">Giresun</a> <a href="/il/gumushane">Gümüşhane</a></p><p><b>H</b> <a href="/il/hakkari">Hakkari</a> <a href="/il/hatay">Hatay</a></p><p><b>I</b> <a href="/il/igdir">Iğdır</a> <a href="/il/isparta">Isparta</a></p><p><b>İ</b> <a href="/il/istanbul">İstanbul</a> <a href="/il/izmir">İzmir</a></p><p><b>K</b> <a href="/il/kahramanmaras">Kahramanmaraş</a> <a href="/il/karabuk">Karabük</a> <a href="/il/karaman">Karaman</a> <a href="/il/kars">Kars</a> <a href="/il/kastamonu">Kastamonu</a> <a href="/il/kayseri">Kayseri</a> <a href="/il/kirikkale">Kırıkkale</a> <a href="/il/kirklareli">Kırklareli</a> <a href="/il/kirsehir">Kırşehir</a> <a href="/il/kilis">Kilis</a> <a href="/il/kocaeli">Kocaeli</a> <a href="/il/konya">Konya</a> <a href="/il/kutahya">Kütahya</a></p><p><b>M</b> <a href="/il/malatya">Malatya</a> <a href="/il/manisa">Manisa</a> <a href="/il/mardin">Mardin</a> <a href="/il/mersin">Mersin</a> <a href="/il/mugla">Muğla</a> <a href="/il/mus">Muş</a></p><p><b>N</b> <a href="/il/nevsehir">Nevşehir</a> <a href="/il/nigde">Niğde</a></p><p><b>O</b> <a href="/il/ordu">Ordu</a> <a href="/il/osmaniye">Osmaniye</a></p><p><b>R</b> <a href="/il/rize">Rize</a></p><p><b>S</b> <a href="/il/sakarya">Sakarya</a> <a href="/il/samsun">Samsun</a> <a href="/il/siirt">Siirt</a> <a href="/il/sinop">Sinop</a> <a href="/il/sivas">Sivas</a></p><p><b>Ş</b> <a href="/il/sanliurfa">Şanlıurfa</a> <a href="/il/sirnak">Şırnak</a></p><p><b>T</b> <a href="/il/tekirdag">Tekirdağ</a> <a href="/il/tokat">Tokat</a> <a href="/il/trabzon">Trabzon</a> <a href="/il/tunceli">Tunceli</a></p><p><b>U</b> <a href="/il/usak">Uşak</a></p><p><b>V</b> <a href="/il/van">Van</a></p><p><b>Y</b> <a href="/il/yalova">Yalova</a> <a href="/il/yozgat">Yozgat</a></p><p><b>Z</b> <a href="/il/zonguldak">Zonguldak</a></p></div></nav>
+<!--/ANA:IL-BAGLANTILAR-->
   <div id="counter" style="display:none;align-items:center;gap:10px;margin-top:26px">
     <span class="dim" style="font-size:13px">ziyaret</span>
     <span class="plate sm"><span class="bandx">TR</span><span class="num" id="counter-num">—</span></span>
   </div>
-  <p class="foot" id="foot"></p>
-</div>
+</main>
+<!--ANA:SURUM-->
+bd0835793b6d9051
+<!--/ANA:SURUM-->
 
 <script src="/assets/takvim.js"></script>
 <script src="/assets/tahmin-motoru.js"></script>
@@ -162,6 +205,8 @@ const lastGlobalDay = Math.max(...DATA.iller.map(s=>s.obs[s.obs.length-1][0]));
 document.getElementById("last-global").textContent = dstr(lastGlobalDay);
 const REF = trReferansGun();      // güncel tahminin referans günü: Türkiye yerel tarihinin en yakın önceki iş günü (hafta sonu/resmî tatilde değişmez)
 const todayDay = REF.gun;
+const yuvarla = x => { const r = Math.round(x); return (x - Math.floor(x) === 0.5 && r % 2) ? r - 1 : r; };   // tam .5'te çifte yuvarla: il sayfalarındaki (Python) gösterimle aynı sayı
+const seriGun = hiz => { const g = 1000/hiz; return g.toLocaleString("tr-TR",{maximumFractionDigits: g < 10 ? 1 : 0}); };   // bir serinin (1.000 sıra) tahmini süresi, gün; yaklaşık
 
 const relDot = s => { const e = s.bterr==null? 99 : s.bterr; const c = e<=7?"g":(e<=21?"o":"r"); const t = e<=7?"iyi":(e<=21?"orta":"düşük"); return '<span class="rel '+c+'"></span>'+t; };
 
@@ -216,12 +261,13 @@ function render(){
   const horizon = day - last[0];
   meta.innerHTML = "";
   const parts = [];
-  parts.push("hız: <b>~"+fmt(s.hafta)+" plaka/hafta</b> (son 26 hafta ort.)");
-  parts.push("seri ilerlemesi: <b>~"+(f.slope*7/1000).toLocaleString("tr-TR",{maximumFractionDigits:1})+" seri/hafta</b> (son "+f.win+" gündeki aralık hızlarının medyanı, "+f.n+" gözlem; ileri tahmin bunu geçen yılın aynı dönemiyle karıştırır)");
+  // TEK hız tanımı (il sayfalarıyla aynı): tahmin motorunun hızı f.slope = son ~365 günlük aralık hızlarının medyanı (sıra/gün). Seri süresi aynı hızdan türetilir.
+  parts.push("tahmin hızı: <b>günde ~"+fmt(yuvarla(f.slope))+" sıra</b> (haftada ~"+fmt(yuvarla(f.slope*7))+"); son "+f.win+" gündeki aralık hızlarının medyanı, "+f.n+" gözlem — ileri tahmin bunu geçen yılın aynı dönemiyle karıştırır");
+  parts.push("bir serinin tahmini süresi: <b>~"+seriGun(f.slope)+" gün</b> (yaklaşık değer; atlamasız ilerleme varsayımıyla, bir seri 1.000 sıralık aralıktır)");
   if (f.skipped) parts.push("<b>"+f.skipped+" blok atlaması</b> pencere içinde (hıza dahil edilmedi)");
   if (!est.real) parts.push("belirsizlik: <b>±"+est.err+" gün</b> (~±"+fmt(Math.round(f.slope*est.err))+" numara)");
   parts.push("tahmin güvenilirliği: <b>"+relDot(s)+"</b>");
-  meta.innerHTML = parts.join(" &nbsp;·&nbsp; ");
+  meta.innerHTML = parts.map(p=>'<span class="ms">'+p+'</span>').join("");
   // warnings
   const w = document.getElementById("warn"); w.style.display = "none";
   if (!est.real && EXCL.length){
@@ -246,7 +292,7 @@ function renderAll(){
   const day = toDay(dt.value);
   const t = document.getElementById("all-tbl"); t.innerHTML = "";
   const th = document.createElement("thead"); const hr = document.createElement("tr");
-  ["Kod","İl","Son veri","Tarih","Bugün (tahmin)", dt.value===isoToday ? "" : "Seçili tarihte ("+dstr(day)+")", "Plaka/hafta","Seri/hafta","Güvenilirlik"].filter(x=>x!=="").forEach(h=>{ const c=document.createElement("th"); c.textContent=h; hr.appendChild(c); });
+  ["Kod","İl","Son veri","Tarih","Bugün (tahmin)", dt.value===isoToday ? "" : "Seçili tarihte ("+dstr(day)+")", "Hız (sıra/gün)","Bir seri (gün)","Güvenilirlik"].filter(x=>x!=="").forEach(h=>{ const c=document.createElement("th"); c.textContent=h; hr.appendChild(c); });
   th.appendChild(hr); t.appendChild(th);
   const tb = document.createElement("tbody");
   DATA.iller.forEach(s=>{
@@ -255,7 +301,7 @@ function renderAll(){
     const f = fit(s, last[0]);
     const cells = [kod, s.il, li.let+" "+String(li.num).padStart(3,"0"), dstr(last[0]), iToday? iToday.let+" "+String(iToday.num).padStart(3,"0") : "—"];
     if (dt.value !== isoToday){ const eSel = estimateAt(s, day); const iSel = invN(eSel.n); cells.push(iSel ? iSel.let+" "+String(iSel.num).padStart(3,"0")+(eSel.real?" ✓":"") : "—"); }
-    cells.push(fmt(s.hafta), (f.slope*7/1000).toLocaleString("tr-TR",{maximumFractionDigits:1}));
+    cells.push(fmt(yuvarla(f.slope)), seriGun(f.slope));
     const r = document.createElement("tr");
     cells.forEach((c,j)=>{ const td=document.createElement("td"); td.textContent=c; if (j===2||j===4||(dt.value!==isoToday&&j===5)) td.className="mono"; if (j>=cells.length-2) td.className="n"; r.appendChild(td); });
     const td=document.createElement("td"); td.innerHTML = relDot(s); r.appendChild(td);
@@ -375,6 +421,6 @@ document.getElementById("btn-81").onclick = ()=>{
 document.getElementById("foot").textContent = "Yöntem: her ilin günlük/haftalık tablolarındaki seri konumu (Şub 2024 – "+dstr(lastGlobalDay)+", "+DATA.iller[0].obs.length+"± gözlem/il) nominal bir sayıya çevrilir (harf sırası A-Z, ilk/son harfte I-O yok; seri başına 1000 numara) ve hız, son 365 gündeki ardışık gözlem aralıklarının hızlarının medyanı olarak alınır. Gelecek tahmini, bu hız ile geçen yılın aynı takvim aralığındaki gerçek ilerlemenin ortalamasıdır (mevsim etkisi: bayram, yaz, yıl başı); 1 yıldan uzak tarihlerde geçen yıl tam yıl tekrarı sayılır. Bu, isim/rezerve atlamalarının olağan etkisini içerir ama tek seferlik büyük blok atlamalarını (örn. Kütahya'nın 30.04.2026'da ADZ'den AHZ'ye sıçraması) hıza karıştırmaz — böyle bir atlama tespit edilirse ayrıca belirtilir; gelecekte tekrarı öngörülemez, bu yüzden ulaşma tarihleri bu ihtimali içermez. Geriye dönük test (2025-2026, 81 il, haftalık başlangıçlar): yalnız son 180 günün hızına göre hata 30 günlük ufukta ~%20, 90 günlükte ~%25, 180 günlükte ~%30 azalır (medyan hata 60 günde ~5,5 gün, 90 günde ~8 gün); güvenilirlik sütunu 60 günlük ufuktaki bu geriye dönük hatadan gelir; düzensiz ilerleyen küçük illerde (örn. Şanlıurfa, Diyarbakır, Hakkari) sapma büyük olabilir. Numara kısmı yaklaşıktır (iller 001/012/101 gibi farklı başlangıçlar kullanır).";
 applyExcl();
 </script>
-
+<script src="/assets/ana-sayfa.js"></script>
 </body>
 </html>

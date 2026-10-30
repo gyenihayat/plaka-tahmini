@@ -4,7 +4,7 @@ import datetime as dt, functools, glob, http.server, json, os, re, shutil, socke
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _util as u
 from test_il_sayfasi import veri, sayfa, slug, TAM, inv
-from test_ana_sayfa_regresyon import CHROME
+from test_ana_sayfa_regresyon import CHROME, CHROME_TEMEL
 E0 = dt.date(2024, 1, 1)
 
 def node_arac(senaryolar):
@@ -71,7 +71,7 @@ class AnaSayfaIleEslik(unittest.TestCase):
             class Sessiz(http.server.SimpleHTTPRequestHandler):
                 def log_message(self, *a, **k): pass
             srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Sessiz, directory=d)); threading.Thread(target=srv.serve_forever, daemon=True).start()
-            try: r = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--virtual-time-budget=60000", "--dump-dom", f"http://127.0.0.1:{port}/h.html"], capture_output=True, text=True, timeout=180)
+            try: r = subprocess.run([*CHROME_TEMEL, "--virtual-time-budget=60000", "--dump-dom", f"http://127.0.0.1:{port}/h.html"], capture_output=True, text=True, timeout=180)
             finally: srv.shutdown(); srv.server_close()
             import html as _h
             m = re.search(r"SONUC (\[.*?\])\s*</pre>", r.stdout, re.S); self.assertIsNotNone(m, r.stderr[-300:])

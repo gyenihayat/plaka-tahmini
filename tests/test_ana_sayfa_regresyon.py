@@ -6,6 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _util as u
 CHROME = next((p for p in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", shutil.which("google-chrome") or "", shutil.which("chromium") or "") if p and os.path.exists(p)), None)
 ESKI_COMMIT = "9b65ce4"
+# Testler üretim ziyaret sayacına ASLA istek atmamalı: ana sayfa abacus.jasoncameron.dev'e "ziyaret" vuruşu yapar; tarayıcıda bu ad çözümlenmez.
+CHROME_TEMEL = [CHROME, "--headless=new", "--disable-gpu", "--host-resolver-rules=MAP abacus.jasoncameron.dev ~NOTFOUND"]
 
 @unittest.skipUnless(CHROME and u.NODE, "Chrome/Node yok")
 class AnaSayfaRegresyon(unittest.TestCase):
@@ -31,7 +33,7 @@ class AnaSayfaRegresyon(unittest.TestCase):
             srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(Sessiz, directory=d))
             threading.Thread(target=srv.serve_forever, daemon=True).start()
             try:
-                r = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--virtual-time-budget=60000", "--dump-dom", f"http://127.0.0.1:{port}/h.html"], capture_output=True, text=True, timeout=180)
+                r = subprocess.run([*CHROME_TEMEL, "--virtual-time-budget=60000", "--dump-dom", f"http://127.0.0.1:{port}/h.html"], capture_output=True, text=True, timeout=180)
             finally: srv.shutdown(); srv.server_close()
             m = re.search(r"SONUC (\{.*?\})\s*</pre>", r.stdout, re.S); self.assertIsNotNone(m, r.stdout[-500:] + r.stderr[-300:])
             sonuc = json.loads(m[1].replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&"))

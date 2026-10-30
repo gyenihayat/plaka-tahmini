@@ -8,7 +8,7 @@ from test_il_sayfasi import veri, slug, TAM, inv, tr, E0
 
 class ProductionYollari(unittest.TestCase):
     def test_varliklar_mevcut_ve_git_tarafindan_yok_sayilmiyor(self):
-        for f in ("assets/takvim.js", "assets/tahmin-motoru.js", "assets/il-arac.js"):
+        for f in ("assets/takvim.js", "assets/tahmin-motoru.js", "assets/il-arac.js", "assets/ana-sayfa.js"):
             self.assertTrue(os.path.isfile(os.path.join(u.ROOT, f)), f)
             self.assertEqual(subprocess.run(["git", "check-ignore", "-q", f], cwd=u.ROOT).returncode, 1, f"{f} .gitignore tarafından yok sayılıyor")
         self.assertNotIn("assets", u.oku(os.path.join(u.ROOT, ".gitignore")))
@@ -26,7 +26,7 @@ class ProductionYollari(unittest.TestCase):
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_js_sozdizimi_gecerli(self):
-        for f in ("takvim.js", "tahmin-motoru.js", "il-arac.js"):
+        for f in ("takvim.js", "tahmin-motoru.js", "il-arac.js", "ana-sayfa.js"):
             r = subprocess.run([u.NODE, "--check", os.path.join(u.ROOT, "assets", f)], capture_output=True, text=True); self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_temiz_url_ve_varlik_http_200_dogru_icerik_turu(self):
@@ -39,7 +39,7 @@ class ProductionYollari(unittest.TestCase):
         s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
         srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(H, directory=u.ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start()
         try:
-            for yol in ("/il/konya", "/il/istanbul", "/", "/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/il-arac.js"):
+            for yol in ("/il/konya", "/il/istanbul", "/", "/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/il-arac.js", "/assets/ana-sayfa.js"):
                 with urllib.request.urlopen(f"http://127.0.0.1:{port}{yol}") as r: self.assertEqual(r.status, 200, yol); tur = r.headers.get_content_type()
                 if yol.endswith(".js"): self.assertIn(tur, ("text/javascript", "application/javascript"), yol)
         finally: srv.shutdown(); srv.server_close()
@@ -67,7 +67,10 @@ class HaftalikGuncelleme(unittest.TestCase):
         try:
             r = subprocess.run([sys.executable, "tablo_ekle.py", "--tarih", tarih.isoformat(), "--plakalar", "plakalar.txt", "--hft", "hft.txt", "--plakatr", os.path.join(d, "yok.csv")], cwd=d, capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stdout[-600:] + r.stderr[-600:]); self.assertIn("tamam", r.stdout); self.assertNotIn("UYARI:", r.stdout.replace("UYARI: " + os.path.join(d, "yok.csv"), ""))
-            for f in ("data/tahmin_data.json", "index.html", "data/seri_gecisleri.csv"): self.assertEqual(u.oku(os.path.join(d, f)), orijinal[f], f)
+            kart = lambda h: re.sub(r"<!--ANA:KARTLAR-->.*?<!--/ANA:KARTLAR-->", "<!--KART-->", h, flags=re.S)       # statik kartlar üretim gününe bağlıdır; geri kalan her şey (DATA dahil) aynı olmalı
+            for f in ("data/tahmin_data.json", "data/seri_gecisleri.csv"): self.assertEqual(u.oku(os.path.join(d, f)), orijinal[f], f)
+            yeni_ana = u.oku(os.path.join(d, "index.html")); self.assertEqual(kart(yeni_ana), kart(orijinal["index.html"]), "index.html (kartlar hariç)")
+            self.assertEqual(len(re.findall(r'<a class="kart" href="/il/', yeni_ana)), 3); self.assertIn("23 Ekim 2026</span></a>", yeni_ana)       # kartlar yenilendi; son gözlem veriden
             self.assertIn('<script src="/assets/tahmin-motoru.js"></script>', u.oku(os.path.join(d, "index.html")))
             sayfalar = sorted(glob.glob(os.path.join(d, "il", "*.html"))); self.assertEqual(len(sayfalar), 81)
             for s in veri(): self.assertIn(f"<dd class=\"k\">{tr(tarih)}</dd>", u.oku(os.path.join(d, "il", slug(TAM.get(s["il"], s["il"])) + ".html")))      # son kayıtlı gözlem tarihi veriden

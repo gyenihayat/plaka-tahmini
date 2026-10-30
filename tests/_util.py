@@ -3,12 +3,12 @@ import json, os, re, shutil, subprocess, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JS_SIM = os.path.join(ROOT, "tests", "js_sim.js")
 NODE = shutil.which("node")
-URETIM_DOSYALARI = ("data", "forecast.py", "is_gunu.py", "generate_il_pages.py")
+URETIM_DOSYALARI = ("data", "forecast.py", "is_gunu.py", "generate_il_pages.py", "index.html")      # üretici ana sayfanın işaretli bölgelerini de yazar
 
 def kopya(ekstra=(), il_dizini=True):
     """Üretim için gerekli dosyaların geçici kopyasını çıkarır (depoya dokunmaz). Dizin yolunu döndürür."""
     t = tempfile.mkdtemp(prefix="plaka_test_")
-    for x in URETIM_DOSYALARI + tuple(ekstra):
+    for x in dict.fromkeys(URETIM_DOSYALARI + tuple(ekstra)):
         h = os.path.join(t, x)
         if os.path.isdir(os.path.join(ROOT, x)): shutil.copytree(os.path.join(ROOT, x), h)
         else: shutil.copy(os.path.join(ROOT, x), h)

@@ -3,7 +3,7 @@ tek satır plaka değerleri, form erişilebilirliği ve araç etkileşimi; motor
 import functools, glob, html, http.server, json, os, re, socket, subprocess, sys, threading, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _util as u
-from test_ana_sayfa_regresyon import CHROME
+from test_ana_sayfa_regresyon import CHROME, CHROME_TEMEL
 GENISLIK = [320, 375, 390, 768, 1440]
 
 def sunucu(engelle=()):
@@ -25,7 +25,7 @@ def calistir(sayfalar, genislikler, etkilesim=True, engelle=()):
         h = h.replace("__SAYFALAR__", json.dumps(sayfalar)).replace("__GENISLIKLER__", json.dumps(genislikler)).replace("__ETKILESIM__", "true" if etkilesim else "false")
         with open(os.path.join(d, "h.html"), "w", encoding="utf-8") as f: f.write(h)
         srv, port = sunucu(engelle)
-        try: r = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--virtual-time-budget=240000", "--dump-dom", f"http://127.0.0.1:{port}/{os.path.basename(d)}/h.html"], capture_output=True, text=True, timeout=280)
+        try: r = subprocess.run([*CHROME_TEMEL, "--virtual-time-budget=240000", "--dump-dom", f"http://127.0.0.1:{port}/{os.path.basename(d)}/h.html"], capture_output=True, text=True, timeout=280)
         finally: srv.shutdown(); srv.server_close()
         m = re.search(r"SONUC (\[.*?\])\s*</pre>", r.stdout, re.S); assert m, r.stderr[-400:] + r.stdout[-300:]
         return json.loads(html.unescape(m[1]))

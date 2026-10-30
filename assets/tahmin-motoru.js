@@ -166,3 +166,17 @@ function trReferansGun(now = Date.now()){
   while (!isGunu(gun)) gun--;
   return {gun, iso: new Date(EPOCH + gun*DAY).toISOString().slice(0,10), kapsamDisi};
 }
+
+// Türkçe uzun tarih ("30 Ekim 2026"): gün numarası (EPOCH'tan beri) -> metin. Ana sayfa kartları, il sayfası ve araç ortak kullanır.
+const AYLAR_TR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const trTarihGun = day => { const x = new Date(EPOCH + day*DAY); return x.getUTCDate() + " " + AYLAR_TR[x.getUTCMonth()] + " " + x.getUTCFullYear(); };
+// Bir ilin verilen takvim gününe ait tahmini serisi (kullanıcının "atlanacak seriler" seçimi etkilemez: EXCL geçici olarak boşaltılır).
+// Ana sayfa kartları ve il sayfasındaki büyük tahmin AYNI fonksiyonu kullanır; null: alfabe dışı.
+function guncelSeriBilgisi(s, gun){
+  const eski = EXCL; EXCL = [];
+  try {
+    const n = estimateAt(s, gun).n, iv = invN(n); if (!iv) return null;
+    const kod = String(s.kod).padStart(2,"0");
+    return {n, seri: kod + " " + iv.let, plaka: kod + " " + iv.let + " " + String(iv.num).padStart(3,"0"), grup: iv.let[0], tarih: trTarihGun(gun)};
+  } finally { EXCL = eski; }
+}

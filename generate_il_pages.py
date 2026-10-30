@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """81 il sayfasını data/tahmin_data.json + data/seri_gecisleri.csv'den üretir; sitemap.xml'i yeniler."""
-import json, csv, datetime, statistics, html, bisect, argparse, sys, re, os
+import json, csv, datetime, statistics, html, bisect, argparse, sys, re, os, hashlib
 import forecast as fc
 from is_gunu import RESMI_TATIL, onceki_is_gunu, kapsam_kontrol, TakvimKapsamHatasi, TAHMIN_PENCERESI_GUN, TAKVIM_ILK_YIL, TAKVIM_SON_YIL
 
@@ -42,6 +42,7 @@ def robust_rate(o):
 def tr_date(d_): return f"{d_.day} {AYLAR[d_.month-1]} {d_.year}"
 def sayi(n): return f"{n:,.0f}".replace(",", ".")                 # Türkçe binlik ayracı: 1.802
 def ondalik(x): return f"{x:.1f}".replace(".", ",")              # Türkçe ondalık ayracı: 1,8
+ANA_SAYFA_KARTLARI = (34, 6, 35)   # ana sayfadaki büyük il kartları (plaka kodu): İstanbul, Ankara, İzmir; değerler veriden hesaplanır, sabit yazılmaz
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
 
 CANLI_JS = """(function(){
@@ -204,7 +205,8 @@ def acilir(kart_html, kaydir=False):
     m = re.match(r"<div class='card'><h2>(.*?)</h2>(.*)</div>$", kart_html, re.S); assert m, kart_html[:80]
     ic = re.sub(r"(<table>.*?</table>)", r'<div class="kaydir">\1</div>', m[2], flags=re.S) if kaydir else m[2]     # dar ekranda geniş tablo yatay kaydırılır (sayfa taşmaz)
     return f'<details class="bolum"><summary><h2>{m[1]}</h2></summary><div class="ic">{ic}</div></details>'
-def diger_iller_html():
+def iller_gruplari_html():
+    """81 il için harf harf gruplanmış gerçek <a href> bağlantıları (il sayfalarındaki 'Diğer iller' ve ana sayfadaki liste ortak kullanır)."""
     gruplar = {}
     for x in iller:
         ad_ = TAM.get(x["il"], x["il"]); gruplar.setdefault(tr_up(ad_)[0], []).append(ad_)
@@ -212,7 +214,42 @@ def diger_iller_html():
     for harf in sorted(gruplar, key=lambda h: TR_SIRA.index(h) if h in TR_SIRA else 99):
         linkler = " ".join(f'<a href="/il/{slug(a_)}">{html.escape(a_)}</a>' for a_ in sorted(gruplar[harf], key=tr_anahtar))
         satirlar += f"<p><b>{harf}</b> {linkler}</p>"
-    return f'<details class="bolum"><summary><h2>Diğer iller</h2></summary><div class="ic iller">{satirlar}</div></details>'
+    return satirlar
+def diger_iller_html():
+    return f'<details class="bolum"><summary><h2>Diğer iller</h2></summary><div class="ic iller">{iller_gruplari_html()}</div></details>'
+# --- ana sayfa (index.html): statik kartlar, il listesi/bağlantıları ve temel CSS ----------------------------------------------------
+# index.html elle yazılmış bir sayfadır; yalnızca işaretli bölgeler (<!--ANA:...-->, /*ANA:TEMEL-CSS*/) buradan üretilir (haftalık tablo_ekle.py akışı bu betiği çalıştırır).
+# Gömülü DATA satırı tablo_ekle.py'nin alanıdır; hesaplayıcı mantığı ortak motordadır. Kart değerleri JS yokken de tarih etiketiyle anlamlıdır; JS aynı değeri canlı günceller.
+def _bolge(h, bas, son, icerik):
+    i = h.index(bas) + len(bas); j = h.index(son); return h[:i] + "\n" + icerik + "\n" + h[j:]
+def ana_sayfa_guncelle():
+    kartlar = ""
+    for kod_ in ANA_SAYFA_KARTLARI:
+        k = KARTLAR[kod_]
+        kartlar += (f'<a class="kart" href="/il/{k["slug"]}" data-il="{html.escape(k["il"])}"><span class="k-ust"><span class="k-il">{html.escape(k["ad"])} · {k["kod"]}</span><span class="etiket">Tahmindir</span></span>'
+                    f'<span class="k-seri mono" data-kart="seri">{k["seri"]}</span><span class="k-alt"><span data-kart="tarih">{k["tarih"]}</span> itibarıyla</span>'
+                    f'<span class="k-gozlem">Son gözlem: {k["g_plaka"]} · {k["g_tarih"]}</span></a>\n')
+    son_gun = EPOCH + datetime.timedelta(days=max(x["obs"][-1][0] for x in iller))
+    kart_html = ('<section aria-label="Büyük illerin güncel tahmini plaka serisi"><div class="kartlar">\n' + kartlar + '</div>\n'
+                 f'<p class="veri-tarihi">Son kayıtlı veri: <span id="last-global">{son_gun.strftime("%d.%m.%Y")}</span> · kaynak: wowTURKEY / Güven_Hoca haftalık tabloları</p></section>')
+    secenek = "".join(f'<option value="{html.escape(TAM.get(x["il"], x["il"]))} ({x["kod"]:02d})" data-ad="{html.escape(TAM.get(x["il"], x["il"]))}" data-kod="{x["kod"]}" data-slug="{slug(TAM.get(x["il"], x["il"]))}"></option>'
+                      for x in sorted(iller, key=lambda x: tr_anahtar(TAM.get(x["il"], x["il"]))))
+    liste_html = f'<datalist id="il-liste">{secenek}</datalist>'
+    bag_html = f'<nav class="iller-liste" aria-label="İl sayfaları"><h2>İllere Göre Güncel Plaka Serileri</h2><div class="iller">{iller_gruplari_html()}</div></nav>'
+    h = open("index.html", encoding="utf-8").read()
+    eski_iz = (re.search(r"<!--ANA:SURUM-->\s*(\w*)\s*<!--/ANA:SURUM-->", h) or [None, ""])[1]
+    h = _bolge(h, "/*ANA:TEMEL-CSS*/", "/*/ANA:TEMEL-CSS*/", CSS)
+    h = _bolge(h, "<!--ANA:KARTLAR-->", "<!--/ANA:KARTLAR-->", kart_html)
+    h = _bolge(h, "<!--ANA:IL-LISTE-->", "<!--/ANA:IL-LISTE-->", liste_html)
+    h = _bolge(h, "<!--ANA:IL-BAGLANTILAR-->", "<!--/ANA:IL-BAGLANTILAR-->", bag_html)
+    # Anlamlı içerik parmak izi: kartlardaki günlük seri/tarih değişimi tek başına yeni içerik SAYILMAZ; gözlem verisi (DATA), metin, şablon ve CSS değişimi sayılır.
+    # İz index.html içinde saklanır (git'e ya da saate bağlı değil); değişmediyse sitemap lastmod'u korunur.
+    _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:seri|tarih)">)[^<]*', r"\1", h), flags=re.S)       # izin kendisi ve günlük değerler girdiye katılmaz
+    yeni_iz = hashlib.sha256(_iz_girdisi.encode("utf-8")).hexdigest()[:16]
+    h = _bolge(h, "<!--ANA:SURUM-->", "<!--/ANA:SURUM-->", yeni_iz)
+    with open("index.html", "w", encoding="utf-8") as f: f.write(h)
+    return yeni_iz != eski_iz
+
 # --- sitemap lastmod: yalnızca sayfanın anlamlı içeriği değiştiyse yenilenir -----------------------------------------
 # Anlamlı içerik = sayfa metni, canlı güncellenen tahmin alanları (data-live) ve canlı JS (START/tablo/tatil listesi) hariç.
 # Yani yalnızca üretim günü değiştiği için ya da aynı verilerle yeniden üretildiği için lastmod oynamaz; yeni gözlem,
@@ -223,9 +260,9 @@ def anlamli(h):
     h = re.sub(r'data-baslangic="[^"]*"', 'data-baslangic=""', h)
     return re.sub(r'(data-live="\w+">)[^<]*', r"\1", h)
 LASTMOD = {}
-# Ana sayfa: gömülü veri yalnızca yeni gözlemle değişir -> lastmod = verideki en son gözlem günü
-LASTMOD[BASE + "/"] = (EPOCH + datetime.timedelta(days=max(x["obs"][-1][0] for x in iller))).isoformat()
+# Ana sayfa lastmod: anlamlı içerik değiştiyse (ana_sayfa_guncelle: parmak izi farkı) üretim günü, aksi hâlde önceki değer korunur (aşağıda)
 DIGER_ILLER = diger_iller_html()
+KARTLAR = {}
 # JS için resmî tatil takvimi: TEK KAYNAK is_gunu.py (RESMI_TATIL); ayrı bir JS takvimi elle tutulmaz. Ana sayfa ve il sayfaları /assets/takvim.js'i yükler.
 os.makedirs("assets", exist_ok=True)
 with open("assets/takvim.js", "w", encoding="utf-8") as f:
@@ -241,6 +278,8 @@ for s in iller:
     _c = fc.clean(o)
     est_n = last[1] + fc.advance(o, _c, last[0], _h, rate)
     el, en = inv(est_n); ll, ln = inv(last[1])
+    if s["kod"] in ANA_SAYFA_KARTLARI:        # ana sayfa kartı: aynı hesap (aynı el/ll/ln), aynı referans gün
+        KARTLAR[s["kod"]] = {"il": il, "ad": ad, "kod": kod, "slug": sl, "seri": f"{kod} {el}", "tarih": tr_date(today), "g_plaka": f"{kod} {ll} {ln:03d}", "g_tarih": tr_date(last_d)}
     canli_js = CANLI_JS.replace("__GOZLEM__", last_d.isoformat()).replace("__ESIK__", str(BAYAT_ESIK_GUN))
     trans = [t for t in gec if t["il"] == il]
     rows = "".join(f"<tr><td>{t['ilk_gorulen_yeni_tarih'][8:10]}.{t['ilk_gorulen_yeni_tarih'][5:7]}.{t['ilk_gorulen_yeni_tarih'][:4]}</td><td class='mono'>{t['onceki_harf_grubu']} → {t['yeni_harf_grubu']}</td><td class='mono'>{html.escape(t['son_gorulen_eski'])} → {html.escape(t['ilk_gorulen_yeni'])}</td></tr>" for t in trans)
@@ -351,5 +390,10 @@ for s in iller:
     if SADECE is None or sl in SADECE:
         open(_yol,"w").write(page.replace(",", ".", 0))
     urls.append(_url)
-if SADECE is None: open("sitemap.xml","w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"  <url><loc>{u}</loc><lastmod>{LASTMOD[u]}</lastmod><changefreq>weekly</changefreq></url>" for u in urls) + "\n</urlset>\n")
+if SADECE is None:
+    _ana = BASE + "/"       # ana sayfa kartları/listeleri/CSS (aynı referans gün, aynı hesap); lastmod yalnızca anlamlı içerik değiştiyse yenilenir
+    LASTMOD[_ana] = GERCEK_BUGUN.isoformat() if (ana_sayfa_guncelle() or _ana not in ESKI_LASTMOD) else ESKI_LASTMOD[_ana]
+if SADECE is None:
+    _sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"  <url><loc>{u}</loc><lastmod>{LASTMOD[u]}</lastmod><changefreq>weekly</changefreq></url>" for u in urls) + "\n</urlset>\n"
+    with open("sitemap.xml", "w", encoding="utf-8") as _f: _f.write(_sm)
 print(len(iller), "il sayfası +", "sitemap", len(urls), "URL")

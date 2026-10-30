@@ -1,5 +1,5 @@
 """Yeniden üretim kararlılığı: depodaki il sayfaları, kendi START tarihleriyle yeniden üretildiğinde
-81 il HTML'i ve sitemap.xml baytça aynı olmalı (SEO etiketleri, tahmin değerleri, lastmod dahil).
+81 il HTML'i, sitemap.xml, assets/takvim.js ve ana sayfa (işaretli bölgeler dahil index.html) baytça aynı olmalı (SEO etiketleri, tahmin değerleri, lastmod dahil).
 Depodaki dosyalara dokunulmaz; üretim geçici bir kopyada yapılır."""
 import glob, os, re, shutil, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +15,7 @@ class YenidenUretimKararli(unittest.TestCase):
             r = u.uret(d, "--bugun", start); self.assertEqual(r.returncode, 0, r.stderr)
             sayfalar = sorted(glob.glob(os.path.join(u.ROOT, "il", "*.html"))); self.assertEqual(len(sayfalar), 81)
             farkli = []
-            for yol in sayfalar + [os.path.join(u.ROOT, "sitemap.xml"), os.path.join(u.ROOT, "assets", "takvim.js")]:
+            for yol in sayfalar + [os.path.join(u.ROOT, "sitemap.xml"), os.path.join(u.ROOT, "assets", "takvim.js"), os.path.join(u.ROOT, "index.html")]:
                 gorece = os.path.relpath(yol, u.ROOT)
                 with open(yol, "rb") as a, open(os.path.join(d, gorece), "rb") as b:
                     if a.read() != b.read(): farkli.append(gorece)

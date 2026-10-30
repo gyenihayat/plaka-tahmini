@@ -2,8 +2,7 @@
 // burada yalnızca hedef girdisinin ayrıştırılması, ana sayfadaki calcTarget() ile aynı kurallarla sonuç sınıflandırması ve metin üretimi vardır.
 // Klasik script: tahmin-motoru.js'in global bildirimlerini (EXCL, reachDate, ...) kullanır; önce o yüklenmelidir.
 const PlakaIlArac = (function () {
-  const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-  const trTarih = day => { const x = new Date(EPOCH + day * DAY); return x.getUTCDate() + " " + AYLAR[x.getUTCMonth()] + " " + x.getUTCFullYear(); };
+  const trTarih = day => trTarihGun(day);                       // ortak motordaki Türkçe tarih biçimi
   const pad3 = n => String(n).padStart(3, "0");
 
   // s: {kod, il, bterr, obs}; giris: kullanıcı metni; exclTxt: atlanacak seriler; bugunGun: ana sayfadaki todayDay ile aynı tanım (referans gün: Türkiye tarihinin önceki iş günü)
@@ -63,9 +62,8 @@ const PlakaIlArac = (function () {
   function guncelTahmin(doc, s, now) {
     const kok = doc.querySelector("[data-baslangic]"), bas = kok ? toDay(kok.getAttribute("data-baslangic")) : null;
     const ref = trReferansGun(now); let gun = ref.gun; if (bas != null && gun < bas) gun = bas;
-    EXCL = [];
-    const iv = invN(estimateAt(s, gun).n); if (!iv) throw new Error("tahmin alfabe dışında");
-    const kod = String(s.kod).padStart(2, "0"), v = { seri: kod + " " + iv.let, plaka: kod + " " + iv.let + " " + pad3(iv.num), tarih: trTarih(gun), grup: iv.let[0], kapsamDisi: ref.kapsamDisi };
+    const b = guncelSeriBilgisi(s, gun); if (!b) throw new Error("tahmin alfabe dışında");
+    const v = { seri: b.seri, plaka: b.plaka, tarih: b.tarih, grup: b.grup, kapsamDisi: ref.kapsamDisi };
     doc.querySelectorAll("[data-live]").forEach(e => { e.textContent = v[e.getAttribute("data-live")]; });
     const tg = doc.getElementById("tahmin-grup"); if (tg) tg.hidden = (v.grup === tg.getAttribute("data-gozlenen"));
     return v;

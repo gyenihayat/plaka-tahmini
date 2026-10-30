@@ -7,7 +7,7 @@ import _util as u
 import forecast as fc
 import is_gunu as ig
 from test_il_sayfasi import veri, sayfa, slug, TAM, inv, tr, E0
-from test_ana_sayfa_regresyon import CHROME
+from test_ana_sayfa_regresyon import CHROME, CHROME_TEMEL
 TRT = dt.timezone(dt.timedelta(hours=3))
 D = dt.date
 def an(*a): return int(dt.datetime(*a, tzinfo=dt.timezone.utc).timestamp() * 1000)       # UTC an (ms)
@@ -168,7 +168,7 @@ class TarayiciAnaSayfaIlSayfasi(unittest.TestCase):
             srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(H, directory=u.ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start()
             env = dict(os.environ)
             if tz: env["TZ"] = tz
-            try: r = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--virtual-time-budget=400000", "--dump-dom", f"http://127.0.0.1:{port}/{os.path.basename(d)}/h.html"], capture_output=True, text=True, timeout=600, env=env)
+            try: r = subprocess.run([*CHROME_TEMEL, "--virtual-time-budget=400000", "--dump-dom", f"http://127.0.0.1:{port}/{os.path.basename(d)}/h.html"], capture_output=True, text=True, timeout=600, env=env)
             finally: srv.shutdown(); srv.server_close()
             m = re.search(r"SONUC (\[.*?\])\s*</pre>", r.stdout, re.S); self.assertIsNotNone(m, r.stderr[-400:])
             return json.loads(html.unescape(m[1]))
@@ -179,10 +179,13 @@ class TarayiciAnaSayfaIlSayfasi(unittest.TestCase):
         for r in sonuc:
             gun = ref[r["an"]]
             self.assertEqual(r["anaDt"], gun.isoformat(), r)                               # ana sayfa tarih alanı = referans gün (Python onceki_is_gunu ile aynı)
+            if r["kart"]:                                                                  # ana sayfa kartı: seri ve tarih, ana sayfa aracı/il sayfasıyla aynı referans gün ve motor
+                self.assertEqual(r["kart"]["seri"], " ".join(r["ana"].split()[:2]), r); self.assertEqual(r["kart"]["tarih"], tr(gun), r)
             if r["seri"] is None: continue                                                 # başlangıçtan önceki saat: yalnızca ana sayfa
             self.assertEqual(r["tarih"], tr(gun), r)                                       # il sayfası etiketi aynı referans gün
             self.assertEqual(r["seri"], " ".join(r["ana"].split()[:2]), r)                 # il büyük tahmini = ana sayfa güncel tahmini
             self.assertFalse(r["uyari"], r)
+        self.assertEqual({r["il"] for r in sonuc if r["kart"]}, {"İstanbul", "Ankara", "İzmir"})
         for il in {r["il"] for r in sonuc}:                                                # hafta sonu = Cuma (ana sayfa plakası numarasıyla birebir)
             p = {r["an"]: r["ana"] for r in sonuc if r["il"] == il}
             self.assertEqual({p[a] for a in (ANLAR[0][0], ANLAR[1][0], ANLAR[2][0], ANLAR[3][0], ANLAR[4][0])}, {p[ANLAR[0][0]]}, il); self.assertNotEqual(p[ANLAR[5][0]], p[ANLAR[0][0]], il)

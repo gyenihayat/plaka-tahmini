@@ -1,0 +1,36 @@
+<!-- Ana sayfa yerleşim ve etkileşim harness'ı (5 genişlik): taşma, kart/tipografi ölçüleri, hesaplayıcı ve il seçimi. tests/test_ana_sayfa_tasarim.py kullanır. -->
+<!doctype html><meta charset="utf-8"><body style="margin:0"><pre id="o">çalışıyor</pre><div id="k"></div>
+<script>
+const GENISLIKLER = __GENISLIKLER__, YUKSEKLIK = 700, out = [];
+function yukle(src, w) { return new Promise(r => { const f = document.createElement("iframe"); f.style.cssText = `width:${w}px;height:${YUKSEKLIK}px;border:0;display:block`; f.onload = () => setTimeout(() => r(f), 60); f.src = src; document.getElementById("k").appendChild(f); }); }
+(async () => {
+  for (const w of GENISLIKLER) {
+    const f = await yukle("/", w), win = f.contentWindow, d = win.document, de = d.documentElement, cw = de.clientWidth, r = {w, cw, sw: de.scrollWidth, tasan: []};
+    const kapsam = e => !!e.closest(".tblwrap, .pop .panel, details:not([open]) > :not(summary)");
+    d.querySelectorAll("body *").forEach(e => { const b = e.getBoundingClientRect(); if (b.width && b.right > cw + 0.5 && !kapsam(e)) r.tasan.push(e.tagName.toLowerCase() + "." + e.className + "#" + e.id); });
+    const px = (e, p) => e ? parseFloat(win.getComputedStyle(e)[p]) : null, kartlar = [...d.querySelectorAll(".kart")];
+    r.kartSayisi = kartlar.length; r.seriPx = px(d.querySelector(".k-seri"), "fontSize"); r.h1Px = px(d.querySelector("h1"), "fontSize"); r.govdePx = px(d.body, "fontSize");
+    r.seriTekSatir = kartlar.every(k => { const e = k.querySelector(".k-seri"); return e.getBoundingClientRect().height < px(e, "lineHeight") * 1.4; });
+    r.kartUst = kartlar.map(k => Math.round(k.getBoundingClientRect().top)); r.kartAlt = kartlar.map(k => Math.round(k.getBoundingClientRect().bottom));
+    const cta = d.querySelector("a.cta"); r.ctaUst = cta ? Math.round(cta.getBoundingClientRect().top) : null; r.ctaAlt = cta ? Math.round(cta.getBoundingClientRect().bottom) : null;
+    r.etiketli = ["il-ara", "il", "target", "dt", "excl", "excl2"].every(id => !!d.querySelector('label[for="' + id + '"]'));
+    r.sayac = d.getElementById("counter").style.display; { const m = d.getElementById("meta"), ps = [...m.querySelectorAll(".ms")]; r.metaPx = px(m, "fontSize"); r.metaTasma = m.scrollWidth > m.clientWidth + 1; r.metaParca = ps.length;
+      r.metaSatir = ps.map(e => Math.round(e.getBoundingClientRect().height / (parseFloat(win.getComputedStyle(e).lineHeight) || px(e, "fontSize") * 1.5))); }
+    r.kartMetin = kartlar.map(k => k.textContent.replace(/\s+/g, " ").trim());
+    if (w === GENISLIKLER[0]) {
+      const g = id => d.getElementById(id), tikla = (v, ex) => { g("il").value = "Konya"; g("il").dispatchEvent(new win.Event("change")); g("excl2").value = ex || ""; g("excl2").dispatchEvent(new win.Event("input")); g("target").value = v; g("btn-target").click();
+        return {out: g("target-res").style.display === "none" ? "" : g("target-out").textContent, warn: g("target-warn").style.display === "none" ? "" : g("target-warn").textContent, canli: g("target-res").getAttribute("aria-live")}; };
+      r.hedef = tikla("BZZ 999"); r.hedefHata = tikla("IAA"); r.hedefAtla = tikla("BZZ 999", "BKX, BLX"); r.hedefKod = tikla("06 GAA");
+      r.tarihPlaka = g("plate-num").textContent; g("dt").value = "2028-03-01"; g("dt").dispatchEvent(new win.Event("change")); r.tarih2028 = g("plate-num").textContent;
+      g("btn-today").click(); r.bugunDt = g("dt").value;
+      // il seçimi: geçerli, geçersiz, belirsiz
+      const form = g("il-form"), giris = g("il-ara"), hata = g("il-hata"); const gir = v => { giris.value = v; form.dispatchEvent(new win.Event("submit", {cancelable: true})); return hata.textContent; };
+      r.ilHatalar = {bos: gir(""), yok: gir("82"), belirsiz: gir("k"), celisik: gir("konya 06")};
+      giris.value = "Çankırı"; const once = win.location.pathname; form.dispatchEvent(new win.Event("submit", {cancelable: true}));
+      r.ilGecis = await new Promise(res => { f.addEventListener("load", () => res(f.contentWindow.location.pathname), {once: true}); setTimeout(() => res("gecis-yok"), 3000); });
+    }
+    f.remove(); out.push(r);
+  }
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+})();
+</script>
