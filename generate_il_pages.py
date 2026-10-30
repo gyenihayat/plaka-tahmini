@@ -42,6 +42,8 @@ def sayi(n): return f"{n:,.0f}".replace(",", ".")                 # Türkçe bin
 def ondalik(x): return f"{x:.1f}".replace(".", ",")              # Türkçe ondalık ayracı: 1,8
 # "Plaka sırasındaki son değişim" bölümü şimdilik yalnızca bu illerde (Türkçe sayı biçimi tüm illerde uygulanır)
 SON_DEGISIM_ILLERI = {"Konya", "Eskişehir", "Denizli"}
+# İlk ekrandaki "Harf grubu" bilgi satırı şimdilik yalnızca bu illerde (diğer illerin HTML'i değişmez)
+HARF_GRUBU_ILLERI = {"Ankara", "İstanbul", "Konya"}
 
 CANLI_JS = """(function(){
 var T=__TABLO__,S="__START__",K="__KOD__",H=__TATIL__;
@@ -237,6 +239,9 @@ for s in iller:
     degisim_html = (son_degisim_blok(o, _c, ad) if ozel else "")
     if degisim_html: degisim_html = "\n" + degisim_html
     hafta_txt = sayi(s['hafta'] or 0); hs_txt = ondalik(hafta_seri)   # Türkçe biçim: 1.802 / 1,8 (görünen metin ve JSON-LD aynı değerleri kullanır)
+    # Harf grubu = son KAYITLI gözlemin serisinin ilk harfi (tahminden değil, gözlemden); tahmini seri/plaka satırından ayrı etiketlenir
+    harf_html = (f"\n<p class=\"meta\">Harf grubu: <b class=\"mono\">{ll[0]}</b> (serinin ilk harfi) — son kayıtlı gözlem: <span class=\"mono\" style=\"white-space:nowrap\">{kod} {ll} {ln:03d}</span>, {tr_date(last_d)}.</p>"
+                 if il in HARF_GRUBU_ILLERI else "")
     sure = "birkaç gün" if hafta_seri > 3 else ("yaklaşık bir hafta" if hafta_seri > 0.9 else (f"yaklaşık {round(1/hafta_seri)} hafta" if hafta_seri > 0.12 else f"aylar"))
     title = f"{ad} Plaka Sırası Hangi Harfte? Güncel Seri ({today.year})"
     desc = f"{ad} plaka sırası hangi harfte? Son gözlem: {kod} {ll} {ln:03d} ({tr_date(last_d)}). Güncel tahmini seriyi ve plakanızın tahmini çıkış tarihini araçla hesaplayın."
@@ -274,7 +279,7 @@ for s in iller:
 <h1>{html.escape(ad)} Plaka Sırası Hangi Harfte?</h1>
 <p>{html.escape(ad)} ilinde son doğrulanmış plaka gözlemi {tr_date(last_d)} tarihinde <b class="mono">{kod} {ll} {ln:03d}</b> olarak kaydedilmiştir. İlin son aylardaki ilerleme hızıyla uzatılan tahmine göre plaka sırası <span data-live="tarih">{tr_date(today)}</span> itibarıyla tahmini olarak <b class="mono" data-live="seri">{kod} {el}</b> serisi civarındadır. Aşağıdaki araçla istediğiniz plakanın yaklaşık ne zaman çıkacağını görebilirsiniz.</p>
 <div class="plrow"><span class="plate"><span class="band">TR</span><span class="num" data-live="plaka">{kod} {el} {en:03d}</span></span><span class="tag">tahmin · <span data-live="tarih">{tr_date(today)}</span> itibarıyla</span><span class="tag" style="color:#4d5461">son gözlem · {tr_date(last_d)}</span><a class="cta" href="/?il={s['kod']}">🔮 Canlı tahmin aracı →</a></div>
-<div class="uyari" id="guncellik" role="status" hidden><span></span> <a href="/?il={s['kod']}">Canlı tahmin aracını açın</a></div>
+<div class="uyari" id="guncellik" role="status" hidden><span></span> <a href="/?il={s['kod']}">Canlı tahmin aracını açın</a></div>{harf_html}
 <p class="meta">{html.escape(ad)} son aylarda haftada ortalama <b>{hafta_txt} plaka</b> basıyor ve <b>~{hs_txt} harf serisi</b> ilerliyor{" — bir seri (999 plaka) " + sure + " dayanıyor" if hafta_seri <= 3 else ""} (kaynak: wowTURKEY / Güven Hoca haftalık tabloları).</p>
 {yoy_html}
 {gozlem_html}{degisim_html}
