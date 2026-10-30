@@ -60,7 +60,7 @@ if(Math.round((b-g)/864e5)>__ESIK__){var by=document.getElementById("bayat");if(
 }catch(x){console.error("plakatahmini: güncellik denetimi yapılamadı",x);uyar("Güncellik denetimi yapılamadı; son kayıtlı gözlem tarihine dikkat edin.");}
 })();"""
 iller = sorted(d["iller"], key=lambda s: s["kod"])
-# Yalnızca il sayfalarındaki "← Tüm illere dön" bağlantısı (ana sayfa CSS'i değişmez): sade, küçük ama belirgin metin bağlantısı; odak halkası genel a:focus-visible kuralından gelir.
+# Yalnızca il sayfalarındaki "← Ana sayfaya dön" bağlantısı (ana sayfa CSS'i değişmez): sade, küçük ama belirgin metin bağlantısı; odak halkası genel a:focus-visible kuralından gelir.
 IL_CSS = ".geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}"
 CSS = """*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f5f5f1;color:#15171c;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:16px;line-height:1.55}
 .wrap{max-width:720px;margin:0 auto;padding:20px 16px 56px}a{color:#1f63bb}
@@ -365,7 +365,7 @@ for s in iller:
 </head>
 <body><main class="wrap">
 <div class="eyebrow"><a href="/">Plaka Tahmini</a> · {kod} {html.escape(ad)}</div>
-<p class="geri"><a href="/#il-baslik"><span aria-hidden="true">←</span> Tüm illere dön</a></p>
+<p class="geri"><a href="/"><span aria-hidden="true">←</span> Ana sayfaya dön</a></p>
 <h1>{html.escape(ad)} Plaka Sırası Hangi Harfte?</h1>
 <section aria-label="Özet" data-baslangic="{today.isoformat()}">
 <p class="e">Tahmini güncel plaka</p>

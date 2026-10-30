@@ -1,4 +1,4 @@
-// Kullanım: node geri_baglantisi.js <chrome> <taban_url> <sayfa_yolu>...  -> 375 ve 1440 px'te "← Tüm illere dön" bağlantısını GERÇEK klavye olaylarıyla (Tab, Enter) ve konum ölçümüyle sınar.
+// Kullanım: node geri_baglantisi.js <chrome> <taban_url> <sayfa_yolu>...  -> 375 ve 1440 px'te "← Ana sayfaya dön" bağlantısını GERÇEK klavye olaylarıyla (Tab, Enter) ve konum ölçümüyle sınar.
 // Chrome, abacus/goatcounter adlarını çözemeyecek şekilde başlatılır (test ziyareti ölçüm göndermez).
 const { spawn } = require("child_process"), fs = require("fs"), os = require("os"), path = require("path");
 const [, , CHROME, TABAN, ...sayfalar] = process.argv, PORT = 9362, dir = fs.mkdtempSync(path.join(os.tmpdir(), "geri_"));
@@ -25,7 +25,7 @@ async function hedef() { for (let i = 0; i < 60; i++) { try { return await (awai
             yuk:Math.round(gr.height), genis:Math.round(gr.width), px:parseFloat(cs.fontSize), renk:cs.color, tasma:document.documentElement.scrollWidth-innerWidth, ekranda:gr.top>=0&&gr.bottom<=innerHeight }; })()`);
         await tus("Tab", "Tab", 9); r.tab1 = await ev(bilgi); await tus("Tab", "Tab", 9); r.tab2 = await ev(bilgi);
         await tus("Enter", "Enter", 13); await bekle(1200);
-        r.sonra = await ev(`(()=>{ const h=document.getElementById('il-baslik'), b=h?h.getBoundingClientRect():null; return { yol:location.pathname, hash:location.hash, baslik:h?h.textContent.trim():null, ekranda:b?(b.top>=-1&&b.top<innerHeight):false, ust:b?Math.round(b.top):null, formVar:!!document.getElementById('il-form') }; })()`);
+        r.sonra = await ev(`(()=>{ const h=document.querySelector('h1'), k=document.querySelector('.kart[data-il]'), b=h?h.getBoundingClientRect():null, kb=k?k.getBoundingClientRect():null; return { yol:location.pathname, hash:location.hash, scrollY:Math.round(scrollY), baslik:h?h.textContent.trim():null, h1Ekranda:b?(b.top>=0&&b.bottom<=innerHeight):false, kartSayisi:document.querySelectorAll('.kart[data-il]').length, ilkKartEkranda:kb?(kb.top>=0&&kb.top<innerHeight):false }; })()`);
         out.push(r);
       }
     }
