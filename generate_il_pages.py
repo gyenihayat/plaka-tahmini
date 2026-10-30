@@ -3,7 +3,7 @@
 """81 il sayfasını data/tahmin_data.json + data/seri_gecisleri.csv'den üretir; sitemap.xml'i yeniler."""
 import json, csv, datetime, statistics, html, bisect, argparse, sys, re, os
 import forecast as fc
-from is_gunu import RESMI_TATIL, onceki_is_gunu
+from is_gunu import RESMI_TATIL, onceki_is_gunu, kapsam_kontrol, TakvimKapsamHatasi, TAHMIN_PENCERESI_GUN
 
 A1="ABCDEFGHJKLMNPRSTUVYZ"; A2="ABCDEFGHIJKLMNOPRSTUVYZ"; A3="ABCDEFGHJKLMNPRSTUVYZ"
 def inv(n):
@@ -22,7 +22,11 @@ _ap.add_argument("--iller", help="yalnızca bu il sayfalarını yaz (virgülle a
 _args = _ap.parse_args()
 SADECE = set(_args.iller.split(",")) if _args.iller else None
 GERCEK_BUGUN = datetime.date.fromisoformat(_args.bugun) if _args.bugun else datetime.date.today()   # yalnızca içerik gerçekten değiştiğinde sitemap lastmod'u için
-today = onceki_is_gunu(GERCEK_BUGUN)
+try:
+    today = onceki_is_gunu(GERCEK_BUGUN)
+    kapsam_kontrol(today, today + datetime.timedelta(days=TAHMIN_PENCERESI_GUN))   # tahmin penceresi tatil takvimi kapsamını aşıyorsa üretim hatası (sayfalar yazılmadan)
+except TakvimKapsamHatasi as e:
+    sys.exit(f"HATA: {e}")
 if _args.bugun: print(f"NOT: --bugun {today}: tahmin tarihi sabitlendi; son gözlem tarihleri veriden gelir", file=sys.stderr)   # tescil iş günlerinde yapılır: hafta sonu/resmi tatilde en yakın önceki iş gününe çekilir
 d = json.load(open("data/tahmin_data.json"))
 gec = list(csv.DictReader(open("data/seri_gecisleri.csv")))
@@ -207,8 +211,8 @@ for s in iller:
     est_n = last[1] + fc.advance(o, _c, last[0], _h, rate)
     el, en = inv(est_n); ll, ln = inv(last[1])
     # ziyaretçinin tarihine göre sayfayı tarayıcıda güncellemek için: bugünden itibaren 180 günün tahmini plaka numarası
-    tablo = [round(last[1] + fc.advance(o, _c, last[0], _h + k, rate)) for k in range(181)]
-    canli_js = CANLI_JS.replace("__KOD__", kod).replace("__START__", today.isoformat()).replace("__TATIL__", json.dumps(sorted(t.isoformat() for t in RESMI_TATIL if today <= t <= today + datetime.timedelta(days=181)), separators=(",", ":"))).replace("__TABLO__", json.dumps(tablo, separators=(",", ":")))
+    tablo = [round(last[1] + fc.advance(o, _c, last[0], _h + k, rate)) for k in range(TAHMIN_PENCERESI_GUN)]
+    canli_js = CANLI_JS.replace("__KOD__", kod).replace("__START__", today.isoformat()).replace("__TATIL__", json.dumps(sorted(t.isoformat() for t in RESMI_TATIL if today <= t <= today + datetime.timedelta(days=TAHMIN_PENCERESI_GUN)), separators=(",", ":"))).replace("__TABLO__", json.dumps(tablo, separators=(",", ":")))
     hafta_seri = rate*7/1000
     trans = [t for t in gec if t["il"] == il]
     rows = "".join(f"<tr><td>{t['ilk_gorulen_yeni_tarih'][8:10]}.{t['ilk_gorulen_yeni_tarih'][5:7]}.{t['ilk_gorulen_yeni_tarih'][:4]}</td><td class='mono'>{t['onceki_harf_grubu']} → {t['yeni_harf_grubu']}</td><td class='mono'>{html.escape(t['son_gorulen_eski'])} → {html.escape(t['ilk_gorulen_yeni'])}</td></tr>" for t in trans)

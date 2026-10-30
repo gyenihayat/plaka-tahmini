@@ -18,7 +18,7 @@ Commit/push yapmaz.
 import argparse, csv, datetime, json, os, re, subprocess, sys
 from collections import defaultdict
 import forecast as fc
-from is_gunu import onceki_is_gunu
+from is_gunu import onceki_is_gunu, kapsam_kontrol, TakvimKapsamHatasi, TAHMIN_PENCERESI_GUN
 
 KOK = os.path.dirname(os.path.abspath(__file__))
 EPOCH = datetime.date(2024, 1, 1)
@@ -37,7 +37,12 @@ ap.add_argument("--plakatr", default=os.path.expanduser("~/work/plakaTR/data/haf
 ap.add_argument("--kuru", action="store_true", help="yalnızca doğrulama yap, dosyaları değiştirme")
 a = ap.parse_args()
 
-yayin = datetime.date.fromisoformat(a.tarih); tarih = onceki_is_gunu(yayin); day = (tarih - EPOCH).days
+yayin = datetime.date.fromisoformat(a.tarih)
+try:   # dosyalar yazılmadan önce: tarih ve üretim penceresi (yayın/bugün + pencere) tatil takvimi kapsamında olmalı
+    kapsam_kontrol(yayin, max(yayin, datetime.date.today()) + datetime.timedelta(days=TAHMIN_PENCERESI_GUN))
+except TakvimKapsamHatasi as e:
+    sys.exit(f"HATA: {e}")
+tarih = onceki_is_gunu(yayin); day = (tarih - EPOCH).days
 if tarih != yayin: print(f"tarih {yayin} iş günü değil → {tarih}")
 
 # --- girdiler

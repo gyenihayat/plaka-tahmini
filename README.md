@@ -21,3 +21,6 @@ Tarih hafta sonu/resmi tatile denk gelirse bir önceki iş gününe çekilir (`i
 
 Sitemap `lastmod`: ana sayfada verideki en son gözlem günü; il sayfalarında yalnızca sayfanın anlamlı içeriği (canlı tahmin alanları ve JS hariç) değiştiyse üretim günü, aksi hâlde önceki değer korunur.
 `generate_il_pages.py --bugun YYYY-MM-DD` yalnızca tahmin tarihini sabitler; "son gözlem" tarihleri her zaman veriden gelir.
+
+Resmî tatil takvimi `is_gunu.py` içindedir (`BAYRAMLAR` + `SABIT_TATIL`; şu an 2024–2028, kaynak: Diyanet) ve il sayfalarındaki JS tatil listesinin tek kaynağıdır. Yeni yıl için `BAYRAMLAR`'a o yılın Ramazan/Kurban tam gün aralıkları eklenir; takvim kapsamı dışındaki tarih ya da 181 günlük tahmin penceresi (2028-07-03 sonrası üretim) `HATA` ile durur.
+Testler: `python3 -m unittest discover -s tests -v` (Node varsa Python–JS iş günü eşliği de denenir).
