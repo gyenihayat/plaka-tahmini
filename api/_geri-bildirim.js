@@ -80,12 +80,12 @@ function tarihDogrula(tarih, kesinlik, simdi) {
   if (gelecek) return { hata: "Tarih gelecekte olamaz.", alan: "tarih" };
   return { tarih: t, kesinlik };
 }
-/** "34 ABC 123", "ABC 123", "34ABC", "abc" ... -> { il, seri, no, tam }. Seri 1-3 harf (A-Z), numara isteğe bağlı 1-4 rakam. */
+/** "34 QWX 123", "QWX 123", "34QWX", "qwx" ... -> { il, seri, no, tam }. Seri 1-3 harf (A-Z), numara isteğe bağlı 1-4 rakam. */
 function plakaDogrula(ham, ilKodu) {
   const t = metin(ham, false).toUpperCase().replace(/[.\-_]/g, " ").replace(/\s+/g, " ").trim();
   const m = /^(?:(\d{1,2}) ?)?([A-Z]{1,3})(?: ?(\d{1,4}))?$/.exec(t);
   if (!t) return { hata: "Plaka ya da harf serisi girin.", alan: "plaka" };
-  if (!m) return { hata: "Plakayı \"34 ABC 123\" ya da yalnızca \"ABC\" biçiminde girin (1-3 harf, isteğe bağlı rakamlar).", alan: "plaka" };
+  if (!m) return { hata: "Plakayı \"34 QWX 123\" ya da yalnızca \"QWX\" biçiminde girin (1-3 harf, isteğe bağlı rakamlar).", alan: "plaka" };
   if (m[1] && +m[1] !== ilKodu) return { hata: "Plakadaki il kodu seçtiğiniz ille uyuşmuyor.", alan: "plaka" };
   const il = String(ilKodu).padStart(2, "0"), tam = `${il} ${m[2]}${m[3] ? " " + m[3] : ""}`;
   return { seri: m[2], no: m[3] || null, tam };
