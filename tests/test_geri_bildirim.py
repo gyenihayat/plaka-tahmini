@@ -37,8 +37,8 @@ class YapiVeSayfa(unittest.TestCase):
 
     def test_ana_sayfa_altbilgi_baglantisi(self):
         self.assertEqual(len(re.findall(re.escape(BAGLANTI_METNI), ANA)), 1)
-        self.assertRegex(ANA, r'<!--ANA:KATKI-->\n<p class="katki"[^>]*><a href="/geri-bildirim\?sayfa=%2F"[^>]*><span[^>]*>Öneri ve katkı gönder</span><span[^>]*>Plaka bilgisi paylaşın, öneri veya hata bildirin</span></a></p>\n<!--/ANA:KATKI-->\n<!--ANA:OLCUM-NOTU-->')
-        self.assertLess(ANA.index("ANA:KATKI"), ANA.index("</main>")); self.assertGreater(ANA.index("ANA:KATKI"), ANA.index("ANA:IL-BAGLANTILAR"))
+        self.assertRegex(ANA, r'<!--ANA:KATKI-->\n<p class="katki"[^>]*><a href="/geri-bildirim\?sayfa=%2F"[^>]*><span[^>]*>Öneri ve katkı gönder</span><span[^>]*>Plaka bilgisi paylaşın, öneri veya hata bildirin</span></a></p>\n<!--/ANA:KATKI-->\n<!--ANA:IL-BAGLANTILAR-->\n<nav class="iller-liste" aria-label="İl sayfaları"><h2>İllere Göre Güncel Plaka Serileri</h2>')       # kutu, "İllere Göre Güncel Plaka Serileri" başlığının hemen üstünde
+        self.assertLess(ANA.index("ANA:KATKI"), ANA.index("ANA:OLCUM-NOTU")); self.assertGreater(ANA.index("ANA:KATKI"), ANA.index("Tahminlerin sınırlamaları")); self.assertEqual(ANA.count("/geri-bildirim"), 1)
 
     def test_81_il_sayfasinin_altbilgisinde_dogru_il_ile_baglanti(self):
         sayfalar = sorted(glob.glob(os.path.join(u.ROOT, "il", "*.html"))); self.assertEqual(len(sayfalar), 81); esle = {s: k for k, _, s in il_listesi()}
