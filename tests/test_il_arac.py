@@ -23,6 +23,7 @@ def gun(ddmmyyyy): d, m, y = map(int, ddmmyyyy.split(".")); return (dt.date(y, m
 def ana_sayfa_ayristir(t, warn):
     if t.startswith("Bu seri, atlanacaklar listenizde"): return {"tip": "dislanan"}
     if t.startswith("Bu ilde seri ilerlemesi"): return {"tip": "yok"}
+    if t.startswith("Bu plaka için tarih tahmini üretilemiyor"): return {"tip": "yok", "sinir": True}               # modelin geriye tarihi 1 Şubat 2018'den önceye düşüyor (yeni düzen öncesi): tarih verilmez
     m = re.match(r"Geçildi — kayıtlara göre (\d\d\.\d\d\.\d{4}) civarında", t)
     if m: return {"tip": "gecildi", "gun": gun(m[1])}
     m = re.match(r"Tahmini: (\d\d\.\d\d\.\d{4})\s*\(±(\d+) gün · kayıtlarımızdan önce", t)
@@ -80,7 +81,8 @@ class AnaSayfaIleEslik(unittest.TestCase):
         il_sonuc = node_arac(sn); self.assertEqual(len(ana), len(sn)); sayac = {}; fark = []
         for x, a, b in zip(sn, ana, il_sonuc):
             pa = ana_sayfa_ayristir(a["out"], a["warn"]); tip = b["tip"]; sayac[(pa["tip"])] = sayac.get(pa["tip"], 0) + 1
-            if pa["tip"] == "hata": ok = tip == "hata" and (("Seri okunamadı" in a["warn"]) == ("Seri okunamadı" in b["mesaj"])) and (("kullanılmıyor" in a["warn"]) == ("kullanılmıyor" in b["mesaj"]))
+            if pa.get("sinir"): ok = tip == "yok" and "1 Şubat 2018" in b["mesaj"] and "1 Şubat 2018" in a["out"]                   # iki sayfa da aynı sınır mesajını verir
+            elif pa["tip"] == "hata": ok = tip == "hata" and (("Seri okunamadı" in a["warn"]) == ("Seri okunamadı" in b["mesaj"])) and (("kullanılmıyor" in a["warn"]) == ("kullanılmıyor" in b["mesaj"]))
             else: ok = tip == pa["tip"] and all(b.get(k) == pa[k] for k in ("gun", "err", "atlanan") if k in pa and tip != "dislanan")
             if tip == "tahmin" and pa["tip"] == "tahmin":
                 ok = ok and b["atlanan"] == pa["atlanan"]

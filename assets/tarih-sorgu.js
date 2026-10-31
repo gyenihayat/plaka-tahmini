@@ -2,14 +2,31 @@
 // Hesabın kendisi ortak motordan gelir (tahmin-motoru.js: estimateAt, invN, exclOverlap, toDay, trTarihGun); burada formül yoktur, yalnızca sorgunun
 // girdisi doğrulanır, sonuç ve uyarı metinleri üretilir ve form bağlanır. Elle seçilen tarih kendiliğinden önceki iş gününe ÇEKİLMEZ (motorun değeri gösterilir).
 // Klasik script: tahmin-motoru.js'in global bildirimlerini (EXCL dahil) kullanır; önce o yüklenmelidir.
+// GERİYE DÖNÜK TARİH: ilk kayıtlı gözlemden önceki günler motorun geriye modeliyle (estimateBack = backEstimate'in tersi) hesaplanır ve "Geriye dönük tahmin" olarak, artan belirsizlikle gösterilir.
+// Sınırlar: (1) MODEL tarih alt sınırı 1 Şubat 2018 (bu aracın uyguladığı kural; üç harf–üç rakam plakaların fiilen dağıtılmaya başladığı gün olarak sunulmaz); (2) model geçerli plaka üretemiyorsa (sıra < 1) plaka uydurulmaz. Modelin sayısal alt sınırı ilin gerçek dağıtım başlangıcı değildir ve "o tarihte plaka dağıtılmadı" anlamına gelmez.
 // ATLANACAK SERİLER: bu aracın kendi alanı vardır (iki sayfada aynı: #excl); varsayılan BOŞTUR ve yalnızca bu aracın hesabı süresince uygulanır (atlaIle: EXCL geçici ayarlanır, sonra eski değeri geri yazılır).
 // Ana sayfadaki hedef plaka aracının kalıcı "pt-excl" ayarı (global EXCL) tarih sonucunu GİZLİCE etkilemez; seri atlandıysa sonuçta açıkça yazılır.
 const PlakaTarih = (function () {
   const KAPSAM_DISI = "Resmî tatil takvimi bu tarihi kapsamıyor; hafta sonu dışındaki tatiller için güncel tahmin en yakın iş gününe çekilmemiş olabilir.";
   const plakaMetni = (s, iv) => String(s.kod).padStart(2, "0") + " " + iv.let + " " + String(iv.num).padStart(3, "0");     // il kodu + 3 harf + 3 haneli sıra (baştaki sıfırlar korunur)
 
-  // Bir ilin verilen gündeki tahmini (ya da kayıtlı) plakası; ana sayfa aracı, il sayfası aracı ve tüm iller tablosu AYNI fonksiyonu kullanır.
-  function plakaGun(s, gun) { const est = estimateAt(s, gun), iv = invN(est.n); return { est, iv, plaka: iv ? plakaMetni(s, iv) : null }; }
+  // Bir ilin verilen gündeki plakası (kayıtlı / tahmin / geriye dönük tahmin) ve durumu; ana sayfa aracı, il sayfası aracı ve 81 il tablosu AYNI fonksiyonu kullanır.
+  // durum: "kayit" | "tahmin" | "geri" | "sinir" (model tarih sınırı: 1 Şubat 2018 öncesi) | "model" (geriye model geçerli plaka üretemiyor) | "alfabe" (ileride seri alfabesi bitiyor)
+  function plakaDurum(s, gun) {
+    if (gun < GERI_SINIR_GUN) return { durum: "sinir", plaka: null };
+    const est = estimateAt(s, gun);
+    if (est.back && Math.round(est.n) < 1) return { durum: "model", plaka: null, est };       // sıra < 1: geçerli plaka yok (AAA 001'den önce); "AAA 001" tekrarı/uydurması yapılmaz
+    const iv = invN(est.n); if (!iv) return { durum: "alfabe", plaka: null, est };
+    return { durum: est.back ? "geri" : est.real ? "kayit" : "tahmin", est, iv, plaka: plakaMetni(s, iv) };
+  }
+  // Geriye dönük belirsizlik (yaklaşık, sezgisel; istatistiksel aralık değildir): ±%25 (≤ 1 yıl; hold-out backtest'te ≈ %91 kapsama), 1 yıldan sonra yılda +%5, en çok %50; en az ±10 gün.
+  // Kademe: ≤ 365 gün "Geriye dönük tahmin", ≤ 730 gün "Kaba geriye dönük tahmin", daha uzak "Çok kaba geriye dönük tahmin".
+  function geriBelirsizlik(h) {
+    const oran = geriOran(h), kademe = h <= 365 ? "geri" : h <= 730 ? "kaba" : "cokkaba";
+    return { err: Math.max(10, Math.round(oran * h)), kademe, etiket: { geri: "Geriye dönük tahmin", kaba: "Kaba geriye dönük tahmin", cokkaba: "Çok kaba geriye dönük tahmin" }[kademe] };
+  }
+  const SINIR_MESAJI = "Bu tarih için tahmin üretilemiyor: bu araç 1 Şubat 2018'den önceki tarihler için tahmin üretmiyor. Bu, modelin uyguladığı bir tarih sınırıdır; üç harf–üç rakam plakaların dağıtımının başladığı gün anlamına gelmez.";
+  const MODEL_MESAJI = "Bu tarih için tahmin üretilemiyor: hesaplama modeli bu ilde bu tarih için geçerli bir plaka serisi bulamıyor. Bu, ilin gerçek plaka dağıtım başlangıcı anlamına gelmez; o tarihte plaka dağıtılmadığı anlamına da gelmez.";
 
   function isoGecerli(iso) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "")); if (!m || +m[1] < 1000) return false;
@@ -22,13 +39,29 @@ const PlakaTarih = (function () {
   function atlaIle(metin, fn) { const eski = EXCL; EXCL = atlaCoz(metin).aralik; try { return fn(); } finally { EXCL = eski; } }
   const ATLA_UYARI = bad => "Anlaşılamayan seri girişleri: " + bad.join(", ") + " (X yalnız sonda joker olabilir; ilk/son harfte I-O olamaz)";
 
-  // s: il verisi; iso: "YYYY-MM-DD"; ref: trReferansGun() sonucu (yalnızca takvim kapsamı uyarısı için). Dönüş: {tip:"hata", mesaj} | {tip:"sonuc", plaka, kayit, err, tarih, uyari}
+  // s: il verisi; iso: "YYYY-MM-DD"; ref: trReferansGun() sonucu (yalnızca takvim kapsamı uyarısı için).
+  // Dönüş: {tip:"hata", mesaj} | {tip:"sonuc", plaka, kayit, geri, etiket, sinif, err, tarih, uyari, atla}
   function sorgula(s, iso, ref, atlaMetni) {
     if (!isoGecerli(iso)) return { tip: "hata", mesaj: "Lütfen geçerli bir tarih seçin." };
     const atla = atlaCoz(atlaMetni).etiket;
     return atlaIle(atlaMetni, () => {
-      const gun = toDay(iso), p = plakaGun(s, gun), est = p.est;
-      if (!p.iv) return { tip: "hata", mesaj: "Bu tarih için tahmin üretilemedi: seri alfabesinin dışına çıkılıyor. Daha yakın bir tarih deneyin." };
+      const gun = toDay(iso), p = plakaDurum(s, gun), est = p.est;
+      if (p.durum === "sinir") return { tip: "hata", mesaj: SINIR_MESAJI };
+      if (p.durum === "model") return { tip: "hata", mesaj: MODEL_MESAJI };
+      if (p.durum === "alfabe") return { tip: "hata", mesaj: "Bu tarih için tahmin üretilemedi: seri alfabesinin dışına çıkılıyor. Daha yakın bir tarih deneyin." };
+      if (p.durum === "geri") {         // ilk gözlemden önce (1 Şubat 2018 ve sonrası): geriye dönük tahmin; atlanacak seriler ve ileri harf grubu uyarıları geçerli değildir
+        const kal = est.kalibre, b = kal === "ara" ? { err: est.err, kademe: "kalibre", etiket: "Tarihsel referansla kalibre edilmiş tahmin" } : kal === "once" ? { err: est.err, kademe: "cokkaba", etiket: "Çok kaba geriye dönük tahmin" } : geriBelirsizlik(est.h);   // referanstan ÖNCE (Ankara, 1 Haziran 2020 öncesi): referansın da ötesi = çok kaba; sayısal tahmin ve ± gün aynı
+        let u = "Bu tarih ilk kayıtlı gözlemden (" + dstr(s.obs[0][0]) + ") önce: kayıt yok. ";
+        if (kal === "once") {      // bilinen referansın da ÖNCESİ: hız varsayımla geriye uzatıldı, yüksek belirsizlik
+          u += "Ayrıca bu tarih, bilinen tarihsel referansın (" + est.ref.plaka + ", yaklaşık " + trTarihGun(toDay(est.ref.tarih)) + "; kullanıcı bildirimi, resmî kayıt değildir) da öncesinde kalıyor: referanstan önceki dönemde hız, referans çevresindeki hızla varsayımla geriye uzatıldı. Referans tek noktadır ve tarihi yaklaşıktır; sonuç yüksek belirsizlik taşır, yalnızca büyüklük sırası olarak okuyun. Hız değişimleri ve seri atlamaları bilinemez.";
+        } else if (kal) {      // tarihsel referansla kalibre (kesin gözlem DEĞİL): referans tek noktadır, tarihi yaklaşıktır, belirsizlik korunur
+          u += "Tahmin, kullanıcı tarafından bildirilen tarihsel referansla (" + est.ref.plaka + ", yaklaşık " + trTarihGun(toDay(est.ref.tarih)) + "; resmî kayıt değildir) kalibre edildi; referans tek noktadır ve tarihi yaklaşıktır, bu yüzden belirsizlik korunmuştur. Hız değişimleri ve seri atlamaları bilinemez.";
+        } else {
+          u += "Tahmin, ilk gözlemin sırasından, ilk yıldaki hız ve ertesi yılın aynı dönemi esas alınarak geriye doğru hesaplandı; hız değişimleri ve seri atlamaları bilinemez.";
+          if (b.kademe !== "geri") u += " Uzak geçmiş: belirsizlik büyüktür, sonucu yalnızca büyüklük sırası olarak okuyun.";
+        }
+        return { tip: "sonuc", plaka: p.plaka, kayit: false, geri: true, etiket: b.etiket, sinif: b.kademe, err: b.err, tarih: trTarihGun(gun), uyari: u, atla };
+      }
       const last = s.obs[s.obs.length - 1]; let uyari = "";
       if (!est.real && EXCL.length) {
         const atlanan = exclOverlap(last[1], est.n, EXCL);
@@ -38,8 +71,7 @@ const PlakaTarih = (function () {
         uyari = (uyari ? uyari + " — " : "") + "Tahmin bir harf grubu sınırını aşıyor (" + invN(last[1]).let[0] + " → " + p.iv.let[0] + "). Grup geçişlerinde il bazlı atlamalar (rezerve harfler, isim serileri) tahmini kaydırabilir" +
           (s.il === "İstanbul" ? " — İstanbul'da R'den sonra S (misafir) ve T (taksi) gruplarının atlanması bekleniyor." : ".");
       if (ref && ref.kapsamDisi && iso === ref.iso) uyari = (uyari ? uyari + " — " : "") + KAPSAM_DISI;
-      if (est.extrap === "öncesi") uyari = "Seçilen tarih veri başlangıcından (" + dstr(s.obs[0][0]) + ") önce; ilk gözlem gösteriliyor.";
-      return { tip: "sonuc", plaka: p.plaka, kayit: !!est.real, err: est.err, tarih: trTarihGun(gun), uyari, atla };
+      return { tip: "sonuc", plaka: p.plaka, kayit: !!est.real, geri: false, etiket: est.real ? "Kayıtlı veri" : "Tahmin", sinif: est.real ? "kayit" : "tahmin", err: est.err, tarih: trTarihGun(gun), uyari, atla };
     });
   }
 
@@ -60,11 +92,11 @@ const PlakaTarih = (function () {
       const r = sorgula(o.s(), dt.value, o.ref, atlaMetni()); atlaUyarisi();
       if (r.tip === "hata") { temizle(); hata.textContent = r.mesaj; if (olayli) olay("hata"); return r; }
       hata.textContent = ""; g("plate-num").textContent = r.plaka;
-      const etiket = g("tag"); etiket.textContent = r.kayit ? "Kayıtlı veri" : "Tahmin"; etiket.className = "t-etiket " + (r.kayit ? "kayit" : "tahmin");
+      const etiket = g("tag"); etiket.textContent = r.etiket; etiket.className = "t-etiket " + r.sinif;
       g("tarih-out").textContent = r.tarih + (r.kayit ? " · kayıtlı gözlemlere göre" : " · ±" + r.err + " gün");
       sonuc.hidden = false; uyari.textContent = r.uyari; uyari.hidden = !r.uyari;
       // atlanacak seri kullanıldıysa sonuçta AÇIKÇA yazılır (ayar yoksa hiçbir ek metin yok); kayıtlı veri tarihlerinde etkisi olmadığı da belirtilir
-      atlaBilgi.textContent = !r.atla.length ? "" : r.kayit ? "Atlanacak seriler (" + r.atla.join(" · ") + ") kayıtlı veri tarihini etkilemez." : "Atlanacak seriler uygulandı: " + r.atla.join(" · ") + ".";
+      atlaBilgi.textContent = !r.atla.length ? "" : r.geri ? "Atlanacak seriler geriye dönük tahmine uygulanmaz." : r.kayit ? "Atlanacak seriler (" + r.atla.join(" · ") + ") kayıtlı veri tarihini etkilemez." : "Atlanacak seriler uygulandı: " + r.atla.join(" · ") + ".";
       atlaBilgi.hidden = !r.atla.length;
       if (olayli) olay("sonuc"); return r;
     }
@@ -75,5 +107,5 @@ const PlakaTarih = (function () {
     govde.hidden = false;
     return { hesapla, temizle };
   }
-  return { plakaGun, sorgula, kur, plakaMetni, atlaCoz, atlaIle };
+  return { plakaDurum, sorgula, kur, plakaMetni, atlaCoz, atlaIle, geriBelirsizlik, SINIR_MESAJI };
 })();

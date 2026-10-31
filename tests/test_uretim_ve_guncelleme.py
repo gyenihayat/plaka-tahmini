@@ -22,11 +22,13 @@ class ProductionYollari(unittest.TestCase):
         ana = u.oku(os.path.join(u.ROOT, "index.html")); self.assertLess(ana.index('src="/assets/takvim.js"'), ana.index('src="/assets/tahmin-motoru.js"')); self.assertLess(ana.index('src="/assets/tahmin-motoru.js"'), ana.index("const DATA = "))
         for yol in glob.glob(os.path.join(u.ROOT, "il", "*.html")):
             h = u.oku(yol); m = re.findall(r'<script src="(/assets/[^"]+)"( defer)?>', h)
-            self.assertEqual([x[0] for x in m], ["/assets/olcum.js", "/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/tarih-sorgu.js", "/assets/il-arac.js"], yol); self.assertTrue(all(x[1] for x in m), yol)
+            beklenen = ["/assets/olcum.js", "/assets/takvim.js", "/assets/tahmin-motoru.js", "/assets/tarih-sorgu.js", "/assets/il-arac.js"]
+            if os.path.basename(yol) == "ankara.html": beklenen.insert(2, "/assets/tarihsel-referanslar.js")             # tarihsel referansı olan tek il sayfası (Ankara); diğer 80 sayfa değişmez
+            self.assertEqual([x[0] for x in m], beklenen, yol); self.assertTrue(all(x[1] for x in m), yol)
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_js_sozdizimi_gecerli(self):
-        for f in ("olcum.js", "takvim.js", "tahmin-motoru.js", "tarih-sorgu.js", "il-arac.js", "ana-sayfa.js"):
+        for f in ("olcum.js", "takvim.js", "tarihsel-referanslar.js", "tahmin-motoru.js", "tarih-sorgu.js", "il-arac.js", "ana-sayfa.js"):
             r = subprocess.run([u.NODE, "--check", os.path.join(u.ROOT, "assets", f)], capture_output=True, text=True); self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_temiz_url_ve_varlik_http_200_dogru_icerik_turu(self):

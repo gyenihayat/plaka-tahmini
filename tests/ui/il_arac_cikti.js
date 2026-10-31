@@ -5,6 +5,7 @@ const kok = path.join(__dirname, "..", "..");
 const senaryolar = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 const ctx = { Math, Date, console }; vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(kok, "assets", "takvim.js"), "utf8"), ctx);
+vm.runInContext(fs.readFileSync(path.join(kok, "assets", "tarihsel-referanslar.js"), "utf8"), ctx);      // yalnızca referansı olan il (Ankara) etkilenir; Ankara sayfası bu betiği yükler
 vm.runInContext(fs.readFileSync(path.join(kok, "assets", "tahmin-motoru.js"), "utf8"), ctx);
 vm.runInContext(fs.readFileSync(path.join(kok, "assets", "il-arac.js"), "utf8"), ctx);
 const bugun = vm.runInContext("trReferansGun().gun", ctx), onbellek = {};

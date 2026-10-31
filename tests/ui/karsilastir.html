@@ -5,7 +5,10 @@
 function parcalar(el){return el.innerText.split(/\s*[·\n]\s*/).map(function(x){return x.trim()}).filter(Boolean);}
 function tabloSade(t){var rows=[].slice.call(t.rows),hdr=[].slice.call(rows[0].cells).map(function(c){return c.textContent}),at=hdr.map(function(h,i){return /hafta|Hız|Bir seri/i.test(h)?i:-1}).filter(function(i){return i>=0});
   return JSON.stringify(rows.map(function(r){return [].slice.call(r.cells).map(function(c){return c.textContent}).filter(function(_,i){return at.indexOf(i)<0})}));}
-function bekle(f){return new Promise(r=>f.addEventListener("load",()=>setTimeout(r,50)));}
+// 'load' olayı yerine SAYFA BETİKLERİNİN hazır olması beklenir: load, Google Fonts stil dosyasını da bekler ve (sanal zaman bütçesi dolmadan gelmezse) harness takılırdı. Betikler DOMContentLoaded'da çalışmış olur.
+function bekle(f){return new Promise(r=>{const t=setInterval(()=>{let w=null,d=null;try{w=f.contentWindow;d=w.document}catch(e){return}
+  const il=d&&d.getElementById("il"),ti=d&&d.getElementById("tarih-il"),yeni=f.id==="b";
+  if(d&&d.readyState!=="loading"&&il&&il.options.length>80&&typeof w.calcTarget==="function"&&(!yeni||(ti&&ti.options.length>80&&w.eval("typeof PlakaTarih")!=="undefined"))){clearInterval(t);setTimeout(r,50)}},20)});}
 function sur(w,sc,yeni){const d=w.document,g=id=>d.getElementById(id);
   g("il").value=sc.il; g("il").dispatchEvent(new w.Event("change"));
   if(yeni){g("tarih-il").value=sc.il; g("tarih-il").dispatchEvent(new w.Event("change"));}      // yeni sayfada tarih aracının ili hedef aracından bağımsızdır: ikisi de aynı ile ayarlanır
@@ -19,15 +22,25 @@ function sur(w,sc,yeni){const d=w.document,g=id=>d.getElementById(id);
   let r;
   if(!yeni){const m=g("meta").innerText; r={plate:g("plate-num").textContent,tag:g("tag").textContent.toLocaleLowerCase("tr"),err:(/belirsizlik:\s*±(\d+) gün/.exec(m)||[])[1]||"",warn:g("warn").style.display==="none"?"":g("warn").textContent};}
   else{g("btn-tarih").click(); const o=g("tarih-out").textContent; r={plate:g("plate-num").textContent,tag:g("tag").textContent.toLocaleLowerCase("tr"),err:(/±(\d+) gün/.exec(o)||[])[1]||"",warn:g("tarih-uyari").hidden?"":g("tarih-uyari").textContent};}
-  if(sc.hedef!=null){g("target").value=sc.hedef; g("btn-target").click(); r.hplate=g("target-plate").textContent;r.hout=g("target-out").textContent;r.hwarn=g("target-warn").textContent;r.hwarnDisp=g("target-warn").style.display;r.hres=g("target-res").style.display;r.ilsel=g("il").value;}
+  if(sc.hedef!=null){g("target").value=sc.hedef; g("btn-target").click(); r.hplate=g("target-plate").textContent;r.hout=g("target-out").textContent;r.hwarn=g("target-warn").style.display==="none"?"":g("target-warn").textContent;r.hwarnDisp=g("target-warn").style.display;r.hres=g("target-res").style.display;r.ilsel=g("il").value;}
   return r;}
-(async()=>{const a=document.getElementById("a"),b=document.getElementById("b");await Promise.all([bekle(a),bekle(b)]);
+(async()=>{try{const a=document.getElementById("a"),b=document.getElementById("b");await Promise.all([bekle(a),bekle(b)]);
  const iller=["Ankara","İstanbul","Konya","Kütahya","Bingöl","Hakkari"],hedefler=["BZZ 999","GGL 100","AAA 001","06 GAA","99 AAA","IAA","","SAA","34 RZZ 500","XYZ 1","ABC 5000"],tarihler=[null,"2026-12-25","2028-03-01"],excls=[null,"SXX, TXX","BAA-BCZ"];
  const res=[];let fark=0,n=0;const ornek=sur(b.contentWindow,{il:"Konya",dt:null,excl:null,hedef:"BZZ 999"},true);
- for(const il of iller)for(const dt of tarihler)for(const ex of excls)for(const h of hedefler){const sc={il,dt,excl:ex,hedef:h};const ra=sur(a.contentWindow,sc,false),rb=sur(b.contentWindow,sc,true);n++;if(JSON.stringify(ra)!==JSON.stringify(rb)){fark++;if(res.length<5)res.push({sc,ra,rb});}}
+ let sinir=0,sinirDogru=0,kalibre=0,kalibreDogru=0;
+ for(const il of iller)for(const dt of tarihler)for(const ex of excls)for(const h of hedefler){const sc={il,dt,excl:ex,hedef:h};const ra=sur(a.contentWindow,sc,false),rb=sur(b.contentWindow,sc,true);n++;
+  // BİLİNÇLİ TEK DEĞİŞİKLİK: hedef plaka aracında modelin geriye tarihi 1 Şubat 2018'den önceye düşerse (Bingöl "AAA 001": eski sayfa 2013 tarihi veriyordu) tarih verilmez. Yalnızca hedef çıktıları farklı olmalı; tarih aracı alanları aynı kalır.
+  // BİLİNÇLİ İKİNCİ DEĞİŞİKLİK: Ankara'nın ilk gözlem öncesi hedef tarihleri kullanıcı bildirimli tarihsel referansla (06 BYS 922 ≈ 1 Haz 2020) KALİBRE edilir; yalnızca hedef çıktıları değişir, tarih aracı alanları aynı kalır.
+  const kal=(il==="Ankara"&&/kayıtlarımızdan önce/.test(ra.hout)); if(kal){kalibre++; if(/tarihsel referansla kalibre edilmiş tahmin|çok kaba geriye dönük tahmin/.test(rb.hout)||(/üretilemiyor/.test(rb.hout)&&/1 Şubat 2018/.test(rb.hout)))kalibreDogru++;}   /* kalibre tarih ya da (çok eski plakalarda) 2018 sınırı mesajı */
+  const bf=(il==="Bingöl"&&h==="AAA 001")||kal; let ca=ra,cb=rb;
+  if(bf){ if(!kal){sinir++; if(/üretilemiyor/.test(rb.hout)&&/1 Şubat 2018/.test(rb.hout)&&/kayıtlarımızdan önce|Tahmini/.test(ra.hout))sinirDogru++;} const at=r=>{const c={...r};for(const k of ["hout","hwarn","hwarnDisp","hres"])delete c[k];return c}; ca=at(ra);cb=at(rb);}
+  if(JSON.stringify(ca)!==JSON.stringify(cb)){fark++;if(res.length<5)res.push({sc,ra,rb});}}
  // tüm iller tablosu ve 81 il sorgusu
  const ta=a.contentWindow.document,tb=b.contentWindow.document;
  for(const w of [a,b]){const d=w.contentWindow.document;d.getElementById("btn-all").click();d.getElementById("target").value="BZZ 999";d.getElementById("btn-target").click();d.getElementById("btn-81").click();}
- const same=(id)=>ta.getElementById(id).innerText===tb.getElementById(id).innerText;
- document.getElementById("o").textContent="SONUC "+JSON.stringify({senaryo:n,fark,tum_iller_tablo_ayni:tabloSade(ta.getElementById("all-tbl"))===tabloSade(tb.getElementById("all-tbl")),t81_tablo_ayni:same("t81-tbl"),tum_iller_satir:ta.getElementById("all-tbl").rows.length,t81_satir:ta.getElementById("t81-tbl").rows.length,ornekFark:res,ornek});})();
+ // 81 il hedef tablosu: Ankara satırı bilinçli olarak farklıdır (tarihsel referansla kalibre); diğer 80 satır birebir aynı olmalı
+ const satirlar=(t,ankara)=>[].slice.call(t.rows).filter(r=>(r.cells[2]&&r.cells[2].textContent==="Ankara")===ankara).map(r=>[].slice.call(r.cells).map(c=>c.textContent).join("|"));
+ const same=(id)=>JSON.stringify(satirlar(ta.getElementById(id),false))===JSON.stringify(satirlar(tb.getElementById(id),false));
+ const ankaraSatir={eski:satirlar(ta.getElementById("t81-tbl"),true)[0],yeni:satirlar(tb.getElementById("t81-tbl"),true)[0]};
+ document.getElementById("o").textContent="SONUC "+JSON.stringify({senaryo:n,fark,sinir,sinirDogru,kalibre,kalibreDogru,tum_iller_tablo_ayni:tabloSade(ta.getElementById("all-tbl"))===tabloSade(tb.getElementById("all-tbl")),t81_tablo_ayni:same("t81-tbl"),ankaraSatir,tum_iller_satir:ta.getElementById("all-tbl").rows.length,t81_satir:ta.getElementById("t81-tbl").rows.length,ornekFark:res,ornek});}catch(e){document.getElementById("o").textContent="HATA "+e.stack}})();
 </script>

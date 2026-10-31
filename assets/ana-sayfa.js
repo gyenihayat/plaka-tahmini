@@ -41,11 +41,13 @@ const PlakaAnaSayfa = (function () {
   function tabloKur(doc) {
     const btn = doc.getElementById("btn-all"), wrap = doc.getElementById("all-wrap"), t = doc.getElementById("all-tbl"), dt = doc.getElementById("dt"), atla = doc.getElementById("excl"); if (!btn || !wrap || !t || !dt) return;
     const ETIKET = btn.textContent; let acik = false;
-    const plakaMetin = (s, gun) => { const p = PlakaTarih.plakaGun(s, gun); return { p, m: p.iv ? p.iv.let + " " + String(p.iv.num).padStart(3, "0") : "—" }; };
+    const plakaMetin = (s, gun) => { const p = PlakaTarih.plakaDurum(s, gun); return { p, m: p.iv ? p.iv.let + " " + String(p.iv.num).padStart(3, "0") : "—" }; };
     function ciz() { if (acik) PlakaTarih.atlaIle(atla ? atla.value : "", ciz2); }       // tablo, tarih aracıyla AYNI atlanacak serilerle hesaplanır (varsayılan: hiçbiri); hedef aracının kalıcı ayarı kullanılmaz
     function ciz2() {
       const secili = dt.value && /^\d{4}-\d{2}-\d{2}$/.test(dt.value) ? dt.value : isoToday, day = toDay(secili), farkli = secili !== isoToday;
       t.innerHTML = ""; const atlaEtiket = PlakaTarih.atlaCoz(atla ? atla.value : "").etiket;
+      const ilkGun = DATA.iller[0].obs[0][0];
+      if (farkli && day < ilkGun) { const cap = doc.createElement("caption"); cap.textContent = day < GERI_SINIR_GUN ? PlakaTarih.SINIR_MESAJI : "≈ geriye dönük tahmin (bu tarih için kayıt yok; belirsizlik büyüktür; Ankara tarihsel referansla kalibre edilmiştir, 1 Haziran 2020 öncesi için çok kabadır). — : model geçerli plaka üretemiyor."; cap.style.cssText = "text-align:left;padding:6px 10px;font-size:14px"; t.appendChild(cap); }
       if (atlaEtiket.length) { const cap = doc.createElement("caption"); cap.textContent = "Atlanacak seriler uygulandı: " + atlaEtiket.join(" · ") + "."; cap.style.cssText = "text-align:left;padding:6px 10px;font-size:14px"; t.appendChild(cap); }
       const th = doc.createElement("thead"), hr = doc.createElement("tr");
       ["Kod", "İl", "Son veri", "Tarih", "Bugün (tahmin)", farkli ? "Seçili tarihte (" + dstr(day) + ")" : "", "Hız (sıra/gün)", "Bir seri (gün)", "Güvenilirlik"].filter(x => x !== "").forEach(h => { const c = doc.createElement("th"); c.textContent = h; hr.appendChild(c); });
@@ -54,7 +56,7 @@ const PlakaAnaSayfa = (function () {
       DATA.iller.forEach(s => {
         const kod = String(s.kod).padStart(2, "0"), last = s.obs[s.obs.length - 1], li = invN(last[1]), f = fit(s, last[0]);
         const cells = [kod, s.il, li.let + " " + String(li.num).padStart(3, "0"), dstr(last[0]), plakaMetin(s, todayDay).m];
-        if (farkli) { const e = plakaMetin(s, day); cells.push(e.p.iv ? e.m + (e.p.est.real ? " ✓" : "") : "—"); }
+        if (farkli) { const e = plakaMetin(s, day); cells.push(e.p.iv ? e.m + (e.p.durum === "kayit" ? " ✓" : e.p.durum === "geri" ? " ≈" : "") : "—"); }       // ✓ kayıtlı veri, ≈ geriye dönük tahmin, — tahmin üretilemiyor (aynı kurallar tarih aracıyla)
         cells.push(fmt(yuvarla(f.slope)), seriGun(f.slope));
         const r = doc.createElement("tr");
         cells.forEach((c, j) => { const td = doc.createElement("td"); td.textContent = c; if (j === 2 || j === 4 || (farkli && j === 5)) td.className = "mono"; if (j >= cells.length - 2) td.className = "n"; r.appendChild(td); });

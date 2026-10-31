@@ -141,7 +141,7 @@ class Arac(unittest.TestCase):
             self.assertIn('<label for="hedef">', h); self.assertIn('id="hedef"', h); self.assertIn('aria-describedby="hedef-ipucu"', h); self.assertIn('id="sonuc" class="sonuc" aria-live="polite"', h)
             self.assertIn(f'<a href="/?il={kod}">Ana sayfada aç</a>', h)                     # JS kapalıyken işlevsel yedek
             self.assertLess(h.index('src="/assets/tahmin-motoru.js"'), h.index('src="/assets/il-arac.js"'))
-            self.assertEqual(h.count(" defer>"), 5)                                    # olcum, takvim, motor, tarih aracı, araç
+            self.assertEqual(h.count(" defer>"), 6 if kod == 6 else 5)               # olcum, takvim, (yalnızca Ankara: tarihsel referans), motor, tarih aracı, araç
             self.assertLess(h.index('src="/assets/tahmin-motoru.js"'), h.index('src="/assets/tarih-sorgu.js"')); self.assertLess(h.index('src="/assets/tarih-sorgu.js"'), h.index('src="/assets/il-arac.js"'))
             ilv = json.loads(re.search(r'<script type="application/json" id="il-veri">(.*?)</script>', h, re.S)[1])
             self.assertEqual((ilv["kod"], ilv["obs"], ilv["bterr"]), (kod, s["obs"], s["bterr"]))

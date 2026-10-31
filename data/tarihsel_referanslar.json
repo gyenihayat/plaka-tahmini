@@ -1,0 +1,45 @@
+{
+  "_aciklama": "Gözlem tablolarından (tahmin_data.json) AYRI tutulan tarihsel plaka referansları. Bunlar forum gözlemi DEĞİLDİR ve gözlem verisine karıştırılmaz; yalnızca ilk gözlemden (9 Şubat 2024) önceki geriye dönük tahmini ilgili il için kalibre eder. resmi_veri=false: kesin resmî tahsis tarihi değildir.",
+  "referanslar": [
+    {
+      "il": "Ankara",
+      "kod": 6,
+      "plaka": "06 BYS 922",
+      "tarih": "2020-06-01",
+      "tarih_kesinligi": "yaklaşık",
+      "tarih_belirsizligi_gun": 30,
+      "kaynak": "Kullanıcı tarafından bildirilen tarihsel plaka (belgesiz, doğrulanmamış)",
+      "resmi_veri": false,
+      "not": "Tarih 'yaklaşık 1 Haziran 2020' olarak bildirildi; ±30 gün, tarihin belirsizliğine ilişkin MODELLEME varsayımıdır (kullanıcı bir aralık vermedi). Tek nokta olduğundan kesin gözlem olarak etiketlenmez; 'tarihsel referansla kalibre edilmiş tahmin' olarak gösterilir. Yalnızca bu il için uygulanır.",
+      "tarih_belirsizligi_aciklama": "±30 gün bir MODELLEME VARSAYIMIDIR: kullanıcı yalnızca 'yaklaşık 1 Haziran 2020' dedi, aralık vermedi. Belirsizlik tabanı 2×30 = ±60 gün olarak kullanılır."
+    }
+  ],
+  "dogrulanmamis_degerlendirme_notlari": {
+    "_aciklama": "BU NOTLAR HESAPLAMADA, KALİBRASYONDA, UYARILARDA YA DA SINIRLARDA KULLANILMAZ ve gözlem verisi değildir; yalnızca geriye dönük indeksin tarihsel doğruluğuna ilişkin doğrulanmamış değerlendirme notlarıdır (hesapta_kullanilir=false).",
+    "notlar": [
+      {
+        "konu": "Ankara 06 AFC",
+        "metin": "Ankara'da `06 AFC` serisinden plaka kullanan bir tanıdık bildirildi. Plakanın tam numarası ve alınma tarihi kesin değil; 2019 baharı olabilir.",
+        "durum": "doğrulanmamış",
+        "hesapta_kullanilir": false
+      },
+      {
+        "konu": "Ankara 2019 belediye araç listesi",
+        "metin": "Ankara'nın 2019 tarihli belediye araç listesinde AEA, AFM ve AFP gibi üç harf–üç rakamlı plakalar bulunduğu bildirildi.",
+        "durum": "doğrulanmamış",
+        "hesapta_kullanilir": false
+      },
+      {
+        "konu": "ARTES BAA/AAB başlangıç grupları",
+        "metin": "Dönemin ARTES açıklamalarına göre 1 Şubat 2018'de Ankara ve İstanbul için BAA, diğer iller için AAB harf grubundan başlanmıştı (kaynaklar aşağıda). Yukarıdaki Ankara bilgileri, bunun Ankara'daki üç harf–üç rakamlı plakaların MUTLAK tarihsel başlangıcı olmadığını düşündürüyor; bu yüzden BAA/AAB hiçbir ilde başlangıç ya da zorunlu alt seri sınırı olarak kullanılmaz. 1 Şubat 2018 yalnızca bu araçta uygulanan model tarih sınırıdır.",
+        "kaynaklar": [
+          "https://www.resmigazete.gov.tr/eskiler/2018/01/20180131-1.htm",
+          "https://www.konyasigorta.com.tr/haberler/arac-tescil-islemleri-noterde-yapilacak",
+          "https://www.bolugundem.com/haber/11963733/bir-gunlugune-verildi"
+        ],
+        "durum": "doğrulanmamış",
+        "hesapta_kullanilir": false
+      }
+    ]
+  }
+}

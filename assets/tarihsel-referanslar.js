@@ -1,0 +1,2 @@
+// ÜRETİLMİŞ DOSYA: data/tarihsel_referanslar.json'dan generate_il_pages.py yazar; elle düzenlemeyin. Gözlem verisi DEĞİL: yalnızca ilgili ilin ilk gözlem öncesi tahminini kalibre eder (tahmin-motoru.js).
+const PlakaReferanslar = {"6": [{"plaka": "06 BYS 922", "tarih": "2020-06-01", "tarihKesinligi": "yaklaşık", "tarihBelirsizligiGun": 30, "kaynak": "Kullanıcı tarafından bildirilen tarihsel plaka (belgesiz, doğrulanmamış)", "resmi": false}]};

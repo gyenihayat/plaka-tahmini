@@ -97,7 +97,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 .tarih-arac>.ipucu{margin:0 0 14px}.t-alanlar{display:grid;grid-template-columns:1fr;gap:12px}.t-btn{display:block;width:100%;min-height:46px;margin-top:14px;font:600 1rem "IBM Plex Sans",system-ui,sans-serif;padding:10px 20px;border:1px solid #2a78d6;border-radius:8px;background:#e3eefb;color:#1f4fb0;cursor:pointer}
 .t-btn:hover{background:#d6e6f9}.t-hata{color:#9b2c1d;font-weight:600;font-size:15px;margin:10px 0 0}.t-hata:empty{display:none}
 .t-sonuc{margin-top:16px;padding:14px 16px;background:#fcfcfa;border:1px solid #dcdfe5;border-radius:12px}.t-plaka{font-size:clamp(2.25rem,9vw,2.75rem);font-weight:600;line-height:1.1;letter-spacing:.02em;margin:0 0 6px;white-space:nowrap}
-.t-alt{margin:0;font-size:15px;color:#4d5461}.t-etiket{display:inline-block;margin-right:8px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600;border:1.5px solid currentColor}.t-etiket.tahmin{color:#7a3fb3}.t-etiket.kayit{color:#0a7a2f}
+.t-alt{margin:0;font-size:15px;color:#4d5461;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}.t-etiket{display:inline-block;font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600;border:1.5px solid currentColor}.t-etiket.tahmin,.t-etiket.geri{color:#7a3fb3}.t-etiket.kayit{color:#0a7a2f}.t-etiket.kaba{color:#9a5b00}.t-etiket.kalibre{color:#1f4fb0}.t-etiket.cokkaba{color:#9b2c1d}.t-etiket{max-width:100%;line-height:1.35}
 .t-atla{margin:8px 0 0;color:#7a4a00;font-weight:600}.tarih-arac .uyari{margin:12px 0 0}.t-ikincil{margin-top:14px;font:inherit;font-size:.9375rem;padding:9px 14px;border:1px solid #8b94a5;border-radius:8px;background:#fff;color:#4d5461;cursor:pointer}.t-ikincil:hover{background:#e3eefb;color:#15171c}
 @media (min-width:520px){.t-alanlar.t-iki{grid-template-columns:1fr 1fr}.t-btn{display:inline-block;width:auto;min-width:220px}}"""
 
@@ -306,6 +306,16 @@ DIGER_ILLER = diger_iller_html()
 KARTLAR = {}
 # JS için resmî tatil takvimi: TEK KAYNAK is_gunu.py (RESMI_TATIL); ayrı bir JS takvimi elle tutulmaz. Ana sayfa ve il sayfaları /assets/takvim.js'i yükler.
 os.makedirs("assets", exist_ok=True)
+# Tarihsel plaka referansları (data/tarihsel_referanslar.json; gözlem verisinden AYRI): motor yalnızca ilgili ilin geriye dönük tahminini kalibre etmek için okur. Üretilmiş varlık: assets/tarihsel-referanslar.js
+_ref_dosyasi = json.load(open("data/tarihsel_referanslar.json", encoding="utf-8"))
+assert not any(n.get("hesapta_kullanilir") for n in _ref_dosyasi["dogrulanmamis_degerlendirme_notlari"]["notlar"])      # doğrulanmamış notlar (Ankara 06 AFC, 2019 liste, başlangıç grubu duyuruları) hesaba GİRMEZ: yalnızca "referanslar" okunur
+REFERANSLAR = {}
+for _r in _ref_dosyasi["referanslar"]:
+    assert not _r["resmi_veri"] and re.fullmatch(r"\d\d [A-Z]{3} \d{3}", _r["plaka"]) and int(_r["plaka"][:2]) == _r["kod"], _r
+    REFERANSLAR.setdefault(_r["kod"], []).append({"plaka": _r["plaka"], "tarih": _r["tarih"], "tarihKesinligi": _r["tarih_kesinligi"], "tarihBelirsizligiGun": _r["tarih_belirsizligi_gun"], "kaynak": _r["kaynak"], "resmi": False})
+with open("assets/tarihsel-referanslar.js", "w", encoding="utf-8") as f:
+    f.write("// ÜRETİLMİŞ DOSYA: data/tarihsel_referanslar.json'dan generate_il_pages.py yazar; elle düzenlemeyin. Gözlem verisi DEĞİL: yalnızca ilgili ilin ilk gözlem öncesi tahminini kalibre eder (tahmin-motoru.js).\n"
+            f"const PlakaReferanslar = {json.dumps(REFERANSLAR, ensure_ascii=False)};\n")
 with open("assets/takvim.js", "w", encoding="utf-8") as f:
     f.write("// ÜRETİLMİŞ DOSYA: is_gunu.py'deki resmî tatil takviminden generate_il_pages.py yazar; elle düzenlemeyin.\n"
             f"const PlakaTakvim = {{ilkYil: {TAKVIM_ILK_YIL}, sonYil: {TAKVIM_SON_YIL}, tatiller: {json.dumps(sorted(t.isoformat() for t in RESMI_TATIL))}}};\n")
@@ -376,6 +386,7 @@ for s in iller:
             f'<details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary><label for="atla">Verilmeyeceğini düşündüğünüz seriler</label><input id="atla" type="text" autocapitalize="characters" spellcheck="false" placeholder="örn. SXX, TXX" aria-describedby="atla-ipucu"><p id="atla-ipucu" class="ipucu">Harf, iki harf (X joker) veya aralık: SXX, TXX, BAA-BCZ.</p></details>'
             f'</form><div id="sonuc" class="sonuc" aria-live="polite"></div></section>')
     tarih_arac = tarih_arac_html(False)
+    ref_betik = '<script src="/assets/tarihsel-referanslar.js" defer></script>\n' if s["kod"] in REFERANSLAR else ""      # yalnızca referansı olan il sayfası yükler; diğer 80 sayfa değişmez
     page = f"""<!doctype html>
 <html lang="tr">
 <head>
@@ -427,7 +438,7 @@ for s in iller:
 <script>{canli_js}</script>
 <!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->
 <script src="/assets/takvim.js" defer></script>
-<script src="/assets/tahmin-motoru.js" defer></script>
+{ref_betik}<script src="/assets/tahmin-motoru.js" defer></script>
 <script src="/assets/tarih-sorgu.js" defer></script>
 <script src="/assets/il-arac.js" defer></script>
 </body></html>"""

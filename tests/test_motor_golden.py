@@ -16,7 +16,7 @@ class MotorAltinCikti(unittest.TestCase):
 
     def test_index_html_motoru_tekrar_tanimlamaz(self):
         h = u.oku(os.path.join(u.ROOT, "index.html"))
-        self.assertIn('<script src="/assets/takvim.js"></script>\n<script src="/assets/tahmin-motoru.js"></script>', h)
+        self.assertIn('<script src="/assets/takvim.js"></script>\n<script src="/assets/tarihsel-referanslar.js"></script>\n<script src="/assets/tahmin-motoru.js"></script>', h)
         self.assertLess(h.index("/assets/tahmin-motoru.js"), h.index("const DATA = "))
         for fn in ("function fit(", "function reachDate(", "function estimateAt(", "function parseExcl(", "const A1="): self.assertNotIn(fn, h, fn)
         self.assertRegex(h, r"const DATA = .*?;\n")          # tablo_ekle.py'nin güncellediği kalıp

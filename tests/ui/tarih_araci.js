@@ -77,6 +77,19 @@ const bekle = ms => new Promise(r => setTimeout(r, ms));
     await git("/il/istanbul"); out.atla.kayitliIlHedef = await ev(`(()=>{ const g=id=>document.getElementById(id); g('hedef').value='TAA'; g('atla').value=''; g('hedef-form').requestSubmit(); return g('sonuc').textContent.replace(/\\s+/g,' ').trim(); })()`);
     await ev("localStorage.removeItem('pt-excl')");
 
+    // --- 4c) GERİYE DÖNÜK TUTARLILIK: tarih aracı (ana sayfa) -> aynı plaka hedef aracında (ana sayfa ve il sayfası) AYNI tarihi verir; 81 il tablosu aynı plakayı gösterir
+    out.geriTutarlilik = [];
+    for (const [il, slug, iso] of [["Ankara", "ankara", "2023-06-01"], ["İstanbul", "istanbul", "2023-06-01"], ["Konya", "konya", "2022-06-01"], ["Kütahya", "kutahya", "2023-02-09"], ["Ankara", "ankara", "2020-06-01"], ["Ankara", "ankara", "2019-06-01"]]) {
+      await git("/"); const ana = await hesapla(iso, il); const k = { il, iso, ana };
+      if (!ana.gizli) { const harf = ana.plaka.split(" ")[1] + " " + ana.plaka.split(" ")[2];
+        k.hedefAna = await ev(`(()=>{ const g=id=>document.getElementById(id); g('il').value=${JSON.stringify(il)}; g('target').value=${JSON.stringify(harf)}; g('btn-target').click(); return g('target-out').textContent.replace(/\\s+/g,' ').trim(); })()`);
+        await ev("document.getElementById('btn-all').click()"); k.tablo = await ev(`(()=>{ const r=[...document.getElementById('all-tbl').rows].find(x=>x.cells[1]&&x.cells[1].textContent===${JSON.stringify(il)}); return r.cells[5].textContent; })()`);
+        await git("/il/" + slug); k.hedefIl = await ev(`(()=>{ const g=id=>document.getElementById(id); g('hedef').value=${JSON.stringify(harf)}; g('hedef-form').requestSubmit(); return g('sonuc').textContent.replace(/\\s+/g,' ').trim(); })()`); }
+      out.geriTutarlilik.push(k); }
+    await git("/"); out.tabloGeri = await ev(`(()=>{ const g=id=>document.getElementById(id), r={}; g('btn-all').click();
+      for(const iso of ['2018-01-31','2018-02-01','2020-06-01','2023-06-01','2024-02-09']){ g('dt').value=iso; g('dt').dispatchEvent(new Event('input',{bubbles:true})); const satir=il=>[...g('all-tbl').rows].find(x=>x.cells[1]&&x.cells[1].textContent===il).cells[5].textContent; const cap=g('all-tbl').caption?g('all-tbl').caption.textContent:'';
+        r[iso]={Ankara:satir('Ankara'),Istanbul:satir('İstanbul'),Konya:satir('Konya'),tireSayisi:[...g('all-tbl').rows].slice(1).filter(x=>x.cells[5].textContent==='—').length,satir:g('all-tbl').rows.length-1,baslik:g('all-tbl').rows[0].cells[5].textContent,cap}; } return r; })()`);
+
     // --- 5) GENİŞLİKLER: yatay taşma, tek satır tam plaka, dokunma hedefi (ana sayfa + 5 il sayfası)
     out.genislik = [];
     for (const w of [320, 375, 390, 768, 1440]) for (const yol of ["/", "/il/konya", "/il/istanbul", "/il/hakkari", "/il/kars", "/il/ankara"]) {

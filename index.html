@@ -62,7 +62,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 .tarih-arac>.ipucu{margin:0 0 14px}.t-alanlar{display:grid;grid-template-columns:1fr;gap:12px}.t-btn{display:block;width:100%;min-height:46px;margin-top:14px;font:600 1rem "IBM Plex Sans",system-ui,sans-serif;padding:10px 20px;border:1px solid #2a78d6;border-radius:8px;background:#e3eefb;color:#1f4fb0;cursor:pointer}
 .t-btn:hover{background:#d6e6f9}.t-hata{color:#9b2c1d;font-weight:600;font-size:15px;margin:10px 0 0}.t-hata:empty{display:none}
 .t-sonuc{margin-top:16px;padding:14px 16px;background:#fcfcfa;border:1px solid #dcdfe5;border-radius:12px}.t-plaka{font-size:clamp(2.25rem,9vw,2.75rem);font-weight:600;line-height:1.1;letter-spacing:.02em;margin:0 0 6px;white-space:nowrap}
-.t-alt{margin:0;font-size:15px;color:#4d5461}.t-etiket{display:inline-block;margin-right:8px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600;border:1.5px solid currentColor}.t-etiket.tahmin{color:#7a3fb3}.t-etiket.kayit{color:#0a7a2f}
+.t-alt{margin:0;font-size:15px;color:#4d5461;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}.t-etiket{display:inline-block;font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600;border:1.5px solid currentColor}.t-etiket.tahmin,.t-etiket.geri{color:#7a3fb3}.t-etiket.kayit{color:#0a7a2f}.t-etiket.kaba{color:#9a5b00}.t-etiket.kalibre{color:#1f4fb0}.t-etiket.cokkaba{color:#9b2c1d}.t-etiket{max-width:100%;line-height:1.35}
 .t-atla{margin:8px 0 0;color:#7a4a00;font-weight:600}.tarih-arac .uyari{margin:12px 0 0}.t-ikincil{margin-top:14px;font:inherit;font-size:.9375rem;padding:9px 14px;border:1px solid #8b94a5;border-radius:8px;background:#fff;color:#4d5461;cursor:pointer}.t-ikincil:hover{background:#e3eefb;color:#15171c}
 @media (min-width:520px){.t-alanlar.t-iki{grid-template-columns:1fr 1fr}.t-btn{display:inline-block;width:auto;min-width:220px}}
 /*/ANA:TEMEL-CSS*/
@@ -198,10 +198,11 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 <!--/ANA:OLCUM-NOTU-->
 </main>
 <!--ANA:SURUM-->
-ee2637c3e25474b9
+d0c563084a1d8183
 <!--/ANA:SURUM-->
 
 <script src="/assets/takvim.js"></script>
+<script src="/assets/tarihsel-referanslar.js"></script>
 <script src="/assets/tahmin-motoru.js"></script>
 <script src="/assets/tarih-sorgu.js"></script>
 <script>
@@ -262,11 +263,14 @@ function calcTarget(){
   const out = document.getElementById("target-out");
   if (r.excluded){ out.innerHTML = "Bu seri, atlanacaklar listenizde (<b>"+r.excluded+"</b>) — bu varsayımla <b>hiç verilmeyecek</b>."; res.style.display="flex"; document.getElementById("btn-81").style.display="none"; return; }
   if (r.never) out.innerHTML = "Bu ilde seri ilerlemesi tespit edilemedi.";
+  else if (r.back && r.day < GERI_SINIR_GUN) out.innerHTML = GERI_SINIR_HEDEF_MESAJI;
   else if (r.back){
     const fv = invN(r.first[1]);
-    out.innerHTML = "<b>Tahmini: "+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün · kayıtlarımızdan önce; geriye dönük tahmin)";
+    out.innerHTML = "<b>Tahmini: "+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün · kayıtlarımızdan önce; "+(r.kalibre === "once" ? "çok kaba geriye dönük tahmin" : r.kalibre ? "tarihsel referansla kalibre edilmiş tahmin" : "geriye dönük tahmin")+")";
     tw.style.display="block";
-    tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş, bu yüzden tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemi esas alınarak geriye doğru tahmin edilmiştir."+(r.back_h > 540 ? " Uzak geçmiş: hız o dönemde farklı olabilir, tarihi kaba bir gösterge olarak okuyun." : "");
+    if (r.kalibre === "once") tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş ve bilinen tarihsel referansın ("+r.ref.plaka+", yaklaşık "+trTarihGun(toDay(r.ref.tarih))+"; kullanıcı bildirimi, resmî kayıt değildir) da öncesinde kalıyor: referanstan önceki dönemde hız, referans çevresindeki hızla varsayımla geriye uzatıldı. Referans tek noktadır ve tarihi yaklaşıktır; sonuç yüksek belirsizlik taşır, yalnızca büyüklük sırası olarak okuyun.";
+    else if (r.kalibre) tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş. Tarih, kullanıcı tarafından bildirilen tarihsel referansla ("+r.ref.plaka+", yaklaşık "+trTarihGun(toDay(r.ref.tarih))+"; resmî kayıt değildir) kalibre edilmiş tahmindir; referans tek noktadır ve tarihi yaklaşıktır.";
+    else tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş, bu yüzden tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemi esas alınarak geriye doğru tahmin edilmiştir."+(r.back_h > 540 ? " Uzak geçmiş: hız o dönemde farklı olabilir, tarihi kaba bir gösterge olarak okuyun." : "");
   }
   else if (r.passed) out.innerHTML = "<b class='ok'>Geçildi</b> — kayıtlara göre <b>"+dstr(r.day)+"</b> civarında verildi.";
   else {
@@ -295,7 +299,7 @@ document.getElementById("btn-81").onclick = ()=>{
   const tb = document.createElement("tbody");
   rows.forEach((x,i)=>{
     const {s, r} = x; const tr = document.createElement("tr");
-    const durum = r.excluded ? "atlama listenizde — verilmeyecek" : r.never ? "—" : r.back ? "tahmini "+dstr(r.day)+" (kayıt öncesi, ±"+r.err+" gün)" : r.passed ? "geçildi · "+dstr(r.day) : "tahmini "+dstr(r.day)+" (±"+r.err+" gün)";
+    const durum = r.excluded ? "atlama listenizde — verilmeyecek" : r.never ? "—" : r.back && r.day < GERI_SINIR_GUN ? "tahmin üretilemiyor (1 Şubat 2018 öncesi)" : r.back ? "tahmini "+dstr(r.day)+" (kayıt öncesi, ±"+r.err+" gün)" : r.passed ? "geçildi · "+dstr(r.day) : "tahmini "+dstr(r.day)+" (±"+r.err+" gün)";
     const kalan = r.passed || r.never || r.excluded ? "" : (((tN - s.obs[s.obs.length-1][1]) - exclOverlap(s.obs[s.obs.length-1][1], tN, EXCL))/1000).toLocaleString("tr-TR",{maximumFractionDigits:0})+" seri";
     [String(i+1), String(s.kod).padStart(2,"0"), s.il, x.cur, durum, kalan].forEach((c,j)=>{ const td=document.createElement("td"); td.textContent=c; if (j===3) td.className="mono"; if (j===4 && r.passed && !r.back) td.classList.add("ok"); if (j===5) td.className="n"; tr.appendChild(td); });
     const td=document.createElement("td"); td.innerHTML = relDot(s); tr.appendChild(td);

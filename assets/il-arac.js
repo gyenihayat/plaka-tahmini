@@ -26,10 +26,14 @@ const PlakaIlArac = (function () {
     const plaka = kodTxt + " " + let3 + " " + pad3(num), sonGun = s.obs[s.obs.length - 1][0];
     if (r.excluded) return { tip: "dislanan", plaka, mesaj: "Bu seri, atlanacaklar listenizde (" + r.excluded + ") — bu varsayımla hiç verilmeyecek." };
     if (r.never) return { tip: "yok", plaka, mesaj: "Bu ilde seri ilerlemesi tespit edilemedi." };
+    if (r.back && r.day < GERI_SINIR_GUN) return { tip: "yok", plaka, mesaj: GERI_SINIR_HEDEF_MESAJI };
     if (r.back) {
       const fv = invN(s.obs[0][1]);
       return { tip: "geriye", plaka, gun: r.day, err: r.err, ilkGun: r.first[0], ilkPlaka: kodTxt + " " + fv.let + " " + pad3(fv.num),
-               uyarilar: ["Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemine dayalı geriye dönük tahmindir."] };
+               kalibre: r.kalibre || null,
+               uyarilar: [r.kalibre === "once" ? "Bu plaka kayıtlarımızın başlangıcından önce verilmiş ve bilinen tarihsel referansın (" + r.ref.plaka + ", yaklaşık " + trTarih(toDay(r.ref.tarih)) + "; kullanıcı bildirimi, resmî kayıt değildir) da öncesinde kalıyor: referanstan önceki dönemde hız, referans çevresindeki hızla varsayımla geriye uzatıldı. Referans tek noktadır ve tarihi yaklaşıktır; sonuç yüksek belirsizlik taşır, yalnızca büyüklük sırası olarak okuyun."
+                                      : r.kalibre ? "Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih, kullanıcı tarafından bildirilen tarihsel referansla (" + r.ref.plaka + ", yaklaşık " + trTarih(toDay(r.ref.tarih)) + "; resmî kayıt değildir) kalibre edilmiş tahmindir; referans tek noktadır ve tarihi yaklaşıktır."
+                                      : "Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemine dayalı geriye dönük tahmindir."] };
     }
     if (r.passed) return { tip: "gecildi", plaka, gun: r.day };
     const yil = (r.day - bugunGun) / 365.25, uyarilar = [];
@@ -51,7 +55,7 @@ const PlakaIlArac = (function () {
     if (o.tip === "gecildi") { kutu.appendChild(satir("s-b", o.plaka + ": geçildi")); kutu.appendChild(satir("s-a", "Kayıtlara göre " + trTarih(o.gun) + " civarında verildi.")); return; }
     if (o.tip === "geriye") {
       kutu.appendChild(satir("s-b", o.plaka + ": ~" + trTarih(o.gun)));
-      kutu.appendChild(satir("s-a", "± " + o.err + " gün · geriye dönük tahmin (ilk kayıt: " + o.ilkPlaka + ", " + trTarih(o.ilkGun) + ")"));
+      kutu.appendChild(satir("s-a", "± " + o.err + " gün · " + (o.kalibre === "once" ? "çok kaba geriye dönük tahmin" : o.kalibre ? "tarihsel referansla kalibre edilmiş tahmin" : "geriye dönük tahmin") + " (ilk kayıt: " + o.ilkPlaka + ", " + trTarih(o.ilkGun) + ")"));
     } else {
       kutu.appendChild(satir("s-b", o.plaka + ": ~" + trTarih(o.gun)));
       kutu.appendChild(satir("s-a", "± " + o.err + " gün · " + trTarih(o.sonGun) + " gözlemine dayalı tahmin" + (o.yil > 1 ? " · " + o.yil.toLocaleString("tr-TR", { maximumFractionDigits: 1 }) + " yıl sonra" : "") + (o.atlanan ? " · aradaki " + o.atlanan + " atlanan seri düşüldü" : "")));

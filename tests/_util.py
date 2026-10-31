@@ -1,5 +1,7 @@
 """Test yardımcıları: depo kökü, geçici kopya, il sayfası üretimi ve sayfadaki canlı JS'i Node ile çalıştırma."""
 import json, os, re, shutil, subprocess, sys, tempfile
+import http.server
+http.server.ThreadingHTTPServer.request_queue_size = 128       # varsayılan bekleme kuyruğu (5): Chrome iframe'lerinin paralel istekleri bağlantı düşürüp tarayıcı testlerini aralıklı kilitliyordu
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JS_SIM = os.path.join(ROOT, "tests", "js_sim.js")
 NODE = shutil.which("node")
