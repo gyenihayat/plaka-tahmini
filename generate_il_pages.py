@@ -50,6 +50,11 @@ OLCUM_NOTU_IL = ('<p class="olcum-notu">Bu sitede sayfa görüntüleme ve özell
                  '<a href="https://www.goatcounter.com/privacy" rel="noopener">GoatCounter</a> ile ölçülür; hizmete sayfa adresi, yönlendiren site ve tarayıcı/ekran bilgisi gibi standart ziyaret verileri iletilir. '
                  'Girdiğiniz plaka, il arama metni veya forma yazdığınız diğer içerikler gönderilmez.</p>')
 OLCUM_NOTU_ANA = OLCUM_NOTU_IL   # ana sayfa ve il sayfaları aynı bilgilendirmeyi taşır (başka üçüncü taraf sayaç yok)
+# Altbilgideki "Öneri ve katkı gönder" bağlantısı (/geri-bildirim formu). <!--KATKI--> işaretleri arasındadır ve sitemap lastmod / ana sayfa parmak izi hesabına GİRMEZ (bağlantı sayfa içeriği değildir);
+# stil satır içidir, ortak CSS'e dokunulmaz. İl sayfasından gelen kullanıcıda il kodu ve sayfa yolu adrese eklenir (form ili otomatik seçer).
+def katki_baglantisi(kod=None, sl=None):
+    q = "?il=%02d&amp;sayfa=%%2Fil%%2F%s" % (kod, sl) if sl else "?sayfa=%2F"
+    return f'<p class="katki" style="font-size:15px;margin:22px 0 0"><a href="/geri-bildirim{q}">Öneri ve katkı gönder</a></p>'
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
 
 CANLI_JS = """(function(){
@@ -279,12 +284,13 @@ def ana_sayfa_guncelle():
     h = _bolge(h, "<!--ANA:KARTLAR-->", "<!--/ANA:KARTLAR-->", kart_html)
     h = _bolge(h, "<!--ANA:IL-LISTE-->", "<!--/ANA:IL-LISTE-->", liste_html)
     h = _bolge(h, "<!--ANA:IL-BAGLANTILAR-->", "<!--/ANA:IL-BAGLANTILAR-->", bag_html)
+    h = _bolge(h, "<!--ANA:KATKI-->", "<!--/ANA:KATKI-->", katki_baglantisi())
     h = _bolge(h, "<!--ANA:OLCUM-NOTU-->", "<!--/ANA:OLCUM-NOTU-->", OLCUM_NOTU_ANA)
     h = _bolge(h, "<!--ANA:TARIH-ARACI-->", "<!--/ANA:TARIH-ARACI-->", tarih_arac_html(True))
     # Anlamlı içerik parmak izi: kartlardaki günlük seri/tarih değişimi tek başına yeni içerik SAYILMAZ; gözlem verisi (DATA), metin, şablon ve CSS değişimi sayılır.
     # İz index.html içinde saklanır (git'e ya da saate bağlı değil); değişmediyse sitemap lastmod'u korunur.
     _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:plaka|tarih)">)[^<]*', r"\1", h), flags=re.S)
-    _iz_girdisi = re.sub(r"<!--ANA:OLCUM-NOTU-->.*?<!--/ANA:OLCUM-NOTU-->\n|<!--OLCUM-->.*?<!--/OLCUM-->\n", "", _iz_girdisi, flags=re.S)       # analitik betiği/notu anlamlı içerik değildir       # izin kendisi ve günlük değerler girdiye katılmaz
+    _iz_girdisi = re.sub(r"<!--ANA:OLCUM-NOTU-->.*?<!--/ANA:OLCUM-NOTU-->\n|<!--ANA:KATKI-->.*?<!--/ANA:KATKI-->\n|<!--OLCUM-->.*?<!--/OLCUM-->\n", "", _iz_girdisi, flags=re.S)       # analitik betiği/notu anlamlı içerik değildir       # izin kendisi ve günlük değerler girdiye katılmaz
     yeni_iz = hashlib.sha256(_iz_girdisi.encode("utf-8")).hexdigest()[:16]
     h = _bolge(h, "<!--ANA:SURUM-->", "<!--/ANA:SURUM-->", yeni_iz)
     with open("index.html", "w", encoding="utf-8") as f: f.write(h)
@@ -296,6 +302,7 @@ def ana_sayfa_guncelle():
 # metin/şablon değişikliği ya da başka bir gerçek içerik farkı varsa üretim günü (GERCEK_BUGUN) yazılır.
 ESKI_LASTMOD = dict(re.findall(r"<loc>([^<]+)</loc>\s*<lastmod>([^<]+)</lastmod>", open("sitemap.xml", encoding="utf-8").read())) if os.path.exists("sitemap.xml") else {}
 def anlamli(h):
+    h = re.sub(r"<!--KATKI-->.*?<!--/KATKI-->\n", "", h, flags=re.S)            # geri bildirim bağlantısı lastmod'u oynatmaz
     h = re.sub(r"<!--OLCUM-->.*?<!--/OLCUM-->\n", "", h, flags=re.S)             # analitik betiği ve bilgilendirme notu lastmod'u oynatmaz
     h = re.sub(r"<script>\(function.*?</script>", "", h, flags=re.S)
     h = re.sub(r'data-baslangic="[^"]*"', 'data-baslangic=""', h)
@@ -432,6 +439,7 @@ for s in iller:
 {nasil}
 {kaynak}
 {DIGER_ILLER}
+<!--KATKI-->{katki_baglantisi(s['kod'], sl)}<!--/KATKI-->
 <!--OLCUM-->{OLCUM_NOTU_IL}<!--/OLCUM-->
 </main>
 <script type="application/json" id="il-veri">{il_veri}</script>

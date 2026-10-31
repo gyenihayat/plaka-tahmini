@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geri bildirim · Plaka Tahmini</title>
+<meta name="description" content="Plaka Tahmini için öneri, hata bildirimi ya da geçmişte verilen bir plaka hakkında bilgi gönderin.">
+<meta name="robots" content="noindex, follow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f5f5f1;color:#15171c;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 56px}a{color:#1f63bb}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#5b6370;margin-bottom:8px}.eyebrow a{color:inherit;text-decoration:none}
+.geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}
+h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:clamp(1.75rem,7vw,2.5rem);font-weight:700;line-height:1.1;margin:0 0 12px}
+.giris{font-size:1.0625rem;color:#4d5461;margin:0 0 20px;max-width:640px}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #f0a000;outline-offset:2px}
+fieldset{border:0;margin:0;padding:0;min-width:0}legend{padding:0;font-weight:600;font-size:15px;margin-bottom:6px}
+.sekmeler{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 22px}
+.sekme{position:relative;display:block;margin:0}.sekme input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.sekme span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:52px;padding:8px 10px;border:1.5px solid #8b94a5;border-radius:10px;background:#fff;color:#4d5461;font-weight:600;font-size:1rem;line-height:1.25}
+.sekme input:checked+span{background:#e3eefb;border-color:#2a78d6;color:#1f4fb0}.sekme input:focus-visible+span{outline:3px solid #f0a000;outline-offset:2px}
+form{border-top:1px solid #dcdfe5;padding-top:18px}.alan{margin:0 0 16px}
+label,.etiket{display:block;font-weight:600;font-size:15px;margin-bottom:6px}.ops{font-weight:400;color:#5b6370}
+select,input[type=text],input[type=number],textarea{display:block;width:100%;min-height:46px;font:inherit;font-size:1rem;padding:10px 12px;border:1.5px solid #8b94a5;border-radius:8px;background:#fff;color:#15171c}
+textarea{min-height:120px;resize:vertical;line-height:1.45}input.mono{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:1.125rem;text-transform:uppercase}input.mono::placeholder{text-transform:none;font-weight:400}
+[aria-invalid=true]{border-color:#9b2c1d;background:#fff8f6}
+.ipucu{font-size:15px;color:#4d5461;margin:6px 0 0}.tarih-satir{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.tarih-satir>div{min-width:0}.tarih-satir label{font-weight:400;color:#4d5461}
+.radyolar{display:flex;flex-wrap:wrap;gap:8px 18px}.radyolar label{display:flex;align-items:center;gap:8px;font-weight:400;font-size:1rem;margin:0;min-height:44px}.radyolar input{width:20px;height:20px;margin:0;accent-color:#1f4fb0}
+.bilgi{background:#eef3fb;border:1px solid #c7d7ef;color:#27415f;border-radius:9px;padding:10px 14px;font-size:15px;margin:0 0 16px}.uyari{background:#fff6e0;border:1px solid #e3c36a;color:#7a4a00;border-radius:9px;padding:10px 14px;font-size:15px;margin:0 0 16px}
+.btn{display:block;width:100%;min-height:48px;font:600 1.0625rem "IBM Plex Sans",system-ui,sans-serif;padding:12px 16px;border:0;border-radius:10px;background:#1f4fb0;color:#fff;cursor:pointer}.btn:hover{background:#18408f}.btn[disabled]{opacity:.65;cursor:progress}
+.btn.ikincil{background:#fff;color:#1f4fb0;border:1.5px solid #2a78d6;display:inline-block;width:auto;min-width:220px}
+.hata{color:#9b2c1d;font-weight:600;font-size:15px;margin:12px 0 0}.hata:empty{display:none}
+.tesekkur{border-top:1px solid #dcdfe5;padding-top:18px}.tesekkur p.buyuk{font-size:1.5rem;font-weight:600;margin:0 0 6px}
+.sayfa-notu{font-size:14px;color:#5b6370;margin:0 0 16px}
+.olcum-notu{font-size:14px;line-height:1.5;color:#5b6370;margin:28px 0 0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.bal{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+@media (min-width:520px){.btn{display:inline-block;width:auto;min-width:200px}}
+</style>
+</head>
+<body><main class="wrap">
+<div class="eyebrow"><a href="/">Plaka Tahmini</a> · Geri bildirim</div>
+<p class="geri"><a href="/"><span aria-hidden="true">←</span> Ana sayfaya dön</a></p>
+<h1>Sitemizi geliştirmemize yardımcı olun</h1>
+<p class="giris">Geçmişte verilen bir plaka hakkında bilgi paylaşabilir ya da site için öneri ve hata bildirimi gönderebilirsiniz.</p>
+<noscript><p class="uyari">Form için tarayıcınızda JavaScript açık olmalı.</p></noscript>
+
+<fieldset><legend class="sr">Ne paylaşmak istiyorsunuz?</legend>
+<div class="sekmeler" id="sekmeler">
+<label class="sekme"><input type="radio" name="sekme" value="plaka" checked><span>Plaka bilgisi paylaş</span></label>
+<label class="sekme"><input type="radio" name="sekme" value="oneri"><span>Öneri / Hata bildir</span></label>
+</div></fieldset>
+
+<form id="f-plaka" novalidate autocomplete="off">
+<p class="bilgi">Paylaştığınız plaka ve tarih bilgileri tahminleri geliştirmek amacıyla incelenir. Gönderilen bilgiler otomatik olarak tahminlere dahil edilmez.</p>
+<p class="uyari">Plaka sahibinin adını, kimlik ya da ruhsat bilgisini veya başka kişisel bilgi yazmayın.</p>
+<div class="alan"><label for="p-il">İl</label>
+<select id="p-il" name="il" required><option value="">İl seçin</option>
+<option value="01" data-slug="adana">Adana (01)</option>
+<option value="02" data-slug="adiyaman">Adıyaman (02)</option>
+<option value="03" data-slug="afyonkarahisar">Afyonkarahisar (03)</option>
+<option value="04" data-slug="agri">Ağrı (04)</option>
+<option value="68" data-slug="aksaray">Aksaray (68)</option>
+<option value="05" data-slug="amasya">Amasya (05)</option>
+<option value="06" data-slug="ankara">Ankara (06)</option>
+<option value="07" data-slug="antalya">Antalya (07)</option>
+<option value="75" data-slug="ardahan">Ardahan (75)</option>
+<option value="08" data-slug="artvin">Artvin (08)</option>
+<option value="09" data-slug="aydin">Aydın (09)</option>
+<option value="10" data-slug="balikesir">Balıkesir (10)</option>
+<option value="74" data-slug="bartin">Bartın (74)</option>
+<option value="72" data-slug="batman">Batman (72)</option>
+<option value="69" data-slug="bayburt">Bayburt (69)</option>
+<option value="11" data-slug="bilecik">Bilecik (11)</option>
+<option value="12" data-slug="bingol">Bingöl (12)</option>
+<option value="13" data-slug="bitlis">Bitlis (13)</option>
+<option value="14" data-slug="bolu">Bolu (14)</option>
+<option value="15" data-slug="burdur">Burdur (15)</option>
+<option value="16" data-slug="bursa">Bursa (16)</option>
+<option value="17" data-slug="canakkale">Çanakkale (17)</option>
+<option value="18" data-slug="cankiri">Çankırı (18)</option>
+<option value="19" data-slug="corum">Çorum (19)</option>
+<option value="20" data-slug="denizli">Denizli (20)</option>
+<option value="21" data-slug="diyarbakir">Diyarbakır (21)</option>
+<option value="81" data-slug="duzce">Düzce (81)</option>
+<option value="22" data-slug="edirne">Edirne (22)</option>
+<option value="23" data-slug="elazig">Elazığ (23)</option>
+<option value="24" data-slug="erzincan">Erzincan (24)</option>
+<option value="25" data-slug="erzurum">Erzurum (25)</option>
+<option value="26" data-slug="eskisehir">Eskişehir (26)</option>
+<option value="27" data-slug="gaziantep">Gaziantep (27)</option>
+<option value="28" data-slug="giresun">Giresun (28)</option>
+<option value="29" data-slug="gumushane">Gümüşhane (29)</option>
+<option value="30" data-slug="hakkari">Hakkari (30)</option>
+<option value="31" data-slug="hatay">Hatay (31)</option>
+<option value="76" data-slug="igdir">Iğdır (76)</option>
+<option value="32" data-slug="isparta">Isparta (32)</option>
+<option value="34" data-slug="istanbul">İstanbul (34)</option>
+<option value="35" data-slug="izmir">İzmir (35)</option>
+<option value="46" data-slug="kahramanmaras">Kahramanmaraş (46)</option>
+<option value="78" data-slug="karabuk">Karabük (78)</option>
+<option value="70" data-slug="karaman">Karaman (70)</option>
+<option value="36" data-slug="kars">Kars (36)</option>
+<option value="37" data-slug="kastamonu">Kastamonu (37)</option>
+<option value="38" data-slug="kayseri">Kayseri (38)</option>
+<option value="71" data-slug="kirikkale">Kırıkkale (71)</option>
+<option value="39" data-slug="kirklareli">Kırklareli (39)</option>
+<option value="40" data-slug="kirsehir">Kırşehir (40)</option>
+<option value="79" data-slug="kilis">Kilis (79)</option>
+<option value="41" data-slug="kocaeli">Kocaeli (41)</option>
+<option value="42" data-slug="konya">Konya (42)</option>
+<option value="43" data-slug="kutahya">Kütahya (43)</option>
+<option value="44" data-slug="malatya">Malatya (44)</option>
+<option value="45" data-slug="manisa">Manisa (45)</option>
+<option value="47" data-slug="mardin">Mardin (47)</option>
+<option value="33" data-slug="mersin">Mersin (33)</option>
+<option value="48" data-slug="mugla">Muğla (48)</option>
+<option value="49" data-slug="mus">Muş (49)</option>
+<option value="50" data-slug="nevsehir">Nevşehir (50)</option>
+<option value="51" data-slug="nigde">Niğde (51)</option>
+<option value="52" data-slug="ordu">Ordu (52)</option>
+<option value="80" data-slug="osmaniye">Osmaniye (80)</option>
+<option value="53" data-slug="rize">Rize (53)</option>
+<option value="54" data-slug="sakarya">Sakarya (54)</option>
+<option value="55" data-slug="samsun">Samsun (55)</option>
+<option value="56" data-slug="siirt">Siirt (56)</option>
+<option value="57" data-slug="sinop">Sinop (57)</option>
+<option value="58" data-slug="sivas">Sivas (58)</option>
+<option value="63" data-slug="sanliurfa">Şanlıurfa (63)</option>
+<option value="73" data-slug="sirnak">Şırnak (73)</option>
+<option value="59" data-slug="tekirdag">Tekirdağ (59)</option>
+<option value="60" data-slug="tokat">Tokat (60)</option>
+<option value="61" data-slug="trabzon">Trabzon (61)</option>
+<option value="62" data-slug="tunceli">Tunceli (62)</option>
+<option value="64" data-slug="usak">Uşak (64)</option>
+<option value="65" data-slug="van">Van (65)</option>
+<option value="77" data-slug="yalova">Yalova (77)</option>
+<option value="66" data-slug="yozgat">Yozgat (66)</option>
+<option value="67" data-slug="zonguldak">Zonguldak (67)</option>
+</select></div>
+<div class="alan"><label for="p-plaka">Plaka veya harf serisi</label>
+<input type="text" id="p-plaka" name="plaka" class="mono" maxlength="16" placeholder="örn. 06 BYS 922 ya da BYS" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-describedby="p-plaka-ipucu">
+<p class="ipucu" id="p-plaka-ipucu">Biliyorsanız üç rakamı da yazın; yalnızca harf serisi de yeterli.</p></div>
+<fieldset class="alan"><legend>Tarih kesinliği</legend>
+<div class="radyolar" id="p-kesinlik">
+<label><input type="radio" name="kesinlik" value="gun"> Kesin gün</label>
+<label><input type="radio" name="kesinlik" value="ay" checked> Yaklaşık ay</label>
+<label><input type="radio" name="kesinlik" value="yil"> Yaklaşık yıl</label>
+</div></fieldset>
+<fieldset class="alan"><legend>Yaklaşık veriliş tarihi <span class="ops">(zorunlu)</span></legend>
+<div class="tarih-satir">
+<div id="p-gun-k" hidden><label for="p-gun">Gün</label><select id="p-gun" name="gun"><option value="">Gün</option><option value="01">1</option><option value="02">2</option><option value="03">3</option><option value="04">4</option><option value="05">5</option><option value="06">6</option><option value="07">7</option><option value="08">8</option><option value="09">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
+<div id="p-ay-k"><label for="p-ay">Ay</label><select id="p-ay" name="ay"><option value="">Ay</option><option value="01">Ocak</option><option value="02">Şubat</option><option value="03">Mart</option><option value="04">Nisan</option><option value="05">Mayıs</option><option value="06">Haziran</option><option value="07">Temmuz</option><option value="08">Ağustos</option><option value="09">Eylül</option><option value="10">Ekim</option><option value="11">Kasım</option><option value="12">Aralık</option></select></div>
+<div id="p-yil-k"><label for="p-yil">Yıl</label><input type="number" id="p-yil" name="yil" min="1990" max="2100" inputmode="numeric" placeholder="örn. 2021" autocomplete="off"></div>
+</div></fieldset>
+<div class="alan"><label for="p-aciklama">Ek açıklama <span class="ops">(isteğe bağlı)</span></label>
+<textarea id="p-aciklama" name="aciklama" maxlength="500" rows="3" aria-describedby="p-aciklama-ipucu"></textarea>
+<p class="ipucu" id="p-aciklama-ipucu">Örneğin plakanın nasıl öğrenildiği. En fazla 500 karakter.</p></div>
+<p class="sayfa-notu" id="p-sayfa-notu" hidden></p>
+<div class="bal" aria-hidden="true"><label for="p-web">Bu alanı boş bırakın</label><input type="text" id="p-web" name="website" tabindex="-1" autocomplete="off"></div>
+<button type="submit" class="btn">Gönder</button>
+<p class="hata" id="p-hata" role="alert"></p>
+</form>
+
+<form id="f-oneri" novalidate autocomplete="off" hidden>
+<fieldset class="alan"><legend>Bildirim türü</legend>
+<div class="radyolar" id="o-tur">
+<label><input type="radio" name="tur" value="oneri" checked> Öneri</label>
+<label><input type="radio" name="tur" value="hata"> Hata</label>
+<label><input type="radio" name="tur" value="diger"> Diğer</label>
+</div></fieldset>
+<div class="alan"><label for="o-mesaj">Mesajınız</label>
+<textarea id="o-mesaj" name="mesaj" maxlength="1500" rows="6" required aria-describedby="o-mesaj-ipucu"></textarea>
+<p class="ipucu" id="o-mesaj-ipucu">En az 5, en fazla 1500 karakter. Kişisel bilgi (telefon, e-posta vb.) yazmayın.</p></div>
+<div class="alan"><label for="o-isim">İsim <span class="ops">(isteğe bağlı)</span></label>
+<input type="text" id="o-isim" name="isim" maxlength="40" autocomplete="off"></div>
+<p class="sayfa-notu" id="o-sayfa-notu" hidden></p>
+<div class="bal" aria-hidden="true"><label for="o-web">Bu alanı boş bırakın</label><input type="text" id="o-web" name="website" tabindex="-1" autocomplete="off"></div>
+<button type="submit" class="btn">Gönder</button>
+<p class="hata" id="o-hata" role="alert"></p>
+</form>
+
+<section class="tesekkur" id="tesekkur" hidden tabindex="-1" role="status" aria-live="polite">
+<p class="buyuk">Teşekkürler! Bildiriminiz alındı.</p>
+<p class="ipucu">Bilgiler incelenir; hiçbiri otomatik olarak tahminlere eklenmez.</p>
+<p><button type="button" class="btn ikincil" id="yeni">Yeni bildirim gönder</button></p>
+</section>
+<!--OLCUM--><p class="olcum-notu">Bu sitede sayfa görüntüleme ve özellik kullanımı (hesaplama, il arama gibi) sayıları, üçüncü taraf bir analitik hizmeti olan <a href="https://www.goatcounter.com/privacy" rel="noopener">GoatCounter</a> ile ölçülür; hizmete sayfa adresi, yönlendiren site ve tarayıcı/ekran bilgisi gibi standart ziyaret verileri iletilir. Girdiğiniz plaka, il arama metni veya forma yazdığınız diğer içerikler gönderilmez.</p><!--/OLCUM-->
+</main>
+<!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->
+<script src="/assets/geri-bildirim.js" defer></script>
+</body></html>

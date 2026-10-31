@@ -1,4 +1,4 @@
-// Analitik: GoatCounter yükleyici ve anonim olay gönderici. Ana sayfa ve 81 il sayfası bu TEK dosyayı yükler; sayfalarda GoatCounter kodu doğrudan bulunmaz.
+// Analitik: GoatCounter yükleyici ve anonim olay gönderici. Ana sayfa, 81 il sayfası ve /geri-bildirim bu TEK dosyayı yükler; sayfalarda GoatCounter kodu doğrudan bulunmaz.
 //  - Sayfa görüntüleme: GoatCounter'ın standart count.js betiği yüklenince kendisi sayar (burada ayrıca sayım yapılmaz, çift sayım olmaz).
 //  - Yalnızca üretimde çalışır: location.hostname === "plakatahmini.com", tarayıcı otomasyonu (navigator.webdriver) değil ve yerel kapatma anahtarı (localStorage "plaka-olcum" = "kapali") yok.
 //    Yerel geliştirme, Vercel önizlemeleri ve testlerde count.js hiç yüklenmez, ağ isteği yapılmaz.
@@ -6,7 +6,8 @@
 const PlakaOlcum = (function () {
   const URETIM_HOST = "plakatahmini.com", SAYAC = "https://plakatahmini.goatcounter.com/count", BETIK = "https://gc.zgo.at/count.js";
   // ana-/il- önekli hesaplayıcı ve tarih sorgusu (ana|il-tarih-hesapla|sonuc|hata) olayları, ana sayfa il araması ve üç büyük il kartı (il adresi gibi herkese açık bir ad: kart tıklaması)
-  const IZINLI = /^(?:(?:ana|il)-hesapla-(?:basla|sonuc|hata)|(?:ana|il)-tarih-(?:hesapla|sonuc|hata)|ana-il-ara|ana-il-ara-hata|ana-kart-tikla\/[a-z]+)$/;
+  // ve /geri-bildirim formlarının, GitHub'a kaydedildikten SONRA gönderilen iki anonim olayı (plaka_bildirimi, genel_oneri): içerik, il, tarih, isim ya da mesaj taşımaz
+  const IZINLI = /^(?:(?:ana|il)-hesapla-(?:basla|sonuc|hata)|(?:ana|il)-tarih-(?:hesapla|sonuc|hata)|ana-il-ara|ana-il-ara-hata|ana-kart-tikla\/[a-z]+|plaka_bildirimi|genel_oneri)$/;
   const kayit = [];                       // bellekte, testler ve hata ayıklama için: kabul edilen olay adları (gönderilip gönderilmediğinden bağımsız)
   let kuyruk = [], yuklu = false;
   const g = typeof globalThis !== "undefined" ? globalThis : window;

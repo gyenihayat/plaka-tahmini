@@ -1,0 +1,137 @@
+<!-- /geri-bildirim sayfası etkileşim ve yerleşim harness'ı. tests/test_geri_bildirim.py kullanır: sayfa iframe'de açılır, formlar doldurulur, sahte API (Python sunucusu) yanıtları /__mod ile seçilir. -->
+<!doctype html><meta charset="utf-8"><body style="margin:0"><pre id="o">çalışıyor</pre>
+<script>
+const GENISLIKLER = __GENISLIKLER__, IL_BAGLANTILARI = __IL_BAGLANTILARI__, out = {};
+const bekle = ms => new Promise(r => setTimeout(r, ms));
+async function kosul(f, ad, ms = 8000) { const t = Date.now(); while (Date.now() - t < ms) { try { const v = f(); if (v) return v; } catch (e) {} await bekle(15); } throw new Error("zaman aşımı: " + ad); }
+function yukle(src, w = 390, h = 900) {      // sanal zamanda yoklama döngüsü ağ beklemesini saymaz: sayfa yüklemesi load olayıyla beklenir (betikler defer: load'dan önce çalışmış olur)
+  return new Promise((ok, hata) => { const f = document.createElement("iframe"); f.style.cssText = `width:${w}px;height:${h}px;border:0;display:block`;
+    f.onload = () => kosul(() => f.contentDocument && f.contentDocument.body && f.contentDocument.body.dataset.hazir === "1", "hazır " + src, 3000).then(() => ok(f), hata);
+    f.src = src; document.body.appendChild(f); });
+}
+const olaylar = f => JSON.parse(f.contentWindow.eval("JSON.stringify(PlakaOlcum.kayit)"));      // olcum.js: kabul edilen olay adları (üretim dışında ağ isteği yok)
+const mod = m => fetch("/__mod?m=" + m);
+const sifirla = () => fetch("/__sifirla");
+const kayitlar = () => fetch("/__kayit").then(r => r.json());
+function gir(d, id, v) { const e = d.getElementById(id); e.value = v; e.dispatchEvent(new d.defaultView.Event("input", { bubbles: true })); e.dispatchEvent(new d.defaultView.Event("change", { bubbles: true })); }
+function sec(d, ad, deger) { const e = d.querySelector(`input[name="${ad}"][value="${deger}"]`); e.click(); }
+const gorunur = e => !!e && !e.hidden && !e.closest("[hidden]") && e.getClientRects().length > 0;
+async function gonder(d, formId) { await bekle(2100); d.querySelector(`#${formId} button[type=submit]`).click(); }       // sunucu 2 sn'den hızlı gönderimi bot sayar: sanal zamanda beklemek bedava
+async function yanitBekle(d, formId) { const h = d.getElementById(formId === "f-plaka" ? "p-hata" : "o-hata"); await kosul(() => !d.getElementById("tesekkur").hidden || h.textContent, "yanıt " + formId, 10000); return { tesekkur: !d.getElementById("tesekkur").hidden, hata: h.textContent }; }
+function plakaDoldur(d, o = {}) { gir(d, "p-il", o.il ?? "06"); gir(d, "p-plaka", o.plaka ?? "06 BYS 922"); if (o.kesinlik) sec(d, "kesinlik", o.kesinlik); gir(d, "p-yil", o.yil ?? "2020"); if (o.ay !== null) gir(d, "p-ay", o.ay ?? "06"); if (o.gun) gir(d, "p-gun", o.gun); if (o.aciklama) gir(d, "p-aciklama", o.aciklama); }
+
+(async () => {
+  const ana = "/geri-bildirim";
+  // --- 1. ilk görünüm ve yerleşim (5 genişlik x 2 sekme) ----------------------------------------------------------------
+  out.yerlesim = [];
+  for (const w of GENISLIKLER) for (const sekme of ["plaka", "oneri"]) {
+    const f = await yukle(ana + "?tur=" + sekme, w), d = f.contentDocument, win = f.contentWindow, de = d.documentElement, r = { w, sekme, cw: de.clientWidth, sw: de.scrollWidth };
+    r.h1 = d.querySelector("h1").textContent; r.plakaGorunur = gorunur(d.getElementById("f-plaka")); r.oneriGorunur = gorunur(d.getElementById("f-oneri"));
+    const form = d.getElementById(sekme === "plaka" ? "f-plaka" : "f-oneri");
+    r.kucukKontrol = [...form.querySelectorAll("select, input[type=text], input[type=number], textarea, button")].filter(e => gorunur(e) && !e.closest(".bal")).map(e => ({ id: e.id || e.name, h: Math.round(e.getBoundingClientRect().height), px: parseFloat(win.getComputedStyle(e).fontSize) })).filter(x => x.h < 44 || x.px < 16);
+    r.tasan = [...d.querySelectorAll("body *")].filter(e => gorunur(e) && e.getBoundingClientRect().right > r.cw + 0.5 && !e.closest(".bal")).map(e => e.tagName.toLowerCase() + "." + e.className);
+    const btn = form.querySelector("button[type=submit]").getBoundingClientRect(); r.dugmeIcinde = btn.left >= 0 && btn.right <= r.cw + 0.5;
+    r.etiketsiz = [...form.querySelectorAll("select, input:not([type=radio]):not(.bal input), textarea")].filter(e => !e.closest(".bal") && !d.querySelector(`label[for="${e.id}"]`)).map(e => e.id);
+    r.bal = (() => { const e = d.getElementById(sekme === "plaka" ? "p-web" : "o-web"); const b = e.getBoundingClientRect(); return { tabindex: e.tabIndex, disaridan: b.right < 0 || b.left < -500, ariaGizli: !!e.closest("[aria-hidden=true]") }; })();
+    r.zorunluSayfa = !!d.querySelector('input[name="sayfa"], #sayfa, [name="ilgili_sayfa"]');
+    r.alanlar = [...form.querySelectorAll("input, select, textarea")].map(e => e.name).filter(Boolean);
+    r.metin = d.body.innerText;
+    f.remove(); out.yerlesim.push(r);
+  }
+
+  // --- 2. plaka formu: gün / ay / yıl kesinliği, tam plaka ve yalnızca seri ------------------------------------------------
+  await sifirla(); await mod("basari");
+  out.plaka = {};
+  {
+    let f = await yukle(ana), d = f.contentDocument;
+    out.plaka.ilkKesinlik = { gun: gorunur(d.getElementById("p-gun")), ay: gorunur(d.getElementById("p-ay")), yil: gorunur(d.getElementById("p-yil")) };
+    sec(d, "kesinlik", "gun"); out.plaka.gunSecili = { gun: gorunur(d.getElementById("p-gun")), ay: gorunur(d.getElementById("p-ay")), yil: gorunur(d.getElementById("p-yil")) };
+    sec(d, "kesinlik", "yil"); out.plaka.yilSecili = { gun: gorunur(d.getElementById("p-gun")), ay: gorunur(d.getElementById("p-ay")), yil: gorunur(d.getElementById("p-yil")) };
+    sec(d, "kesinlik", "gun"); plakaDoldur(d, { gun: "01", ay: "06", yil: "2020", aciklama: "Bir tanıdığın aracı\nikinci satır" }); await gonder(d, "f-plaka"); out.plaka.gun = await yanitBekle(d, "f-plaka"); out.plaka.olay1 = olaylar(f);
+    out.plaka.sonrasi = { plakaForm: gorunur(d.getElementById("f-plaka")), oneriForm: gorunur(d.getElementById("f-oneri")), sekmeler: gorunur(d.getElementById("sekmeler")), tesekkurMetin: d.querySelector("#tesekkur .buyuk").textContent, odak: d.activeElement && d.activeElement.id };
+    d.getElementById("yeni").click(); out.plaka.yeniSonrasi = { plakaForm: gorunur(d.getElementById("f-plaka")), sekmeler: gorunur(d.getElementById("sekmeler")), tesekkur: gorunur(d.getElementById("tesekkur")), plaka: d.getElementById("p-plaka").value, il: d.getElementById("p-il").value };
+    sec(d, "kesinlik", "ay"); plakaDoldur(d, { plaka: "34 abc", il: "34", yil: "2021", ay: "03" }); await gonder(d, "f-plaka"); out.plaka.ay = await yanitBekle(d, "f-plaka"); out.plaka.olay2 = olaylar(f);
+    f.remove(); f = await yukle(ana); d = f.contentDocument;
+    sec(d, "kesinlik", "yil"); plakaDoldur(d, { plaka: "ayt", il: "35", yil: "2019", ay: null }); await gonder(d, "f-plaka"); out.plaka.yil = await yanitBekle(d, "f-plaka");
+    f.remove();
+    out.plaka.istekler = await kayitlar();
+  }
+
+  // --- 3. öneri / hata formu ----------------------------------------------------------------------------------------------
+  await sifirla();
+  out.oneri = {};
+  {
+    const f = await yukle(ana + "?sayfa=%2Fil%2Fankara"), d = f.contentDocument;
+    sec(d, "sekme", "oneri"); out.oneri.sekmeSonrasi = { plakaForm: gorunur(d.getElementById("f-plaka")), oneriForm: gorunur(d.getElementById("f-oneri")), sayfaNotu: d.getElementById("o-sayfa-notu").textContent };
+    sec(d, "tur", "hata"); gir(d, "o-mesaj", "<scr" + "ipt>window.__xss=1</scr" + "ipt>\n<img src=x onerror=window.__xss=2> Tarih aracı hata veriyor"); gir(d, "o-isim", "Ayşe <b>K</b>");
+    await gonder(d, "f-oneri"); out.oneri.sonuc = await yanitBekle(d, "f-oneri"); out.oneri.olay = olaylar(f); out.oneri.istekler = await kayitlar();
+    out.oneri.xss = { global: f.contentWindow.__xss === undefined, img: d.querySelectorAll("img").length, script: d.querySelectorAll("script:not([src])").length };
+    f.remove();
+  }
+
+  // --- 4. istemci tarafı doğrulama: istek gitmez, hata görünür ve alan işaretlenir --------------------------------------------
+  await sifirla();
+  out.istemciHata = [];
+  {
+    const f = await yukle(ana), d = f.contentDocument;
+    const dene = async (ad, kur, formId, beklenenAlan) => {
+      await sifirla(); kur(); const once = (await kayitlar()).length; await gonder(d, formId);
+      await bekle(60); const h = d.getElementById(formId === "f-plaka" ? "p-hata" : "o-hata"), son = (await kayitlar()).length;
+      out.istemciHata.push({ ad, metin: h.textContent, alan: d.activeElement && d.activeElement.id, invalid: !!d.getElementById(beklenenAlan).getAttribute("aria-invalid"), istek: son - once, durum: h.getAttribute("role") });
+    };
+    await dene("il yok", () => { plakaDoldur(d, { il: "" }); }, "f-plaka", "p-il");
+    await dene("plaka yok", () => { plakaDoldur(d, { plaka: "  " }); }, "f-plaka", "p-plaka");
+    await dene("yıl yok", () => { plakaDoldur(d, { yil: "" }); }, "f-plaka", "p-yil");
+    await dene("yıl 3 hane", () => { plakaDoldur(d, { yil: "202" }); }, "f-plaka", "p-yil");
+    await dene("ay yok", () => { plakaDoldur(d, { ay: "" }); }, "f-plaka", "p-ay");
+    sec(d, "kesinlik", "gun"); await dene("gün yok", () => { plakaDoldur(d, { gun: "" }); gir(d, "p-gun", ""); }, "f-plaka", "p-gun");
+    sec(d, "sekme", "oneri");
+    await dene("mesaj boş", () => { gir(d, "o-mesaj", ""); }, "f-oneri", "o-mesaj");
+    await dene("mesaj kısa", () => { gir(d, "o-mesaj", "abc"); }, "f-oneri", "o-mesaj");
+    out.istemciOlay = olaylar(f);
+    f.remove();
+  }
+
+  // --- 5. sunucu / ağ hataları, yeniden deneme, çift gönderim ----------------------------------------------------------------
+  out.hatalar = {};
+  {
+    const f = await yukle(ana), d = f.contentDocument, btn = d.querySelector("#f-plaka button[type=submit]");
+    const dene = async (m) => { await sifirla(); await mod(m); plakaDoldur(d, { plaka: "06 BYS " + (100 + Math.floor(Math.random() * 800)), aciklama: "deneme" }); await gonder(d, "f-plaka"); const y = await yanitBekle(d, "f-plaka"); return { ...y, dugmeAcik: !btn.disabled, dugmeMetni: btn.textContent, formGorunur: gorunur(d.getElementById("f-plaka")), plaka: d.getElementById("p-plaka").value.slice(0, 7), il: d.getElementById("p-il").value, invalid: d.getElementById("p-il").getAttribute("aria-invalid") }; };
+    out.hatalar.sunucu500 = await dene("hata500");
+    out.hatalar.sinir429 = await dene("sinir429");
+    out.hatalar.kapali503 = await dene("kapali503");
+    out.hatalar.alanHatasi = await dene("alan400");
+    out.hatalar.alanOdak = d.activeElement && d.activeElement.id;
+    out.hatalar.html = await dene("html"); out.hatalar.htmlImg = d.querySelectorAll("img").length; out.hatalar.htmlGlobal = f.contentWindow.__xss === undefined;
+    out.hatalar.json_degil = await dene("jsondegil");
+    out.hatalar.ag = await dene("ag"); out.hatalar.olayHatada = olaylar(f);
+    // aynı form hata sonrası yeniden gönderilebilir
+    await sifirla(); await mod("basari"); await gonder(d, "f-plaka"); out.hatalar.tekrarDeneme = await yanitBekle(d, "f-plaka"); out.hatalar.tekrarIstek = (await kayitlar()).length; out.hatalar.olaySonra = olaylar(f);
+    f.remove();
+  }
+  {
+    const f = await yukle(ana), d = f.contentDocument; await sifirla(); await mod("yavas"); plakaDoldur(d);
+    const btn = d.querySelector("#f-plaka button[type=submit]"); btn.click(); const hemen = { disabled: btn.disabled, metin: btn.textContent }; d.getElementById("f-plaka").dispatchEvent(new f.contentWindow.Event("submit", { cancelable: true })); btn.click();
+    const y = await yanitBekle(d, "f-plaka"); out.cift = { hemen, istek: (await kayitlar()).length, tesekkur: y.tesekkur }; f.remove();
+  }
+
+  {   // tekrar: sunucu "aynı içerik az önce alındı" derse kullanıcı teşekkür görür ama olay ikinci kez sayılmaz
+    await sifirla(); await mod("tekrar"); const f = await yukle(ana), d = f.contentDocument; plakaDoldur(d); await gonder(d, "f-plaka"); const y = await yanitBekle(d, "f-plaka"); out.tekrar = { tesekkur: y.tesekkur, olay: olaylar(f) }; f.remove();
+  }
+
+  // --- 6. adres parametreleri ----------------------------------------------------------------------------------------------
+  out.parametre = [];
+  for (const [src, ne] of IL_BAGLANTILARI) {
+    const f = await yukle(src, 390, 700), d = f.contentDocument, s = d.getElementById("p-il"), not = d.getElementById("p-sayfa-notu"), onot = d.getElementById("o-sayfa-notu");
+    out.parametre.push({ src, ne, il: s.value, ilMetin: s.selectedOptions[0] && s.selectedOptions[0].textContent, not: not.hidden ? "" : not.textContent, onot: onot.hidden ? "" : onot.textContent, plakaForm: gorunur(d.getElementById("f-plaka")), oneriForm: gorunur(d.getElementById("f-oneri")), degistirilebilir: !s.disabled && s.options.length === 82 });
+    f.remove();
+  }
+  {
+    await sifirla(); await mod("basari"); const f = await yukle("/geri-bildirim?il=06&sayfa=%2Fil%2Fankara"), d = f.contentDocument;
+    plakaDoldur(d, { il: "35", plaka: "35 DGA 546" }); await gonder(d, "f-plaka"); await yanitBekle(d, "f-plaka"); const k = (await kayitlar())[0]; out.degistirilmis = { il: k.il, sayfa: k.sayfa }; f.remove();
+    await sifirla(); const g = await yukle("/geri-bildirim?il=06&sayfa=%2Fil%2Fankara&tur=oneri"), e = g.contentDocument; gir(e, "o-mesaj", "Ankara sayfasıyla ilgili bir not"); await gonder(e, "f-oneri"); await yanitBekle(e, "f-oneri"); out.oneriSayfa = (await kayitlar())[0].sayfa; g.remove();
+  }
+
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+})().catch(e => { document.getElementById("o").textContent = "HATA " + e.message + " " + (e.stack || ""); });
+</script>
