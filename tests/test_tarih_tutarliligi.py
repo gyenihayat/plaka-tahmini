@@ -180,7 +180,7 @@ class TarayiciAnaSayfaIlSayfasi(unittest.TestCase):
         ref = {a: r for a, _, r, _ in self.ANLAR_TR}; self.assertEqual(len(sonuc), 81 * len(self.ANLAR_TR))
         for r in sonuc:
             gun = ref[r["an"]]
-            self.assertEqual(r["anaDt"], gun.isoformat(), r)                               # ana sayfa tarih alanı = referans gün (Python onceki_is_gunu ile aynı)
+            self.assertEqual(r["anaDt"], gun.isoformat(), r); self.assertFalse(r["anaGizli"], r)         # ana sayfa tarih alanı = referans gün (Python onceki_is_gunu ile aynı); sonuç gösterilmiş
             if r["kart"]:                                                                  # ana sayfa kartı: seri ve tarih, ana sayfa aracı/il sayfasıyla aynı referans gün ve motor
                 self.assertEqual(r["kart"]["plaka"], " ".join(r["ana"].split()[:3]), r); self.assertEqual(r["kart"]["tarih"], tr(gun), r)
             if r["plaka"] is None: continue                                                 # başlangıçtan önceki saat: yalnızca ana sayfa

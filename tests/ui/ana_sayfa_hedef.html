@@ -6,7 +6,7 @@ document.getElementById("f").addEventListener("load", () => setTimeout(() => {
   const w = document.getElementById("f").contentWindow, d = w.document, g = id => d.getElementById(id), out = [];
   for (const sc of SENARYOLAR) {
     g("il").value = sc.il; g("il").dispatchEvent(new w.Event("change"));
-    g("excl").value = sc.excl || ""; g("excl").dispatchEvent(new w.Event("input"));
+    g("excl2").value = sc.excl || ""; g("excl2").dispatchEvent(new w.Event("input"));       // hedef aracının atlanacak serileri (kalıcı pt-excl)
     g("target").value = sc.hedef; g("btn-target").click();
     out.push({out: g("target-res").style.display === "none" ? "" : g("target-out").textContent, warn: g("target-warn").style.display === "none" ? "" : g("target-warn").textContent, res: g("target-res").style.display});
   }

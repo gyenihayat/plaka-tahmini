@@ -92,7 +92,35 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 .yoy{overflow-x:auto;-webkit-overflow-scrolling:touch}.yoy table{min-width:560px}.yoy td.n,.yoy th.n{text-align:right;white-space:nowrap}
 .yoy td.p{color:#5b6370;font-style:italic}.yoy tr.pct td{font-weight:600;background:#f3f4f7}.yoy .up{color:#1a7f4b}.yoy .dn{color:#b3402a}
 .kaydir{overflow-x:auto;-webkit-overflow-scrolling:touch}td.mono{white-space:nowrap}.fn{font-size:14px;color:#5b6370;margin:8px 0 0}
-.olcum-notu{font-size:14px;line-height:1.5;color:#5b6370;margin:22px 0 0}.iller p{margin:0 0 8px;font-size:15px;line-height:1.9}.iller b{display:inline-block;min-width:1.4em;color:#5b6370}.iller a{margin-right:8px;white-space:nowrap}"""
+.olcum-notu{font-size:14px;line-height:1.5;color:#5b6370;margin:22px 0 0}.iller p{margin:0 0 8px;font-size:15px;line-height:1.9}.iller b{display:inline-block;min-width:1.4em;color:#5b6370}.iller a{margin-right:8px;white-space:nowrap}
+.tarih-arac select,.tarih-arac input[type=date]{display:block;width:100%;min-height:46px;font:inherit;font-size:1rem;padding:10px 12px;border:1.5px solid #8b94a5;border-radius:8px;background:#fff;color:#15171c}
+.tarih-arac>.ipucu{margin:0 0 14px}.t-alanlar{display:grid;grid-template-columns:1fr;gap:12px}.t-btn{display:block;width:100%;min-height:46px;margin-top:14px;font:600 1rem "IBM Plex Sans",system-ui,sans-serif;padding:10px 20px;border:1px solid #2a78d6;border-radius:8px;background:#e3eefb;color:#1f4fb0;cursor:pointer}
+.t-btn:hover{background:#d6e6f9}.t-hata{color:#9b2c1d;font-weight:600;font-size:15px;margin:10px 0 0}.t-hata:empty{display:none}
+.t-sonuc{margin-top:16px;padding:14px 16px;background:#fcfcfa;border:1px solid #dcdfe5;border-radius:12px}.t-plaka{font-size:clamp(2.25rem,9vw,2.75rem);font-weight:600;line-height:1.1;letter-spacing:.02em;margin:0 0 6px;white-space:nowrap}
+.t-alt{margin:0;font-size:15px;color:#4d5461}.t-etiket{display:inline-block;margin-right:8px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600;border:1.5px solid currentColor}.t-etiket.tahmin{color:#7a3fb3}.t-etiket.kayit{color:#0a7a2f}
+.t-atla{margin:8px 0 0;color:#7a4a00;font-weight:600}.tarih-arac .uyari{margin:12px 0 0}.t-ikincil{margin-top:14px;font:inherit;font-size:.9375rem;padding:9px 14px;border:1px solid #8b94a5;border-radius:8px;background:#fff;color:#4d5461;cursor:pointer}.t-ikincil:hover{background:#e3eefb;color:#15171c}
+@media (min-width:520px){.t-alanlar.t-iki{grid-template-columns:1fr 1fr}.t-btn{display:inline-block;width:auto;min-width:220px}}"""
+
+# --- "Belirli bir tarihte hangi plakada?" aracı: ana sayfa ve 81 il sayfası AYNI işaretlemeyi kullanır (davranış: assets/tarih-sorgu.js) ---------------------------------
+TARIH_BASLIK = "Belirli bir tarihte hangi plakada?"
+def tarih_arac_html(ana):
+    """ana=True: ana sayfa (il seçimi + ikincil "81 il" eylemi + atlanacak seriler); ana=False: il sayfası (yalnızca tarih; sayfanın kendi ili)."""
+    aciklama = "İl ve tarih seçerek o günün tahmini plakasını öğrenin." if ana else "Seçtiğiniz tarihte bu ilde hangi plakanın verilmesinin beklendiğini öğrenin."
+    il_alani = '<div><label for="tarih-il">İl</label><select id="tarih-il"></select></div>' if ana else ""
+    ek = ('<button type="button" class="t-ikincil" id="btn-all" aria-expanded="false" aria-controls="all-wrap">81 ilin bu tarihteki tahminlerini göster</button>\n'
+          '<div class="tblwrap" id="all-wrap" hidden><table class="t" id="all-tbl"></table></div>\n') if ana else ""
+    # atlanacak seriler: iki sayfada AYNI alan; varsayılan boş (hiçbir seri atlanmaz), kalıcı değil, hedef plaka aracının ayarından bağımsız
+    atla = ('<details class="gelismis" id="tarih-gelismis"><summary>Atlanacak seriler (bu tarih tahmini için)</summary>'
+            '<label for="excl">Verilmeyeceğini düşündüğünüz seriler</label>'
+            '<input type="text" id="excl" placeholder="örn. SXX, TXX" spellcheck="false" autocapitalize="characters" aria-describedby="excl-ipucu">'
+            '<p class="ipucu" id="excl-ipucu">Boş bırakırsanız hiçbir seri atlanmaz. <code>TXX</code> = tüm T grubu, <code>SAA</code> = tek seri, <code>TAA-TCZ</code> = aralık. Yalnızca bu tarih tahminine uygulanır.</p>'
+            '<div class="uyari" id="excl-warn" role="status" hidden></div></details>\n')
+    return (f'<section class="arac tarih-arac" id="tarih" aria-labelledby="tarih-baslik">\n<h2 id="tarih-baslik">{TARIH_BASLIK}</h2>\n<p class="ipucu">{aciklama}</p>\n'
+            '<noscript><p class="ipucu">Bu araç JavaScript gerektirir.</p></noscript>\n<div id="tarih-govde" hidden>\n'
+            f'<form id="tarih-form" novalidate>\n<div class="t-alanlar{" t-iki" if ana else ""}">{il_alani}<div><label for="dt">Tarih</label><input type="date" id="dt"></div></div>\n'
+            '<button type="submit" class="t-btn" id="btn-tarih">Tahmini plakayı göster</button>\n</form>\n<p class="t-hata" id="tarih-hata" role="alert"></p>\n'
+            '<div class="t-sonuc" id="tarih-sonuc" aria-live="polite" hidden><p class="t-plaka mono" id="plate-num"></p><p class="t-alt"><span class="t-etiket tahmin" id="tag">Tahmin</span><span id="tarih-out"></span></p><p class="t-alt t-atla" id="tarih-atla-bilgi" hidden></p></div>\n'
+            f'<div class="uyari" id="tarih-uyari" role="status" hidden></div>\n{atla}{ek}</div>\n</section>')
 
 # --- 2 aylık dönemlerde geçen yıla kıyasla ilerleme -------------------------------------------------
 DONEMLER = [(1,3,"Oca–Şub"),(3,5,"Mar–Nis"),(5,7,"May–Haz"),(7,9,"Tem–Ağu"),(9,11,"Eyl–Eki"),(11,13,"Kas–Ara")]
@@ -252,6 +280,7 @@ def ana_sayfa_guncelle():
     h = _bolge(h, "<!--ANA:IL-LISTE-->", "<!--/ANA:IL-LISTE-->", liste_html)
     h = _bolge(h, "<!--ANA:IL-BAGLANTILAR-->", "<!--/ANA:IL-BAGLANTILAR-->", bag_html)
     h = _bolge(h, "<!--ANA:OLCUM-NOTU-->", "<!--/ANA:OLCUM-NOTU-->", OLCUM_NOTU_ANA)
+    h = _bolge(h, "<!--ANA:TARIH-ARACI-->", "<!--/ANA:TARIH-ARACI-->", tarih_arac_html(True))
     # Anlamlı içerik parmak izi: kartlardaki günlük seri/tarih değişimi tek başına yeni içerik SAYILMAZ; gözlem verisi (DATA), metin, şablon ve CSS değişimi sayılır.
     # İz index.html içinde saklanır (git'e ya da saate bağlı değil); değişmediyse sitemap lastmod'u korunur.
     _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:plaka|tarih)">)[^<]*', r"\1", h), flags=re.S)
@@ -346,6 +375,7 @@ for s in iller:
             f'<p id="hedef-ipucu" class="ipucu">Harf grubu ve isteğe bağlı numara (örn. {ll} veya {ll} 500). İl bu sayfadan alınır. <a href="/?il={s["kod"]}">Ana sayfada aç</a></p>'
             f'<details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary><label for="atla">Verilmeyeceğini düşündüğünüz seriler</label><input id="atla" type="text" autocapitalize="characters" spellcheck="false" placeholder="örn. SXX, TXX" aria-describedby="atla-ipucu"><p id="atla-ipucu" class="ipucu">Harf, iki harf (X joker) veya aralık: SXX, TXX, BAA-BCZ.</p></details>'
             f'</form><div id="sonuc" class="sonuc" aria-live="polite"></div></section>')
+    tarih_arac = tarih_arac_html(False)
     page = f"""<!doctype html>
 <html lang="tr">
 <head>
@@ -383,6 +413,7 @@ for s in iller:
 <div class="uyari" id="guncellik" role="status" hidden><span></span> <a href="/?il={s['kod']}">Canlı tahmin aracını açın</a></div>
 </section>
 {arac}
+{tarih_arac}
 {acilir(gozlem_html, True)}
 {sd_bolum}
 {acilir(yoy_html)}
@@ -397,6 +428,7 @@ for s in iller:
 <!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->
 <script src="/assets/takvim.js" defer></script>
 <script src="/assets/tahmin-motoru.js" defer></script>
+<script src="/assets/tarih-sorgu.js" defer></script>
 <script src="/assets/il-arac.js" defer></script>
 </body></html>"""
     _yol = f"il/{sl}.html"; _url = f"{BASE}/il/{sl}"

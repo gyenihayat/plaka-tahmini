@@ -14,16 +14,23 @@ function yukle(src, w) { return new Promise(r => { const f = document.createElem
     r.seriSigar = kartlar.every(k => { const e = k.querySelector(".k-seri"), rg = d.createRange(); rg.selectNodeContents(e); const t = rg.getBoundingClientRect(), c = k.getBoundingClientRect(); return t.left >= c.left && t.right <= c.right; });
     r.kartUst = kartlar.map(k => Math.round(k.getBoundingClientRect().top)); r.kartAlt = kartlar.map(k => Math.round(k.getBoundingClientRect().bottom));
     const cta = d.querySelector("a.cta"); r.ctaUst = cta ? Math.round(cta.getBoundingClientRect().top) : null; r.ctaAlt = cta ? Math.round(cta.getBoundingClientRect().bottom) : null;
-    r.etiketli = ["il-ara", "il", "target", "dt", "excl", "excl2"].every(id => !!d.querySelector('label[for="' + id + '"]'));
-    r.analitikBetigi = !!d.querySelector("script[data-goatcounter]"); { const m = d.getElementById("meta"), ps = [...m.querySelectorAll(".ms")]; r.metaPx = px(m, "fontSize"); r.metaTasma = m.scrollWidth > m.clientWidth + 1; r.metaParca = ps.length;
-      r.metaSatir = ps.map(e => Math.round(e.getBoundingClientRect().height / (parseFloat(win.getComputedStyle(e).lineHeight) || px(e, "fontSize") * 1.5))); }
+    r.etiketli = ["il-ara", "il", "tarih-il", "target", "dt", "excl", "excl2"].every(id => !!d.querySelector('label[for="' + id + '"]'));
+    r.analitikBetigi = !!d.querySelector("script[data-goatcounter]");
+    // "Belirli bir tarihte hangi plakada?" aracı: hesaplamadan ÖNCE sonuç/örnek plaka yok; sonra büyük, tek satır, sığan tam plaka; dokunma hedefleri; tablo kapalı
+    { const g = id => d.getElementById(id); r.tarihOnce = {sonucGizli: g("tarih-sonuc").hidden, plakaBos: g("plate-num").textContent === "", ilVarsayilan: g("tarih-il").value, govdeGorunur: !g("tarih-govde").hidden, tabloKapali: g("all-wrap").hidden && g("btn-all").getAttribute("aria-expanded") === "false", gelismisKapali: !g("tarih-gelismis").open, dtVarsayilan: g("dt").value};
+      g("tarih-il").value = "İzmir"; g("dt").value = "2027-03-01"; g("btn-tarih").click(); const p = g("plate-num"), rg = d.createRange(); rg.selectNodeContents(p); const t = rg.getBoundingClientRect(), c = g("tarih-sonuc").getBoundingClientRect();
+      r.tarih = {plaka: p.textContent, px: px(p, "fontSize"), tekSatir: p.getBoundingClientRect().height < px(p, "lineHeight") * 1.4, sigar: t.left >= c.left - 0.5 && t.right <= c.right + 0.5, btnYuk: Math.round(g("btn-tarih").getBoundingClientRect().height), dtYuk: Math.round(g("dt").getBoundingClientRect().height), ilYuk: Math.round(g("tarih-il").getBoundingClientRect().height),
+        sonucGorunur: !g("tarih-sonuc").hidden, tasma: de.scrollWidth - de.clientWidth, govdePx: px(g("tarih-out"), "fontSize"), tag: g("tag").textContent}; }
     r.kartMetin = kartlar.map(k => k.textContent.replace(/\s+/g, " ").trim());
     if (w === GENISLIKLER[0]) {
       const g = id => d.getElementById(id), tikla = (v, ex) => { g("il").value = "Konya"; g("il").dispatchEvent(new win.Event("change")); g("excl2").value = ex || ""; g("excl2").dispatchEvent(new win.Event("input")); g("target").value = v; g("btn-target").click();
         return {out: g("target-res").style.display === "none" ? "" : g("target-out").textContent, warn: g("target-warn").style.display === "none" ? "" : g("target-warn").textContent, canli: g("target-res").getAttribute("aria-live")}; };
       r.hedef = tikla("BZZ 999"); r.hedefHata = tikla("IAA"); r.hedefAtla = tikla("BZZ 999", "BKX, BLX"); r.hedefKod = tikla("06 GAA");
-      r.tarihPlaka = g("plate-num").textContent; g("dt").value = "2028-03-01"; g("dt").dispatchEvent(new win.Event("change")); r.tarih2028 = g("plate-num").textContent;
-      g("btn-today").click(); r.bugunDt = g("dt").value;
+      // tarih aracının il seçimi hedef plaka aracındaki il seçiminden BAĞIMSIZ (hedef aracında "06 GAA" yazmak #il'i Ankara yapar)
+      r.ilBagimsiz = {hedefIl: g("il").value, tarihIl: g("tarih-il").value};
+      g("tarih-il").value = "Konya"; g("dt").value = "2028-03-01"; g("btn-tarih").click(); r.tarihKonya = g("plate-num").textContent; r.hedefIlSonra = g("il").value;
+      g("tarih-il").value = "Konya"; g("tarih-il").dispatchEvent(new win.Event("change")); r.ilDegisinceTemiz = g("tarih-sonuc").hidden;      // girdi değişince eski sonuç kalmaz
+      g("dt").value = ""; g("btn-tarih").click(); r.bosTarih = {hata: g("tarih-hata").textContent, rol: g("tarih-hata").getAttribute("role"), sonucGizli: g("tarih-sonuc").hidden};
       // il seçimi: geçerli, geçersiz, belirsiz
       const form = g("il-form"), giris = g("il-ara"), hata = g("il-hata"); const gir = v => { giris.value = v; form.dispatchEvent(new win.Event("submit", {cancelable: true})); return hata.textContent; };
       r.ilHatalar = {bos: gir(""), yok: gir("82"), belirsiz: gir("k"), celisik: gir("konya 06")};

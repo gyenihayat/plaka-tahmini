@@ -35,7 +35,9 @@ class SeoVeYapi(unittest.TestCase):
         self.assertLess(ANA.index('src="/assets/takvim.js"'), ANA.index('src="/assets/tahmin-motoru.js"')); self.assertLess(ANA.index('src="/assets/tahmin-motoru.js"'), ANA.index("const DATA = "))
         self.assertLess(ANA.index("const DATA = "), ANA.index('src="/assets/ana-sayfa.js"')); self.assertRegex(ANA, r"const DATA = .*?;\n")
         eski_idler = set(re.findall(r'id="([\w-]+)"', gv(ESKI))); yeni_idler = set(re.findall(r'id="([\w-]+)"', gv(ANA)))
-        self.assertEqual(eski_idler - yeni_idler - {"counter", "counter-num"}, set(), "hesaplayıcı kimlikleri korunmalı")        # tek bilinçli çıkarma: kaldırılan Abacus ziyaret rozeti
+        KALDIRILAN = {"counter", "counter-num",                                   # Abacus ziyaret rozeti (kaldırıldı)
+                      "plate", "pop", "btn-last", "last-txt", "last-panel", "meta", "warn", "btn-today"}   # tarih sorgusunun eski karmaşık arayüzü (sadeleştirildi: plaka+etiket+belirsizlik; son veri açılırı, hız satırları, "Bugün" düğmesi yok)
+        self.assertEqual(eski_idler - yeni_idler - KALDIRILAN, set(), "hesaplayıcı kimlikleri korunmalı (yalnızca belgelenen sadeleştirme dışında)")
         for gizli in ('id="kart-uyari" role="status" hidden', 'id="il-hata" class="hata" role="alert"'): self.assertIn(gizli, ANA)
 
     def test_erisilebilirlik_etiketleri(self):
@@ -155,7 +157,17 @@ class TarayiciYerlesim(unittest.TestCase):
         self.assertEqual(r["hedefHata"]["out"], ""); self.assertIn("kullanılmıyor", r["hedefHata"]["warn"])
         self.assertIn("atlanan seri düşüldü", r["hedefAtla"]["out"])
         self.assertNotEqual(r["hedef"]["out"], r["hedefAtla"]["out"])                               # atlanacak seriler sonucu değiştirir
-        self.assertRegex(r["tarihPlaka"], r"^\d\d [A-Z]{3} \d{3}$")             # (hedef girişinde başa yazılan il kodu, ana sayfadaki gibi ili değiştirir: 06 GAA -> Ankara); self.assertNotEqual(r["tarihPlaka"], r["tarih2028"]); self.assertRegex(r["bugunDt"], r"^\d{4}-\d\d-\d\d$")
+        self.assertEqual(r["ilBagimsiz"], {"hedefIl": "Ankara", "tarihIl": "İzmir"})          # hedef girişinde başa yazılan il kodu (06 GAA) yalnızca hedef aracının ilini değiştirir; tarih aracının ili bağımsızdır
+        self.assertRegex(r["tarihKonya"], r"^42 [A-Z]{3} \d{3}$"); self.assertEqual(r["hedefIlSonra"], "Ankara"); self.assertTrue(r["ilDegisinceTemiz"])
+        self.assertEqual((r["bosTarih"]["hata"], r["bosTarih"]["rol"], r["bosTarih"]["sonucGizli"]), ("Lütfen geçerli bir tarih seçin.", "alert", True))
+
+    def test_tarih_araci_sade_baslangic_ve_5_genislikte_okunur(self):
+        self.assertEqual({r["w"] for r in self.sonuc}, {320, 375, 390, 768, 1440})
+        for r in self.sonuc:
+            o, t, w = r["tarihOnce"], r["tarih"], r["w"]
+            self.assertTrue(o["sonucGizli"] and o["plakaBos"], f"{w}px: hesaplamadan önce yanıltıcı örnek plaka olmamalı"); self.assertEqual(o["ilVarsayilan"], "İstanbul"); self.assertTrue(o["govdeGorunur"] and o["tabloKapali"] and o["gelismisKapali"], w)
+            self.assertRegex(o["dtVarsayilan"], r"^\d{4}-\d\d-\d\d$"); self.assertRegex(t["plaka"], r"^35 [A-Z]{3} \d{3}$", w); self.assertTrue(t["sonucGorunur"] and t["tekSatir"] and t["sigar"], f"{w}px: büyük tam plaka tek satır ve sığmalı")
+            self.assertGreaterEqual(t["px"], 36, w); self.assertGreaterEqual(t["btnYuk"], 44, w); self.assertGreaterEqual(t["dtYuk"], 44, w); self.assertGreaterEqual(t["ilYuk"], 44, w); self.assertLessEqual(t["tasma"], 0, w); self.assertGreaterEqual(t["govdePx"], 15, w); self.assertEqual(t["tag"], "Tahmin")
 
     def test_il_secimi_hatalari_ve_gecis(self):
         r = next(x for x in self.sonuc if x["w"] == 375)

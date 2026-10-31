@@ -85,6 +85,7 @@ const PlakaIlArac = (function () {
       try { const o = hesapla(s, hedef.value, atla ? atla.value : "", bugunGun()); goster(kutu, o); olay(o.tip === "hata" || o.tip === "baska_il" ? "il-hesapla-hata" : "il-hesapla-sonuc"); }
       catch (err) { console.error("plakatahmini: hesaplama başarısız", err); olay("il-hesapla-hata"); kutu.textContent = ""; const p = satir("hata", "Hesaplama yapılamadı. Ana sayfadaki aracı deneyin."); p.setAttribute("role", "alert"); kutu.appendChild(p); }
     });
+    if (typeof PlakaTarih !== "undefined") PlakaTarih.kur(document, { onek: "il", s: () => s, ref: trReferansGun(), olay });          // "Belirli bir tarihte hangi plakada?": ortak araç (tarih-sorgu.js), sayfanın kendi ili
     const cta = document.querySelector('a[href="#hesapla"]');
     if (cta) cta.addEventListener("click", () => setTimeout(() => hedef.focus({ preventScroll: true }), 0));
   }

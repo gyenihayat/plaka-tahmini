@@ -1,5 +1,6 @@
 // Ana sayfa: (1) üç büyük ilin güncel tahmini plaka (il kodu + harf serisi + 3 haneli sıra) kartlarını ortak motorla günceller, (2) il adı/plaka kodu ile il sayfasına yönlendirir.
 // Klasik script: sayfadaki DATA, byName ve REF (index.html) ile ortak motorun (tahmin-motoru.js) global bildirimlerini kullanır; index.html'in inline betiğinden SONRA yüklenir.
+// (3) "Belirli bir tarihte hangi plakada?" aracını (ortak kod: tarih-sorgu.js) bağlar ve ikincil "81 ilin bu tarihteki tahminleri" tablosunu çizer.
 // Kartlar il sayfalarındaki büyük tahminle AYNI fonksiyonu (guncelSeriBilgisi) ve AYNI referans günü (trReferansGun) kullanır; hesap burada tekrarlanmaz.
 const PlakaAnaSayfa = (function () {
   // Türkçe duyarsız karşılaştırma anahtarı: "İstanbul", "ISTANBUL", "istanbul" -> "istanbul"; "Iğdır" -> "igdir"
@@ -36,6 +37,41 @@ const PlakaAnaSayfa = (function () {
   }
   // Analitik olayı (olcum.js yüklü değilse ya da üretimde değilsek sessizce yok sayılır); yalnızca sabit olay adları, içerik gönderilmez
   const olay = ad => { try { if (typeof PlakaOlcum !== "undefined") PlakaOlcum.olay(ad); } catch (e) { /* ölçüm hatası sayfayı etkilemez */ } };
+  // Tüm iller tablosu (ikincil eylem, varsayılan kapalı): seçili tarihin plakaları AYNI ortak fonksiyonla (PlakaTarih.plakaGun) hesaplanır; hız/seri süresi ortak motorun tek hız tanımıdır.
+  function tabloKur(doc) {
+    const btn = doc.getElementById("btn-all"), wrap = doc.getElementById("all-wrap"), t = doc.getElementById("all-tbl"), dt = doc.getElementById("dt"), atla = doc.getElementById("excl"); if (!btn || !wrap || !t || !dt) return;
+    const ETIKET = btn.textContent; let acik = false;
+    const plakaMetin = (s, gun) => { const p = PlakaTarih.plakaGun(s, gun); return { p, m: p.iv ? p.iv.let + " " + String(p.iv.num).padStart(3, "0") : "—" }; };
+    function ciz() { if (acik) PlakaTarih.atlaIle(atla ? atla.value : "", ciz2); }       // tablo, tarih aracıyla AYNI atlanacak serilerle hesaplanır (varsayılan: hiçbiri); hedef aracının kalıcı ayarı kullanılmaz
+    function ciz2() {
+      const secili = dt.value && /^\d{4}-\d{2}-\d{2}$/.test(dt.value) ? dt.value : isoToday, day = toDay(secili), farkli = secili !== isoToday;
+      t.innerHTML = ""; const atlaEtiket = PlakaTarih.atlaCoz(atla ? atla.value : "").etiket;
+      if (atlaEtiket.length) { const cap = doc.createElement("caption"); cap.textContent = "Atlanacak seriler uygulandı: " + atlaEtiket.join(" · ") + "."; cap.style.cssText = "text-align:left;padding:6px 10px;font-size:14px"; t.appendChild(cap); }
+      const th = doc.createElement("thead"), hr = doc.createElement("tr");
+      ["Kod", "İl", "Son veri", "Tarih", "Bugün (tahmin)", farkli ? "Seçili tarihte (" + dstr(day) + ")" : "", "Hız (sıra/gün)", "Bir seri (gün)", "Güvenilirlik"].filter(x => x !== "").forEach(h => { const c = doc.createElement("th"); c.textContent = h; hr.appendChild(c); });
+      th.appendChild(hr); t.appendChild(th);
+      const tb = doc.createElement("tbody");
+      DATA.iller.forEach(s => {
+        const kod = String(s.kod).padStart(2, "0"), last = s.obs[s.obs.length - 1], li = invN(last[1]), f = fit(s, last[0]);
+        const cells = [kod, s.il, li.let + " " + String(li.num).padStart(3, "0"), dstr(last[0]), plakaMetin(s, todayDay).m];
+        if (farkli) { const e = plakaMetin(s, day); cells.push(e.p.iv ? e.m + (e.p.est.real ? " ✓" : "") : "—"); }
+        cells.push(fmt(yuvarla(f.slope)), seriGun(f.slope));
+        const r = doc.createElement("tr");
+        cells.forEach((c, j) => { const td = doc.createElement("td"); td.textContent = c; if (j === 2 || j === 4 || (farkli && j === 5)) td.className = "mono"; if (j >= cells.length - 2) td.className = "n"; r.appendChild(td); });
+        const td = doc.createElement("td"); td.innerHTML = relDot(s); r.appendChild(td); tb.appendChild(r);
+      });
+      t.appendChild(tb);
+    }
+    btn.addEventListener("click", () => { acik = !acik; wrap.hidden = !acik; btn.setAttribute("aria-expanded", acik ? "true" : "false"); btn.textContent = acik ? "Tabloyu gizle" : ETIKET; ciz(); });
+    dt.addEventListener("input", ciz); dt.addEventListener("change", ciz); if (atla) atla.addEventListener("input", ciz);
+  }
+  // İl seçimi bu araca aittir: başlangıçta ana sayfanın mevcut varsayılanı (İstanbul ya da ?il=NN) kopyalanır, sonra hedef plaka aracındaki seçimden BAĞIMSIZ çalışır.
+  function tarihAraci(doc) {
+    const tIl = doc.getElementById("tarih-il"), hIl = doc.getElementById("il"); if (!tIl || !hIl || typeof PlakaTarih === "undefined") return;
+    tIl.innerHTML = hIl.innerHTML; tIl.value = hIl.value;
+    PlakaTarih.kur(doc, { onek: "ana", s: () => byName[tIl.value], ref: REF, olay, secim: tIl });
+    tabloKur(doc);
+  }
   function uyar(doc, mesaj) { const u = doc.getElementById("kart-uyari"); if (u) { u.textContent = mesaj; u.hidden = false; } }
 
   function baslat() {
@@ -43,6 +79,7 @@ const PlakaAnaSayfa = (function () {
       kartlariGuncelle(document, byName, REF);
       if (REF.kapsamDisi) uyar(document, "Resmî tatil takvimi bu tarihi kapsamıyor; hafta sonu dışındaki tatillerde güncel tahmin en yakın iş gününe çekilmemiş olabilir.");
     } catch (err) { console.error("plakatahmini: kartlar güncellenemedi", err); uyar(document, "Canlı güncelleme yapılamadı; kartlardaki değerler belirtilen tarih itibarıyla hesaplanmıştır."); }
+    try { tarihAraci(document); } catch (err) { console.error("plakatahmini: tarih aracı kurulamadı", err); }
     const form = document.getElementById("il-form"), giris = document.getElementById("il-ara"), hata = document.getElementById("il-hata");
     if (!form || !giris) return;
     const liste = [].map.call(document.querySelectorAll("#il-liste option"), o => ({ ad: o.getAttribute("data-ad"), kod: +o.getAttribute("data-kod"), slug: o.getAttribute("data-slug") }));

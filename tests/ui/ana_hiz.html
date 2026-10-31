@@ -1,12 +1,8 @@
-<!-- Ana sayfa hesaplayıcısının hız/seri süresi anlatımını 81 il için okur: #meta parçaları ve "Tüm illeri göster" tablosu. tests/test_hiz_tutarliligi.py kullanır. -->
+<!-- Ana sayfadaki "81 ilin bu tarihteki tahminleri" tablosunu okur (hız ve seri süresi sütunları): tests/test_hiz_tutarliligi.py kullanır. -->
 <!doctype html><meta charset="utf-8"><body><iframe id="f" src="/" width="900" height="900"></iframe><pre id="o">çalışıyor</pre>
 <script>
 document.getElementById("f").addEventListener("load", () => setTimeout(() => {
-  const w = document.getElementById("f").contentWindow, d = w.document, g = id => d.getElementById(id), sel = g("il"), out = {iller: [], tablo: null};
-  for (const o of [...sel.options]) {
-    sel.value = o.value; sel.dispatchEvent(new w.Event("change"));
-    out.iller.push({il: o.value, kod: o.textContent.split(" ")[0], parcalar: [...g("meta").querySelectorAll(".ms")].map(e => e.textContent.trim())});
-  }
+  const w = document.getElementById("f").contentWindow, d = w.document, g = id => d.getElementById(id), out = {baslangicKapali: g("all-wrap").hidden, tablo: null};
   g("btn-all").click(); const t = g("all-tbl");
   out.tablo = {basliklar: [...t.rows[0].cells].map(c => c.textContent), satirlar: [...t.rows].slice(1).map(r => [...r.cells].map(c => c.textContent))};
   document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);

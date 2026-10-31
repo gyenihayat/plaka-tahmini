@@ -9,10 +9,10 @@ async function yukle(url, an) {
 }
 (async () => {
   for (const an of ANLAR) {
-    const m = await yukle("/index.html", an), md = m.contentWindow.document, sel = md.getElementById("il");
+    const m = await yukle("/index.html", an), md = m.contentWindow.document, sel = md.getElementById("tarih-il");
     for (const il of ILLER) {
-      sel.value = il.il; sel.dispatchEvent(new m.contentWindow.Event("change"));
-      const kayit = {an, il: il.il, ana: md.getElementById("plate-num").textContent, anaDt: md.getElementById("dt").value, anaTag: md.getElementById("tag").textContent, plaka: null, tarih: null, uyari: null,
+      sel.value = il.il; sel.dispatchEvent(new m.contentWindow.Event("change")); md.getElementById("btn-tarih").click();       // ana sayfa tarih aracı: varsayılan tarih = o anın referans günü
+      const kayit = {an, il: il.il, ana: md.getElementById("plate-num").textContent, anaDt: md.getElementById("dt").value, anaTag: md.getElementById("tag").textContent, anaGizli: md.getElementById("tarih-sonuc").hidden, plaka: null, tarih: null, uyari: null,
         kart: (function () { var e = md.querySelector('.kart[data-il="' + il.il + '"]'); return e ? {plaka: e.querySelector('[data-kart="plaka"]').textContent, tarih: e.querySelector('[data-kart="tarih"]').textContent, bagl: e.getAttribute("href")} : null; })()};
       if (an >= BASLANGIC_MS) {      // il sayfası başlangıç (üretim referans günü) öncesindeki saatlerde başlangıç tarihine sabitlenir; yalnızca ana sayfa kontrol edilir
         const p = await yukle("/il/" + il.slug, an), d = p.contentWindow.document, g = s => { const e = d.querySelector(s); return e ? e.textContent : null; };
