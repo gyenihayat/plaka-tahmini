@@ -13,12 +13,13 @@ BASLIK = "Belirli bir tarihte hangi plakada?"
 ACIKLAMA_ANA = "İl ve tarih seçerek o günün tahmini plakasını öğrenin."
 ACIKLAMA_IL = "Seçtiğiniz tarihte bu ilde hangi plakanın verilmesinin beklendiğini öğrenin."
 # geçmiş (veri öncesi, veri içi, son gözlem), bugün/Cuma, Cumartesi, Pazar, Pazartesi, resmî tatil (29 Ekim, 1 Ocak, Kurban), yakın/uzak gelecek
-TARIHLER = ["2018-01-31", "2018-02-01", "2019-06-01", "2020-06-01", "2022-06-01", "2023-06-01", "2024-02-09", "2025-06-15", "2026-10-23", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2027-01-01", "2027-05-17", "2028-07-01", "2032-01-01", "2060-01-01"]
+TARIHLER = ["2018-01-31", "2018-02-01", "2019-06-01", "2020-06-01", "2022-06-01", "2022-07-01", "2023-06-01", "2024-02-09", "2025-06-15", "2026-10-23", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2027-01-01", "2027-05-17", "2028-07-01", "2032-01-01", "2060-01-01"]
 SINIR_ISO = "2018-02-01"      # yeni merkezî üç harf–üç rakam plaka düzeninin başlangıcı: bundan önce tahmin yok
 
 def bolum(h, kimlik): return re.search(rf'<section class="arac tarih-arac" id="{kimlik}".*?</section>', h, re.S)[0]
 def _med(a): return fc.med(a)
-REFERANSLAR = {r["kod"]: r for r in json.load(open(os.path.join(u.ROOT, "data", "tarihsel_referanslar.json"), encoding="utf-8"))["referanslar"]}    # gözlem verisinden AYRI dosya
+REFERANSLAR = {}      # gözlem verisinden AYRI dosya; il kodu -> referans listesi (Ankara: 06 BYS 922 yaklaşık 2020-06-01 ve 06 DDA 690 kesin gün 2022-07-01)
+for _r in json.load(open(os.path.join(u.ROOT, "data", "tarihsel_referanslar.json"), encoding="utf-8"))["referanslar"]: REFERANSLAR.setdefault(_r["kod"], []).append(_r)
 def _geri_ham(o, h):
     """Kalibresiz geriye model (forecast.py yardımcılarıyla): ilerleme(h) = 0,5·hız0·h + 0,5·mevsimsel; hız0 = ilk 365 günün aralık hızlarının medyanı."""
     F, n0 = o[0]; c = fc.clean(o); r = [(o[i][1] - o[i-1][1]) / (o[i][0] - o[i-1][0]) for i in range(1, len(o)) if o[i][0] <= F + 365 and o[i][0] > o[i-1][0]]
@@ -27,20 +28,31 @@ def _geri_ham(o, h):
 def _tarih_n(plaka):
     kod, harf, no = plaka.split(); return ((A1.index(harf[0]) * 23 + A2.index(harf[1])) * 21 + A3.index(harf[2])) * 1000 + int(no)
 def kalibre_katsayilar(kod, o):
-    r = REFERANSLAR.get(kod)
-    if not r: return None
-    F, n0 = o[0]; H = F - (dt.date.fromisoformat(r["tarih"]) - E0).days; nR = _tarih_n(r["plaka"]); return {"H": H, "nR": nR, "kappa": (n0 - nR) / _geri_ham(o, H), "taban": 2 * r["tarih_belirsizligi_gun"]}
+    """Çok çapalı kalibrasyon (JS'ten BAĞIMSIZ yazım): çapalar ilk gözleme uzaklığa (H) göre sıralanır; segment başına ölçek katsayısı kap[i]."""
+    rs = REFERANSLAR.get(kod)
+    if not rs: return None
+    F, n0 = o[0]; caps = sorted(({"H": F - (dt.date.fromisoformat(r["tarih"]) - E0).days, "nR": _tarih_n(r["plaka"]), "taban": 2 * r["tarih_belirsizligi_gun"]} for r in rs), key=lambda c: c["H"])
+    for c in caps: c["a"] = n0 - c["nR"]
+    kap, onceki = [], None
+    for c in caps:
+        d = _geri_ham(o, c["H"]) - (_geri_ham(o, onceki["H"]) if onceki else 0); kap.append((c["a"] - (onceki["a"] if onceki else 0)) / d); onceki = c
+    return {"caps": caps, "kap": kap, "H": caps[-1]["H"], "nR": caps[-1]["nR"], "kappa": kap[0], "taban": caps[-1]["taban"]}
 def geri_ilerleme(o, h, kod=None):
-    """Geriye ilerleme (sıra). Referanssız il: kalibresiz model. Referanslı il (Ankara): A(h) = g(h)·(1 − (1 − κ)·h/H), h ≤ H; sonrası referans sonrası ilk yıl ortalama hızıyla doğrusal."""
+    """Geriye ilerleme (sıra). Referanssız il: kalibresiz model. Referanslı il (Ankara): ilk gözlem ile en yakın çapa arasında A(h) = g(h)·(1 − (1 − κ0)·h/H1); çapalar arasında A(h) = a_{i-1} + κ_i·(g(h) − g(H_{i-1})); en eski çapadan önce son yılın ortalama hızıyla doğrusal."""
     k = kalibre_katsayilar(kod, o)
     if not k: return _geri_ham(o, h)
-    A = lambda x: _geri_ham(o, x) * (1 - (1 - k["kappa"]) * x / k["H"])
+    caps, kap, H1 = k["caps"], k["kap"], k["caps"][0]["H"]
+    def A(x):
+        if x <= H1: return _geri_ham(o, x) * (1 - (1 - kap[0]) * x / H1)
+        i = next(j for j in range(1, len(caps)) if x <= caps[j]["H"] or j == len(caps) - 1)
+        return caps[i - 1]["a"] + kap[i] * (_geri_ham(o, x) - _geri_ham(o, caps[i - 1]["H"]))
     return A(h) if h <= k["H"] else A(k["H"]) + (A(k["H"]) - A(k["H"] - 365)) / 365 * (h - k["H"])
 def geri_n(o, h, kod=None): return o[0][1] - geri_ilerleme(o, h, kod)
 def geri_hata(o, h, kod):
-    """Kalibre belirsizlik (gün): ilk gözlem yakını ±%25.. (min 10), referans yakını en az 2×tarih belirsizliği + payı; referans ötesi: taban + pay."""
-    k = kalibre_katsayilar(kod, o); oran = lambda d: min(0.5, 0.25 + 0.05 * max(0, d - 365) / 365); eR = lambda d: k["taban"] + round(oran(d) * d)
-    return eR(h - k["H"]) if h > k["H"] else min(max(10, round(oran(h) * h)), eR(k["H"] - h))
+    """Kalibre belirsizlik (gün): ilk gözlem yakını ±%25.. (min 10); her çapa için taban + uzaklık payı; en küçüğü (en yakın çapa); en eski çapanın ötesinde yalnızca çapa terimi."""
+    k = kalibre_katsayilar(kod, o); oran = lambda d: min(0.5, 0.25 + 0.05 * max(0, d - 365) / 365)
+    yakin = min(c["taban"] + round(oran(abs(h - c["H"])) * abs(h - c["H"])) for c in k["caps"])
+    return yakin if h > k["H"] else min(max(10, round(oran(h) * h)), yakin)
 def beklenen_plaka(s, iso):
     """Dönüş: plaka metni | "SINIR" (1 Şubat 2018 öncesi) | "MODEL" (geriye model geçerli plaka üretemiyor: sıra < 1) | None (ileride seri alfabesi bitiyor)."""
     o = [tuple(x) for x in s["obs"]]; gun = (dt.date.fromisoformat(iso) - E0).days; g, n = o[-1]
@@ -191,7 +203,7 @@ class Tarayici(unittest.TestCase):
         self.assertEqual(e["Konya"]["2020-06-01"]["hata"], "Bu tarih için tahmin üretilemiyor: hesaplama modeli bu ilde bu tarih için geçerli bir plaka serisi bulamıyor. Bu, ilin gerçek plaka dağıtım başlangıcı anlamına gelmez; o tarihte plaka dağıtılmadığı anlamına da gelmez.")
         a = e["Ankara"]; r = a["2020-06-01"]
         self.assertEqual((r["plaka"], r["etiket"], r["out"]), ("06 BYS 922", "Tarihsel referansla kalibre edilmiş tahmin", "1 Haziran 2020 · ±60 gün")); self.assertNotEqual(r["etiket"], "Kayıtlı veri")
-        self.assertIn("kullanıcı tarafından bildirilen tarihsel referansla (06 BYS 922, yaklaşık 1 Haziran 2020; resmî kayıt değildir)", r["uyari"]); self.assertIn("tek noktadır ve tarihi yaklaşıktır", r["uyari"])
+        self.assertIn("kullanıcı tarafından bildirilen tarihsel referanslarla (06 BYS 922, yaklaşık 1 Haziran 2020; 06 DDA 690, 1 Temmuz 2022; resmî kayıt değildir)", r["uyari"]); self.assertIn("referanslar az sayıdadır ve belgesizdir", r["uyari"])
         self.assertEqual(a["2018-02-01"]["etiket"], "Çok kaba geriye dönük tahmin"); self.assertNotIn("BAA", a["2018-02-01"]["uyari"]); self.assertNotIn("başlangıç serisinden", a["2018-02-01"]["uyari"])   # BAA/AAB gerçek başlangıç ya da alt seri sınırı olarak kullanılmaz; 1 Şubat 2018 model sınırı korunur
         self.assertEqual(a["2018-01-31"]["gizli"], True); self.assertIn("1 Şubat 2018'den önceki tarihler için tahmin üretmiyor", a["2018-01-31"]["hata"])
         for d in ("2022-06-01", "2023-06-01"): self.assertEqual(a[d]["etiket"], "Tarihsel referansla kalibre edilmiş tahmin")
@@ -289,10 +301,10 @@ class Tarayici(unittest.TestCase):
             elif k["il"] == "Ankara": self.assertIn("tarihsel referansla kalibre edilmiş tahmin", k["hedefAna"], kim); self.assertIn("tarihsel referansla kalibre edilmiş tahmin", k["hedefIl"], kim); self.assertEqual(k["ana"]["etiket"], "Tarihsel referansla kalibre edilmiş tahmin", kim)
         t = self.s["tabloGeri"]
         self.assertEqual((t["2018-01-31"]["tireSayisi"], t["2018-01-31"]["satir"]), (81, 81)); self.assertIn("1 Şubat 2018'den önceki tarihler için tahmin üretmiyor", t["2018-01-31"]["cap"]); self.assertIn("Seçili tarihte (31.01.2018)", t["2018-01-31"]["baslik"])
-        self.assertEqual((t["2018-02-01"]["Ankara"], t["2018-02-01"]["Konya"]), ("ATH 800 ≈", "—"));        # Ankara: referansla kalibre edilmiş tahmin; Konya: model plaka üretemiyor
+        self.assertEqual((t["2018-02-01"]["Ankara"], t["2018-02-01"]["Konya"]), ("AOC 177 ≈", "—"));        # Ankara: referansla kalibre edilmiş tahmin; Konya: model plaka üretemiyor
         self.assertGreater(t["2018-02-01"]["tireSayisi"], 70)    # modelin plaka üretemediği iller "—"
         self.assertEqual(t["2020-06-01"]["Ankara"], "BYS 922 ≈"); self.assertEqual(t["2020-06-01"]["Konya"], "—"); self.assertIn("≈ geriye dönük tahmin", t["2020-06-01"]["cap"])
-        self.assertIn("1 Haziran 2020 öncesi için çok kabadır", t["2018-02-01"]["cap"]); self.assertEqual(t["2018-02-01"]["Ankara"], "ATH 800 ≈")                  # tablo notu aynı dili kullanır; sayısal değer aynı
+        self.assertIn("1 Haziran 2020 öncesi için çok kabadır", t["2018-02-01"]["cap"]); self.assertEqual(t["2018-02-01"]["Ankara"], "AOC 177 ≈")                  # tablo notu aynı dili kullanır; sayısal değer aynı
         self.assertEqual(t["2023-06-01"]["tireSayisi"], 0); self.assertTrue(all(t["2023-06-01"][i].endswith(" ≈") for i in ("Ankara", "Istanbul", "Konya")))
         self.assertEqual(t["2024-02-09"]["Ankara"], "EGF 799 ✓"); self.assertEqual(t["2024-02-09"]["cap"], "")                              # ilk gözlem günü: kayıtlı değer, geriye uyarı yok
 
@@ -306,7 +318,7 @@ class Tarayici(unittest.TestCase):
 class AnkaraTarihselReferans(unittest.TestCase):
     """KULLANICI REFERANSI (resmî veri DEĞİL, gözlem verisine KARIŞTIRILMAZ): Ankara 06 BYS 922 ≈ 1 Haziran 2020, data/tarihsel_referanslar.json. Yalnızca Ankara'nın ilk gözlem öncesi tahminini kalibre eder.
     Eski (kalibresiz) ve yeni (kalibre) motor aynı Node bağlamında karşılaştırılır; diğer 80 il, Ankara'nın 2024 sonrası değerleri ve güncel tahmin (06 GGL 096) DEĞİŞMEZ."""
-    TARIHLER_A = ["2018-01-31", "2018-02-01", "2018-06-01", "2019-06-01", "2020-01-01", "2020-06-01", "2021-06-01", "2022-06-01", "2023-06-01", "2024-02-09", "2024-06-01", "2027-03-01", "2028-07-01"]
+    TARIHLER_A = ["2018-01-31", "2018-02-01", "2018-06-01", "2019-06-01", "2020-01-01", "2020-06-01", "2021-06-01", "2022-06-01", "2022-07-01", "2023-06-01", "2024-02-09", "2024-06-01", "2027-03-01", "2028-07-01"]
     BETIK = r"""const fs=require('fs'),vm=require('vm'),R=process.argv[1],T=JSON.parse(process.argv[2]);
 const yap=ref=>{const c=vm.createContext({console,Math,Date});for(const f of ['takvim.js',...(ref?['tarihsel-referanslar.js']:[]),'tahmin-motoru.js','tarih-sorgu.js'])vm.runInContext(fs.readFileSync(R+'/assets/'+f,'utf8'),c);return c};
 const e=yap(false),y=yap(true),D=JSON.parse(fs.readFileSync(R+'/data/tahmin_data.json','utf8')),E0=Date.UTC(2024,0,1),gun=t=>Math.round((Date.UTC(+t.slice(0,4),+t.slice(5,7)-1,+t.slice(8,10))-E0)/864e5);
@@ -319,7 +331,7 @@ for(const [ad,c] of [['eski',e],['yeni',y]]){c.__s=kop('Ankara');const ref=vm.ru
 y.__s=kop('Ankara');const F=39,g0=gun('2018-02-01'),Rg=gun('2020-06-01'),n=g=>vm.runInContext("estimateAt(__s,"+g+").n",y);let mono=true,minAdim=1e18,prev=null;for(let g=g0;g<=F;g++){const v=n(g);if(prev!==null){if(!(v>prev))mono=false;minAdim=Math.min(minAdim,v-prev)}prev=v}
 out.monoton={mono,minAdim,nF1:n(F-1),nF:n(F),nF2:n(F+1),nR:n(Rg),nRef:vm.runInContext("toN('BYS',922)",y),R:Rg,F};
 let tm=0,tn=0;for(let g=g0;g<F;g+=3){const v=n(g);if(Math.round(v)<1)continue;y.__n=Math.round(v);const b=vm.runInContext("backEstimate(__s,__n)",y);tm=Math.max(tm,Math.abs(b.day-g));tn++}out.ters={maks:tm,n:tn};
-y.__n=vm.runInContext("toN('BYS',922)",y);const bb=vm.runInContext("backEstimate(__s,__n)",y);out.hedefRef={day:bb.day,err:bb.err,kalibre:bb.kalibre};
+y.__n=vm.runInContext("toN('BYS',922)",y);const bb=vm.runInContext("backEstimate(__s,__n)",y);out.hedefRef={day:bb.day,err:bb.err,kalibre:bb.kalibre};y.__n=vm.runInContext("toN('DDA',690)",y);const bp=vm.runInContext("backEstimate(__s,__n)",y);out.hedefP={day:bp.day,err:bp.err,kalibre:bp.kalibre};
 out.asset=vm.runInContext("JSON.stringify(PlakaReferanslar)",y);
 console.log(JSON.stringify(out))"""
     @classmethod
@@ -327,20 +339,21 @@ console.log(JSON.stringify(out))"""
         cls.r = json.loads(subprocess.run([u.NODE, "-e", cls.BETIK, u.ROOT, json.dumps(cls.TARIHLER_A)], capture_output=True, text=True, check=True).stdout); cls.s = next(x for x in veri() if x["il"] == "Ankara"); cls.o = [tuple(a) for a in cls.s["obs"]]
 
     def test_referans_ayri_dosyada_gozlemlerle_karismaz_ve_yalnizca_ankara(self):
-        v = json.load(open(os.path.join(u.ROOT, "data", "tarihsel_referanslar.json"), encoding="utf-8")); self.assertEqual(len(v["referanslar"]), 1); r = v["referanslar"][0]
+        v = json.load(open(os.path.join(u.ROOT, "data", "tarihsel_referanslar.json"), encoding="utf-8")); self.assertEqual(len(v["referanslar"]), 2); r = v["referanslar"][0]; p2 = v["referanslar"][1]
         self.assertEqual((r["il"], r["kod"], r["plaka"], r["tarih"], r["tarih_kesinligi"], r["resmi_veri"]), ("Ankara", 6, "06 BYS 922", "2020-06-01", "yaklaşık", False)); self.assertIn("Kullanıcı", r["kaynak"]); self.assertIn("kesin gözlem olarak etiketlenmez", r["not"])
         self.assertNotIn(_tarih_n(r["plaka"]), [x[1] for x in self.o]); self.assertEqual(self.o[0][0], 39)                                                    # gözlem verisinde YOK; ilk gözlem değişmedi
-        self.assertEqual(json.loads(self.r["asset"]), {"6": [{"plaka": "06 BYS 922", "tarih": "2020-06-01", "tarihKesinligi": "yaklaşık", "tarihBelirsizligiGun": 30, "kaynak": r["kaynak"], "resmi": False}]})   # üretilmiş varlık = JSON
+        self.assertEqual((p2["il"], p2["kod"], p2["plaka"], p2["tarih"], p2["tarih_kesinligi"], p2["tarih_belirsizligi_gun"], p2["resmi_veri"]), ("Ankara", 6, "06 DDA 690", "2022-07-01", "kesin gün", 15, False)); self.assertIn("MODELLEME VARSAYIMIDIR", p2["tarih_belirsizligi_aciklama"]); self.assertNotIn(_tarih_n(p2["plaka"]), [x[1] for x in self.o])
+        self.assertEqual(json.loads(self.r["asset"]), {"6": [{"plaka": "06 BYS 922", "tarih": "2020-06-01", "tarihKesinligi": "yaklaşık", "tarihBelirsizligiGun": 30, "kaynak": r["kaynak"], "resmi": False}, {"plaka": "06 DDA 690", "tarih": "2022-07-01", "tarihKesinligi": "kesin gün", "tarihBelirsizligiGun": 15, "kaynak": p2["kaynak"], "resmi": False}]})   # üretilmiş varlık = JSON
         for f in ("il/istanbul.html", "il/izmir.html", "il/konya.html"): self.assertNotIn("tarihsel-referanslar.js", u.oku(os.path.join(u.ROOT, f)))        # yalnızca Ankara sayfası ve ana sayfa yükler
         self.assertIn("tarihsel-referanslar.js", u.oku(os.path.join(u.ROOT, "il", "ankara.html"))); self.assertIn("tarihsel-referanslar.js", u.oku(os.path.join(u.ROOT, "index.html")))
 
     def test_ankara_eski_yeni_karsilastirma_2020_2024_ve_kalibre_etiket(self):
         a = self.r["ankara"]; eski = {t: a[t]["eski"] for t in a}; yeni = {t: a[t]["yeni"] for t in a}
         self.assertEqual([eski[t].get("plaka") for t in ("2020-06-01", "2021-06-01", "2022-06-01", "2023-06-01")], ["06 BFZ 076", "06 CBP 898", "06 CVH 720", "06 DRB 541"])      # ESKİ (kalibresiz) sonuçlar
-        self.assertEqual([yeni[t].get("plaka") for t in ("2020-06-01", "2021-06-01", "2022-06-01", "2023-06-01")], ["06 BYS 922", "06 CKB 589", "06 DAR 749", "06 DRP 403"])      # YENİ (referansla kalibre)
+        self.assertEqual([yeni[t].get("plaka") for t in ("2020-06-01", "2021-06-01", "2022-06-01", "2023-06-01")], ["06 BYS 922", "06 CLY 029", "06 DCB 136", "06 DRV 245"])      # YENİ (iki referansla kalibre)
         self.assertEqual((yeni["2020-06-01"]["etiket"], yeni["2020-06-01"]["err"]), ("Tarihsel referansla kalibre edilmiş tahmin", 60)); self.assertFalse(yeni["2020-06-01"]["kayit"])    # kesin gözlem DEĞİL; referans yakınında belirsizlik azalır (519 → 60) ama sıfırlanmaz
         self.assertTrue(60 <= yeni["2020-06-01"]["err"] < eski["2020-06-01"]["err"]); self.assertEqual((eski["2020-06-01"]["err"], eski["2021-06-01"]["err"], eski["2022-06-01"]["err"]), (519, 329, 176))
-        self.assertEqual([yeni[t]["err"] for t in ("2021-06-01", "2022-06-01", "2023-06-01")], [151, 176, 63]); self.assertEqual(yeni["2018-02-01"]["etiket"], "Çok kaba geriye dönük tahmin"); self.assertEqual(yeni["2019-06-01"]["etiket"], "Çok kaba geriye dönük tahmin"); self.assertEqual((yeni["2018-02-01"]["plaka"], yeni["2018-02-01"]["err"], yeni["2019-06-01"]["plaka"], yeni["2019-06-01"]["err"]), ("06 ATH 800", 329, "06 BKJ 604", 152))   # etiket değişti; sayısal tahmin ve ± gün AYNI
+        self.assertEqual([yeni[t]["err"] for t in ("2021-06-01", "2022-06-01", "2023-06-01")], [130, 38, 63]); self.assertEqual(yeni["2018-02-01"]["etiket"], "Çok kaba geriye dönük tahmin"); self.assertEqual(yeni["2019-06-01"]["etiket"], "Çok kaba geriye dönük tahmin"); self.assertEqual((yeni["2018-02-01"]["plaka"], yeni["2018-02-01"]["err"], yeni["2019-06-01"]["plaka"], yeni["2019-06-01"]["err"]), ("06 AOC 177", 329, "06 BIN 059", 152))   # etiket değişti; sayısal tahmin ve ± gün AYNI
         self.assertTrue(yeni["2018-01-31"].get("hata", "").startswith("Bu tarih için tahmin üretilemiyor: bu araç 1 Şubat 2018")); self.assertIn("1 Şubat 2018", yeni["2018-01-31"]["hata"]); self.assertIn("hesaplama modeli", eski["2018-02-01"]["hata"])  # sınır ve geçerli-seri alt sınırı korunur
         for t in ("2024-02-09", "2024-06-01", "2027-03-01", "2028-07-01"): self.assertEqual(eski[t], yeni[t], t)                                                           # 2024 ve sonrası AYNI
         print("\n  Ankara eski → yeni:", "; ".join(f"{t[:4]} {eski[t].get('plaka', '—')} → {yeni[t].get('plaka', '—')}" for t in ("2020-06-01", "2021-06-01", "2022-06-01", "2023-06-01", "2024-02-09")), file=sys.stderr)
@@ -349,7 +362,9 @@ console.log(JSON.stringify(out))"""
         for t, v in self.r["ankara"].items():
             if t < "2018-02-01" or t >= "2024-02-09": continue
             h = self.o[0][0] - (dt.date.fromisoformat(t) - E0).days; n = geri_n(self.o, h, 6); self.assertEqual(v["yeni"]["plaka"], tahmin_plaka(6, n), t); self.assertEqual(v["yeni"]["err"], geri_hata(self.o, h, 6), t)
-        k = kalibre_katsayilar(6, self.o); self.assertAlmostEqual(k["kappa"], 0.7720, places=3); self.assertEqual(round(geri_n(self.o, k["H"], 6)), k["nR"])             # referans noktası yakalanır
+        k = kalibre_katsayilar(6, self.o); self.assertAlmostEqual(k["kappa"], 0.8600, places=3); self.assertAlmostEqual(k["kap"][1], 0.7029, places=3); self.assertEqual(round(geri_n(self.o, k["H"], 6)), k["nR"])             # iki çapa: her ikisinden tam geçer
+        for c in k["caps"]: self.assertEqual(round(geri_n(self.o, c["H"], 6)), c["nR"])
+        self.assertEqual([c["H"] for c in k["caps"]], [588, 1348])
 
     def test_monotonluk_sureklilik_ve_tarih_plaka_tarih_tutarliligi(self):
         m = self.r["monoton"]; self.assertTrue(m["mono"]); self.assertGreater(m["minAdim"], 200)                                                          # 2018-02-01 → ilk gözlem: günlük kesin artış
@@ -357,6 +372,8 @@ console.log(JSON.stringify(out))"""
         self.assertEqual(round(m["nR"]), m["nRef"])                                                                                                       # referans tarihinde referans plakası (kalibre)
         self.assertEqual(self.r["ters"]["maks"], 0); self.assertGreater(self.r["ters"]["n"], 600)                                                          # tarih→plaka→tarih: 0 gün sapma
         h = self.r["hedefRef"]; self.assertEqual((dt.date(2024, 1, 1) + dt.timedelta(days=h["day"]), h["kalibre"], h["err"]), (dt.date(2020, 6, 1), "ara", 60))   # hedef aracı: 06 BYS 922 → 1 Haziran 2020 (±60, kalibre)
+        h = self.r["hedefP"]; self.assertEqual((dt.date(2024, 1, 1) + dt.timedelta(days=h["day"]), h["kalibre"], h["err"]), (dt.date(2022, 7, 1), "ara", 30))          # 06 DDA 690 → 1 Temmuz 2022 (±30, kalibre)
+        y = self.r["ankara"]["2022-07-01"]["yeni"]; self.assertEqual((y["plaka"], y["err"], y["etiket"], y["kayit"]), ("06 DDA 690", 30, "Tarihsel referansla kalibre edilmiş tahmin", False)); self.assertIn("06 BYS 922, yaklaşık 1 Haziran 2020; 06 DDA 690, 1 Temmuz 2022", y["uyari"])
 
     def test_81_il_gecerli_seri_gunluk_monotonluk_surekllilik_ve_ters_tutarlilik(self):
         """81 il, 2018-02-01 → ilk gözlem, HER GÜN: sıra kesin artar; yuvarlanmış sıra ≥ 1 olan her gün geçerli plaka (invN ≠ null) ve ilk gözlem plakasından küçük; ilk gözlemde süreklilik; tarih→plaka→tarih sapması ≤ 1 gün."""

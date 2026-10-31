@@ -201,7 +201,7 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 <!--/ANA:OLCUM-NOTU-->
 </main>
 <!--ANA:SURUM-->
-d0c563084a1d8183
+3581bd77cde12616
 <!--/ANA:SURUM-->
 
 <script src="/assets/takvim.js"></script>
@@ -272,7 +272,7 @@ function calcTarget(){
     out.innerHTML = "<b>Tahmini: "+dstr(r.day)+"</b> &nbsp;(±"+r.err+" gün · kayıtlarımızdan önce; "+(r.kalibre === "once" ? "çok kaba geriye dönük tahmin" : r.kalibre ? "tarihsel referansla kalibre edilmiş tahmin" : "geriye dönük tahmin")+")";
     tw.style.display="block";
     if (r.kalibre === "once") tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş ve bilinen tarihsel referansın ("+r.ref.plaka+", yaklaşık "+trTarihGun(toDay(r.ref.tarih))+"; kullanıcı bildirimi, resmî kayıt değildir) da öncesinde kalıyor: referanstan önceki dönemde hız, referans çevresindeki hızla varsayımla geriye uzatıldı. Referans tek noktadır ve tarihi yaklaşıktır; sonuç yüksek belirsizlik taşır, yalnızca büyüklük sırası olarak okuyun.";
-    else if (r.kalibre) tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş. Tarih, kullanıcı tarafından bildirilen tarihsel referansla ("+r.ref.plaka+", yaklaşık "+trTarihGun(toDay(r.ref.tarih))+"; resmî kayıt değildir) kalibre edilmiş tahmindir; referans tek noktadır ve tarihi yaklaşıktır.";
+    else if (r.kalibre) tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş. Tarih, kullanıcı tarafından bildirilen tarihsel referanslarla ("+referansOzet(r.refler)+"; resmî kayıt değildir) kalibre edilmiş tahmindir; referanslar az sayıdadır ve belgesizdir.";
     else tw.textContent = "Bu plaka kayıtlarımızın başlangıcından ("+dstr(r.first[0])+", "+kod+" "+fv.let+" "+String(fv.num).padStart(3,"0")+") önce verilmiş, bu yüzden tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemi esas alınarak geriye doğru tahmin edilmiştir."+(r.back_h > 540 ? " Uzak geçmiş: hız o dönemde farklı olabilir, tarihi kaba bir gösterge olarak okuyun." : "");
   }
   else if (r.passed) out.innerHTML = "<b class='ok'>Geçildi</b> — kayıtlara göre <b>"+dstr(r.day)+"</b> civarında verildi.";

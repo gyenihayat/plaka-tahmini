@@ -32,7 +32,7 @@ const PlakaIlArac = (function () {
       return { tip: "geriye", plaka, gun: r.day, err: r.err, ilkGun: r.first[0], ilkPlaka: kodTxt + " " + fv.let + " " + pad3(fv.num),
                kalibre: r.kalibre || null,
                uyarilar: [r.kalibre === "once" ? "Bu plaka kayıtlarımızın başlangıcından önce verilmiş ve bilinen tarihsel referansın (" + r.ref.plaka + ", yaklaşık " + trTarih(toDay(r.ref.tarih)) + "; kullanıcı bildirimi, resmî kayıt değildir) da öncesinde kalıyor: referanstan önceki dönemde hız, referans çevresindeki hızla varsayımla geriye uzatıldı. Referans tek noktadır ve tarihi yaklaşıktır; sonuç yüksek belirsizlik taşır, yalnızca büyüklük sırası olarak okuyun."
-                                      : r.kalibre ? "Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih, kullanıcı tarafından bildirilen tarihsel referansla (" + r.ref.plaka + ", yaklaşık " + trTarih(toDay(r.ref.tarih)) + "; resmî kayıt değildir) kalibre edilmiş tahmindir; referans tek noktadır ve tarihi yaklaşıktır."
+                                      : r.kalibre ? "Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih, kullanıcı tarafından bildirilen tarihsel referanslarla (" + referansOzet(r.refler) + "; resmî kayıt değildir) kalibre edilmiş tahmindir; referanslar az sayıdadır ve belgesizdir."
                                       : "Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemine dayalı geriye dönük tahmindir."] };
     }
     if (r.passed) return { tip: "gecildi", plaka, gun: r.day };

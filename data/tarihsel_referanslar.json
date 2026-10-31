@@ -1,5 +1,5 @@
 {
-  "_aciklama": "Gözlem tablolarından (tahmin_data.json) AYRI tutulan tarihsel plaka referansları. Bunlar forum gözlemi DEĞİLDİR ve gözlem verisine karıştırılmaz; yalnızca ilk gözlemden (9 Şubat 2024) önceki geriye dönük tahmini ilgili il için kalibre eder. resmi_veri=false: kesin resmî tahsis tarihi değildir.",
+  "_aciklama": "Gözlem tablolarından (tahmin_data.json) AYRI tutulan tarihsel plaka referansları. Bunlar forum gözlemi DEĞİLDİR ve gözlem verisine karıştırılmaz; yalnızca ilk gözlemden (9 Şubat 2024) önceki geriye dönük tahmini ilgili il için kalibre eder (Ankara için iki nokta: 1 Haziran 2020 yaklaşık, 1 Temmuz 2022 kesin gün; ikisi de kullanıcı bildirimidir). resmi_veri=false: kesin resmî tahsis tarihi değildir.",
   "referanslar": [
     {
       "il": "Ankara",
@@ -12,6 +12,18 @@
       "resmi_veri": false,
       "not": "Tarih 'yaklaşık 1 Haziran 2020' olarak bildirildi; ±30 gün, tarihin belirsizliğine ilişkin MODELLEME varsayımıdır (kullanıcı bir aralık vermedi). Tek nokta olduğundan kesin gözlem olarak etiketlenmez; 'tarihsel referansla kalibre edilmiş tahmin' olarak gösterilir. Yalnızca bu il için uygulanır.",
       "tarih_belirsizligi_aciklama": "±30 gün bir MODELLEME VARSAYIMIDIR: kullanıcı yalnızca 'yaklaşık 1 Haziran 2020' dedi, aralık vermedi. Belirsizlik tabanı 2×30 = ±60 gün olarak kullanılır."
+    },
+    {
+      "il": "Ankara",
+      "kod": 6,
+      "plaka": "06 DDA 690",
+      "tarih": "2022-07-01",
+      "tarih_kesinligi": "kesin gün",
+      "tarih_belirsizligi_gun": 15,
+      "kaynak": "Kullanıcı tarafından /geri-bildirim formuyla bildirilen tarihsel plaka (belgesiz, doğrulanmamış)",
+      "resmi_veri": false,
+      "not": "Tarih 'kesin gün: 1 Temmuz 2022' olarak bildirildi. Belgesiz bir kullanıcı bildirimi olduğundan resmî kayıt sayılmaz ve kesin gözlem olarak etiketlenmez; ikinci çapa olarak yalnızca Ankara'nın 1 Haziran 2020 ile ilk gözlem (9 Şubat 2024) arasındaki kalibre eğrisini ayarlar. Yalnızca bu il için uygulanır.",
+      "tarih_belirsizligi_aciklama": "±15 gün bir MODELLEME VARSAYIMIDIR (kesin gün bildirilse de belgesiz olduğundan 1. referanstaki ±30'un yarısı alındı). Belirsizlik tabanı 2×15 = ±30 gün olarak kullanılır."
     }
   ],
   "dogrulanmamis_degerlendirme_notlari": {

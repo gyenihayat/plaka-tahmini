@@ -51,10 +51,13 @@ class YapiVeSayfa(unittest.TestCase):
         """SEO etiketleri, GoatCounter yükleyicisi, hesaplayıcılar, güncel tahminler ve CSS: yalnızca altbilgi bağlantı bloğu eklenmiş olmalı (bir önceki yayına göre)."""
         sayfalar = ["index.html"] + [f"il/{os.path.basename(p)}" for p in sorted(glob.glob(os.path.join(u.ROOT, "il", "*.html")))]; self.assertEqual(len(sayfalar), 82)
         for s in sayfalar:
-            eski = git("show", f"{ONCEKI_URETIM}:{s}"); yeni = u.oku(os.path.join(u.ROOT, s)); self.assertEqual(katkisiz(yeni), katkisiz(eski), s)
+            eski = git("show", f"{ONCEKI_URETIM}:{s}"); yeni = u.oku(os.path.join(u.ROOT, s))
+            if s == "index.html": yeni = yeni.replace('tarihsel referanslarla ("+referansOzet(r.refler)+"; resmî kayıt değildir) kalibre edilmiş tahmindir; referanslar az sayıdadır ve belgesizdir.', 'tarihsel referansla ("+r.ref.plaka+", yaklaşık "+trTarihGun(toDay(r.ref.tarih))+"; resmî kayıt değildir) kalibre edilmiş tahmindir; referans tek noktadır ve tarihi yaklaşıktır.')      # Ankara ikinci referans: tek bilinçli metin değişikliği (ara dönem açıklaması çoğul)
+            surumsuz = lambda h: re.sub(r"<!--ANA:SURUM-->.*?<!--/ANA:SURUM-->", "", h, flags=re.S)          # anlamlı içerik parmak izi (metin değişince yenilenir)
+            self.assertEqual(surumsuz(katkisiz(yeni)), surumsuz(katkisiz(eski)), s)
             self.assertEqual(len(yeni) - len(eski), len(yeni) - len(katkisiz(yeni)) - (len(eski) - len(katkisiz(eski))))
             for ayrac in ('<link rel="canonical"', "<title>", '<meta name="description"', 'application/ld+json', "/assets/olcum.js"): self.assertEqual(yeni.count(ayrac), eski.count(ayrac), (s, ayrac))
-        self.assertEqual(git("diff", "HEAD", "--stat", "--", "sitemap.xml", "assets/tahmin-motoru.js", "assets/tarih-sorgu.js", "assets/il-arac.js", "assets/ana-sayfa.js", "assets/takvim.js", "assets/tarihsel-referanslar.js", "vercel.json", "robots.txt", "forecast.py", "is_gunu.py", "data"), "")
+        self.assertEqual(git("diff", "HEAD", "--stat", "--", "sitemap.xml", "assets/ana-sayfa.js", "assets/takvim.js", "vercel.json", "robots.txt", "forecast.py", "is_gunu.py", "data/tahmin_data.json", "data/seri_gecisleri.csv"), "")
 
     def test_sitemap_ve_arama_motoru(self):
         sm = u.oku(os.path.join(u.ROOT, "sitemap.xml")); self.assertEqual(sm.count("<url>"), 82); self.assertNotIn("geri-bildirim", sm)
@@ -103,7 +106,7 @@ console.log(JSON.stringify({sonuc,sayilan}));"""
         izlenen = git("ls-files").split("\n"); self.assertFalse([x for x in izlenen if re.search(r"oneriler|plaka_bildirimleri|geri_bildirim.*\.(txt|jsonl)$", x, re.I) and not x.startswith("tests/")])
         for yol in glob.glob(os.path.join(u.ROOT, "api", "*.js")):                    # kullanıcı kayıtları hiçbir koşulda sitenin gözlem/referans verisine yazılmaz: kodda bu dosyalara yol yok
             self.assertNotRegex(kod_satirlari(yol), r"tahmin_data|tarihsel_referanslar|data/", yol)
-        self.assertEqual(git("diff", "HEAD", "--stat", "--", "data"), "")
+        self.assertEqual(git("diff", "HEAD", "--stat", "--", "data/tahmin_data.json"), "")
         self.assertEqual(json.loads(u.oku(os.path.join(u.ROOT, "vercel.json"))).keys(), {"cleanUrls": 0, "trailingSlash": 0, "redirects": 0}.keys())     # yönlendirme/yeniden yazma kuralı eklenmedi: /api ile çakışma yok
 
     def test_token_depoda_yok(self):

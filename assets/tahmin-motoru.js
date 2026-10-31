@@ -130,31 +130,47 @@ function backRate0(s){
   const med = a => { const b=[...a].sort((x,y)=>x-y); const m=b.length>>1; return b.length%2 ? b[m] : (b[m-1]+b[m])/2; };
   return s._r0 = Math.max(rates.length ? med(rates) : 0, 0.01);
 }
-// ---- Tarihsel referansla KALİBRASYON (yalnızca assets/tarihsel-referanslar.js'te kaydı olan il; şimdilik Ankara) ---------------------------------------------------------------------
-// Referans: gözlem verisinden AYRI, kullanıcı bildirimli, yaklaşık tarihli tek nokta (resmî değil). İlk gözlem F ile referans R arasında model eğrisi g(h) = backAdv, referansı tam yakalayacak şekilde ölçeklenir:
-//   A(h) = g(h) · (1 − (1 − κ)·h/H),  κ = (n0 − nR)/g(H),  H = F − R.   A(0) = 0 (ilk gözlemde süreklilik: sıçrama yok), A(H) = n0 − nR (referans noktasından geçer), mevsimsel şekil g'den gelir.
-//   Düzeltme ilk gözlemden uzaklaştıkça artar: ilk gözlem yakınında model zaten doğrudur (Ankara hold-out'ta ±8 gün); tek katsayılı ölçek bunu bozardı.
-// R'den önce: referans sonrası ilk yılın ortalama hızıyla (rR) doğrusal geriye gidilir (süreklilik korunur). Monotonluk bozulursa (olağan dışı veri) tek katsayılı ölçeğe düşülür.
-function tarihselReferans(s){ const r = (typeof PlakaReferanslar !== "undefined") ? PlakaReferanslar[s.kod] : null; return r && r.length ? r[0] : null; }
+// ---- Tarihsel referanslarla KALİBRASYON (yalnızca assets/tarihsel-referanslar.js'te kaydı olan il; şimdilik Ankara: iki referans) ---------------------------------------------------------------------
+// Referans: gözlem verisinden AYRI, kullanıcı bildirimli, resmî olmayan noktalar. Çapalar ilk gözlemden uzaklığa (h = F − gün) göre sıralanır; g(h) = backAdv model eğrisidir (mevsimsel şekli verir).
+//   İlk gözlem ile en yakın çapa (h1) arasında: A(h) = g(h) · (1 − (1 − κ)·h/h1),  κ = (n0 − n1)/g(h1).   A(0) = 0 (ilk gözlemde süreklilik: sıçrama yok), A(h1) = n0 − n1.
+//     Düzeltme ilk gözlemden uzaklaştıkça artar: ilk gözlem yakınında model zaten doğrudur (Ankara hold-out'ta ±8 gün); tek katsayılı ölçek bunu bozardı.
+//   Çapalar arasında (h_i, h_{i+1}): A(h) = A(h_i) + κ_i · (g(h) − g(h_i)),  κ_i = (a_{i+1} − a_i)/(g(h_{i+1}) − g(h_i)),  a_i = n0 − n_i: her çapadan tam geçer, mevsimsel şekil g'den gelir.
+//   En eski çapadan önce: o çapadan sonraki ilk yılın ortalama hızıyla (rR) doğrusal geriye gidilir (süreklilik korunur).
+// Tek çapada monotonluk bozulursa (olağan dışı veri) tek katsayılı ölçeğe düşülür; birden çok çapada bozulursa kalibrasyon uygulanmaz (kalibresiz model).
+function tarihselReferanslar(s){ const r = (typeof PlakaReferanslar !== "undefined") ? PlakaReferanslar[s.kod] : null; return r && r.length ? r : []; }
+function tarihselReferans(s){ const r = tarihselReferanslar(s); return r.length ? r[0] : null; }
 function kalibrasyon(s){
   if (s._kal !== undefined) return s._kal;
-  s._kal = null; const r = tarihselReferans(s); if (!r) return null;
-  const m = /^(\d\d) ([A-Z]{3}) (\d{3})$/.exec(r.plaka), o = s.obs, F = o[0][0], n0 = o[0][1]; if (!m || +m[1] !== s.kod) return null;
-  const R = toDay(r.tarih), nR = toN(m[2], +m[3]), H = F - R, c = cleanCum(s), rate0 = backRate0(s), g = h => backAdv(s, c, rate0, h);
-  if (nR == null || !(H > 0) || !(nR < n0)) return null;
-  const gH = g(H), kappa = (n0 - nR) / gH; if (!(gH > 0) || !(kappa > 0) || !isFinite(kappa)) return null;
-  let A = h => g(h) * (1 - (1 - kappa) * h / H), mono = true; for (let h = 1; h <= H; h++) if (!(A(h) > A(h - 1))) { mono = false; break; }
-  if (!mono) A = h => g(h) * kappa;
-  const rR = H > 365 ? (A(H) - A(H - 365)) / 365 : A(H) / H;
-  return s._kal = {r, R, nR, H, kappa, mono, A, rR, taban: 2 * (r.tarihBelirsizligiGun || 30)};
+  s._kal = null; const refler = tarihselReferanslar(s); if (!refler.length) return null;
+  const o = s.obs, F = o[0][0], n0 = o[0][1], c = cleanCum(s), rate0 = backRate0(s), g = h => backAdv(s, c, rate0, h), caps = [];
+  for (const r of refler){
+    const m = /^(\d\d) ([A-Z]{3}) (\d{3})$/.exec(r.plaka); if (!m || +m[1] !== s.kod) return null;
+    const R = toDay(r.tarih), nR = toN(m[2], +m[3]), H = F - R; if (nR == null || !(H > 0) || !(nR < n0)) return null;
+    caps.push({r, R, nR, H, a: n0 - nR, taban: 2 * (r.tarihBelirsizligiGun || 30)});
+  }
+  caps.sort((x, y) => x.H - y.H); for (let i = 1; i < caps.length; i++) if (!(caps[i].H > caps[i-1].H && caps[i].a > caps[i-1].a)) return null;      // çapalar zaman sırasıyla artan ilerleme vermeli
+  const kap = []; for (let i = 0; i < caps.length; i++){
+    const g0 = i ? g(caps[i-1].H) : 0, d = g(caps[i].H) - g0, kx = ((caps[i].a) - (i ? caps[i-1].a : 0)) / d; if (!(d > 0) || !(kx > 0) || !isFinite(kx)) return null; kap.push(kx);
+  }
+  const H1 = caps[0].H, Hmax = caps[caps.length-1].H;
+  let A = h => {
+    if (h <= H1) return g(h) * (1 - (1 - kap[0]) * h / H1);
+    let i = 1; while (i < caps.length - 1 && h > caps[i].H) i++;
+    return caps[i-1].a + kap[i] * (g(h) - g(caps[i-1].H));
+  }, mono = true;
+  for (let h = 1; h <= Hmax; h++) if (!(A(h) > A(h - 1))) { mono = false; break; }
+  if (!mono){ if (caps.length > 1) return null; A = h => g(h) * kap[0]; }
+  const rR = Hmax > 365 ? (A(Hmax) - A(Hmax - 365)) / 365 : A(Hmax) / Hmax;
+  return s._kal = {r: caps[caps.length-1].r, refler: caps.slice().reverse().map(x => x.r), caps, R: caps[caps.length-1].R, nR: caps[caps.length-1].nR, H: Hmax, kappa: kap[0], mono, A, rR, taban: caps[caps.length-1].taban};
 }
+// Kullanıcıya gösterilen referans özeti (eskiden yeniye): "06 BYS 922, yaklaşık 1 Haziran 2020; 06 DDA 690, 1 Temmuz 2022"
+function referansOzet(refler){ return refler.map(r => r.plaka + ", " + (r.tarihKesinligi === "yaklaşık" ? "yaklaşık " : "") + trTarihGun(toDay(r.tarih))).join("; "); }
 // Geriye dönük göreli belirsizlik oranı: ±%25 (≤ 1 yıl), 1 yıldan sonra yılda +%5, en çok %50 (tarih aracı ve kalibre hata aynı kuralı kullanır).
 function geriOran(d){ return Math.min(0.5, 0.25 + 0.05 * Math.max(0, d - 365) / 365); }
-// Kalibre belirsizlik (gün): en yakın çapadan uzaklığa göre. İlk gözlem kesin (min ±10); referans yaklaşık ve TEK nokta olduğundan referans yakınında bile en az 2×tarih belirsizliği (±60) + uzaklık payı: aşırı kesinlik üretilmez.
+// Kalibre belirsizlik (gün): en yakın çapaya uzaklığa göre. İlk gözlem kesin (min ±10); referanslar yaklaşık/belgesiz ve az sayıda olduğundan çapa yakınında bile en az 2×tarih belirsizliği + uzaklık payı: aşırı kesinlik üretilmez.
 function kalibreHata(k, h){
-  const eR = d => k.taban + Math.round(geriOran(d) * d);
-  if (h > k.H) return eR(h - k.H);
-  return Math.min(Math.max(10, Math.round(geriOran(h) * h)), eR(k.H - h));
+  const yakin = Math.min(...k.caps.map(cp => cp.taban + Math.round(geriOran(Math.abs(h - cp.H)) * Math.abs(h - cp.H))));
+  return h > k.H ? yakin : Math.min(Math.max(10, Math.round(geriOran(h) * h)), yakin);
 }
 function backAdvKal(s, h){
   const k = kalibrasyon(s); if (!k) return backAdv(s, cleanCum(s), backRate0(s), h);
@@ -163,7 +179,7 @@ function backAdvKal(s, h){
 // Tarih -> plaka (ilk gözlemden önce): backEstimate'in tam tersi; n = ilk gözlem - ilerleme(h). h büyüdükçe n kesin azalır. Sonuç yuvarlanmamış ham sıradır (invN yuvarlar; n < 1 ise geçerli plaka yoktur).
 function estimateBack(s, day){
   const o = s.obs, h = o[0][0] - day, k = kalibrasyon(s), r = {n: o[0][1] - backAdvKal(s, h), real: false, back: true, h};
-  if (k) { r.kalibre = h <= k.H ? "ara" : "once"; r.err = kalibreHata(k, h); r.ref = k.r; }
+  if (k) { r.kalibre = h <= k.H ? "ara" : "once"; r.err = kalibreHata(k, h); r.ref = k.r; r.refler = k.refler; }
   return r;
 }
 // Geriye dönük TARİH tahmininin MODEL alt tarih sınırı (yalnızca bu araçta uygulanan bir kural): 1 Şubat 2018'den önceki tarihler için tahmin üretilmez. Bu tarih, üç harf–üç rakam plakaların hiçbir ilde fiilen dağıtılmaya başladığı gün olarak SUNULMAZ ve hiçbir ilin gerçek başlangıç serisi/tarihi anlamına gelmez.
@@ -177,7 +193,7 @@ function backEstimate(s, targetN){
   let lo = 0; for (let i=0;i<60;i++){ const m=(lo+hi)/2; if (backAdvKal(s,m) < dist) lo=m; else hi=m; }
   const h = Math.round(hi), k = kalibrasyon(s);
   const r = {passed:true, back:true, day: F - h, err: Math.max(7, Math.round(0.15*h)), back_h: h, first: o[0]};
-  if (k) { r.kalibre = h <= k.H ? "ara" : "once"; r.err = kalibreHata(k, h); r.ref = k.r; }      // referanslı il: tarih aracıyla AYNI kalibre eğri ve belirsizlik
+  if (k) { r.kalibre = h <= k.H ? "ara" : "once"; r.err = kalibreHata(k, h); r.ref = k.r; r.refler = k.refler; }      // referanslı il: tarih aracıyla AYNI kalibre eğri ve belirsizlik
   return r;
 }
 function reachDate(s, targetN){

@@ -55,7 +55,7 @@ const PlakaTarih = (function () {
         if (kal === "once") {      // bilinen referansın da ÖNCESİ: hız varsayımla geriye uzatıldı, yüksek belirsizlik
           u += "Ayrıca bu tarih, bilinen tarihsel referansın (" + est.ref.plaka + ", yaklaşık " + trTarihGun(toDay(est.ref.tarih)) + "; kullanıcı bildirimi, resmî kayıt değildir) da öncesinde kalıyor: referanstan önceki dönemde hız, referans çevresindeki hızla varsayımla geriye uzatıldı. Referans tek noktadır ve tarihi yaklaşıktır; sonuç yüksek belirsizlik taşır, yalnızca büyüklük sırası olarak okuyun. Hız değişimleri ve seri atlamaları bilinemez.";
         } else if (kal) {      // tarihsel referansla kalibre (kesin gözlem DEĞİL): referans tek noktadır, tarihi yaklaşıktır, belirsizlik korunur
-          u += "Tahmin, kullanıcı tarafından bildirilen tarihsel referansla (" + est.ref.plaka + ", yaklaşık " + trTarihGun(toDay(est.ref.tarih)) + "; resmî kayıt değildir) kalibre edildi; referans tek noktadır ve tarihi yaklaşıktır, bu yüzden belirsizlik korunmuştur. Hız değişimleri ve seri atlamaları bilinemez.";
+          u += "Tahmin, kullanıcı tarafından bildirilen tarihsel referanslarla (" + referansOzet(est.refler) + "; resmî kayıt değildir) kalibre edildi; referanslar az sayıdadır ve belgesizdir, bu yüzden belirsizlik korunmuştur. Hız değişimleri ve seri atlamaları bilinemez.";
         } else {
           u += "Tahmin, ilk gözlemin sırasından, ilk yıldaki hız ve ertesi yılın aynı dönemi esas alınarak geriye doğru hesaplandı; hız değişimleri ve seri atlamaları bilinemez.";
           if (b.kademe !== "geri") u += " Uzak geçmiş: belirsizlik büyüktür, sonucu yalnızca büyüklük sırası olarak okuyun.";
