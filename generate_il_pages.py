@@ -54,7 +54,9 @@ OLCUM_NOTU_ANA = OLCUM_NOTU_IL   # ana sayfa ve il sayfaları aynı bilgilendirm
 # stil satır içidir, ortak CSS'e dokunulmaz. İl sayfasından gelen kullanıcıda il kodu ve sayfa yolu adrese eklenir (form ili otomatik seçer).
 def katki_baglantisi(kod=None, sl=None):
     q = "?il=%02d&amp;sayfa=%%2Fil%%2F%s" % (kod, sl) if sl else "?sayfa=%2F"
-    return f'<p class="katki" style="font-size:15px;margin:22px 0 0"><a href="/geri-bildirim{q}">Öneri ve katkı gönder</a></p>'
+    kutu = "display:block;padding:14px 16px;border:1.5px solid #2a78d6;border-radius:10px;background:#e3eefb;color:#1f4fb0;text-align:center;text-decoration:none"      # belirgin ama ana eylemin (mavi dolu düğme) altında kalan açık mavi kutu
+    return (f'<p class="katki" style="margin:28px 0 0"><a href="/geri-bildirim{q}" style="{kutu}"><span style="display:block;font-size:1.0625rem;font-weight:600">Öneri ve katkı gönder</span>'
+            '<span style="display:block;font-size:15px;color:#27415f;margin-top:2px">Plaka bilgisi paylaşın, öneri veya hata bildirin</span></a></p>')
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
 
 CANLI_JS = """(function(){

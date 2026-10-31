@@ -37,13 +37,13 @@ class YapiVeSayfa(unittest.TestCase):
 
     def test_ana_sayfa_altbilgi_baglantisi(self):
         self.assertEqual(len(re.findall(re.escape(BAGLANTI_METNI), ANA)), 1)
-        self.assertRegex(ANA, r'<!--ANA:KATKI-->\n<p class="katki"[^>]*><a href="/geri-bildirim\?sayfa=%2F">Öneri ve katkı gönder</a></p>\n<!--/ANA:KATKI-->\n<!--ANA:OLCUM-NOTU-->')
+        self.assertRegex(ANA, r'<!--ANA:KATKI-->\n<p class="katki"[^>]*><a href="/geri-bildirim\?sayfa=%2F"[^>]*><span[^>]*>Öneri ve katkı gönder</span><span[^>]*>Plaka bilgisi paylaşın, öneri veya hata bildirin</span></a></p>\n<!--/ANA:KATKI-->\n<!--ANA:OLCUM-NOTU-->')
         self.assertLess(ANA.index("ANA:KATKI"), ANA.index("</main>")); self.assertGreater(ANA.index("ANA:KATKI"), ANA.index("ANA:IL-BAGLANTILAR"))
 
     def test_81_il_sayfasinin_altbilgisinde_dogru_il_ile_baglanti(self):
         sayfalar = sorted(glob.glob(os.path.join(u.ROOT, "il", "*.html"))); self.assertEqual(len(sayfalar), 81); esle = {s: k for k, _, s in il_listesi()}
         for yol in sayfalar:
-            s = os.path.basename(yol)[:-5]; h = u.oku(yol); b = re.findall(r'<!--KATKI--><p class="katki"[^>]*><a href="(/geri-bildirim\?[^"]*)">Öneri ve katkı gönder</a></p><!--/KATKI-->', h)
+            s = os.path.basename(yol)[:-5]; h = u.oku(yol); b = re.findall(r'<!--KATKI--><p class="katki"[^>]*><a href="(/geri-bildirim\?[^"]*)"[^>]*><span[^>]*>Öneri ve katkı gönder</span><span[^>]*>[^<]*</span></a></p><!--/KATKI-->', h)
             self.assertEqual(b, [f"/geri-bildirim?il={esle[s]:02d}&amp;sayfa=%2Fil%2F{s}"], s); self.assertEqual(h.count(BAGLANTI_METNI), 1)
             self.assertLess(h.index("<!--KATKI-->"), h.index("</main>")); self.assertLess(h.index("<!--KATKI-->"), h.index('<!--OLCUM--><p class="olcum-notu">'))
 
