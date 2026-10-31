@@ -21,6 +21,9 @@
   if (!ilKod && sayfa && sayfa.indexOf("/il/") === 0) ilKod = slugKod[sayfa.slice(4)];
   if (ilKod && !sayfa) { var o = ilSecim.querySelector('option[value="' + ilKod + '"]'); if (o) sayfa = "/il/" + o.dataset.slug; }
   if (ilKod) ilSecim.value = ilKod;                 // otomatik seçim; kullanıcı değiştirebilir
+  // plaka kutusu ipucu: seçili ilin kendi plaka kodu ("örn. 06 XYZ 123 ya da XYZ"); XYZ gerçek bir seri olamaz (X harfi plakalarda kullanılmaz); il seçili değilse kodsuz örnek
+  function plakaIpucu() { $("p-plaka").placeholder = "örn. " + (ilSecim.value ? ilSecim.value + " " : "") + "XYZ 123 ya da XYZ"; }
+  ilSecim.addEventListener("change", plakaIpucu); plakaIpucu();
   if (sayfa) ["p", "o"].forEach(function (k) { var n = $(k + "-sayfa-notu"); n.textContent = "Bu bildirim şu sayfayla ilişkilendirilecek: " + sayfa; n.hidden = false; });
 
   // --- sekmeler -----------------------------------------------------------------------------------------------------
@@ -89,7 +92,7 @@
         clearTimeout(zamanAsimi); son();
         if (s.ok && s.j && s.j.ok === true) {
           if (!s.j.tekrar) olay(ad === "plaka" ? "plaka_bildirimi" : "genel_oneri");      // tekrar: aynı içerik az önce kaydedilmişti, yeniden sayılmaz
-          form.reset(); tarihAlanlari(); if (ilKod) ilSecim.value = ilKod;
+          form.reset(); tarihAlanlari(); if (ilKod) ilSecim.value = ilKod; plakaIpucu();
           Object.keys(formlar).forEach(function (k) { formlar[k].hidden = true; }); $("sekmeler").parentNode.hidden = true;
           tesekkur.hidden = false; tesekkur.focus(); acilis = Date.now();
           return;

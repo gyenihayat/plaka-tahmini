@@ -123,12 +123,12 @@ function plakaDoldur(d, o = {}) { gir(d, "p-il", o.il ?? "06"); gir(d, "p-plaka"
   out.parametre = [];
   for (const [src, ne] of IL_BAGLANTILARI) {
     const f = await yukle(src, 390, 700), d = f.contentDocument, s = d.getElementById("p-il"), not = d.getElementById("p-sayfa-notu"), onot = d.getElementById("o-sayfa-notu");
-    out.parametre.push({ src, ne, il: s.value, ilMetin: s.selectedOptions[0] && s.selectedOptions[0].textContent, not: not.hidden ? "" : not.textContent, onot: onot.hidden ? "" : onot.textContent, plakaForm: gorunur(d.getElementById("f-plaka")), oneriForm: gorunur(d.getElementById("f-oneri")), degistirilebilir: !s.disabled && s.options.length === 82 });
+    out.parametre.push({ src, ne, il: s.value, ph: d.getElementById("p-plaka").placeholder, ilMetin: s.selectedOptions[0] && s.selectedOptions[0].textContent, not: not.hidden ? "" : not.textContent, onot: onot.hidden ? "" : onot.textContent, plakaForm: gorunur(d.getElementById("f-plaka")), oneriForm: gorunur(d.getElementById("f-oneri")), degistirilebilir: !s.disabled && s.options.length === 82 });
     f.remove();
   }
   {
     await sifirla(); await mod("basari"); const f = await yukle("/geri-bildirim?il=06&sayfa=%2Fil%2Fankara"), d = f.contentDocument;
-    plakaDoldur(d, { il: "35", plaka: "35 DGA 546" }); await gonder(d, "f-plaka"); await yanitBekle(d, "f-plaka"); const k = (await kayitlar())[0]; out.degistirilmis = { il: k.il, sayfa: k.sayfa }; f.remove();
+    gir(d, "p-il", "35"); out.phDegisince = d.getElementById("p-plaka").placeholder; plakaDoldur(d, { il: "35", plaka: "35 DGA 546" }); await gonder(d, "f-plaka"); await yanitBekle(d, "f-plaka"); const k = (await kayitlar())[0]; out.degistirilmis = { il: k.il, sayfa: k.sayfa }; f.remove();
     await sifirla(); const g = await yukle("/geri-bildirim?il=06&sayfa=%2Fil%2Fankara&tur=oneri"), e = g.contentDocument; gir(e, "o-mesaj", "Ankara sayfasıyla ilgili bir not"); await gonder(e, "f-oneri"); await yanitBekle(e, "f-oneri"); out.oneriSayfa = (await kayitlar())[0].sayfa; g.remove();
   }
 

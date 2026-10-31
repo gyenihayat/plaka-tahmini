@@ -226,9 +226,10 @@ class Tarayici(unittest.TestCase):
         for x in r:
             self.assertEqual(x["il"], x["ne"]["il"], x["src"]); self.assertTrue(x["degistirilebilir"], x["src"]); self.assertTrue(x["plakaForm"] and not x["oneriForm"], x["src"])
             self.assertEqual(x["not"], ("Bu bildirim şu sayfayla ilişkilendirilecek: " + x["ne"]["sayfa"]) if x["ne"]["sayfa"] else "", x["src"]); self.assertEqual(x["onot"], x["not"], x["src"])
+            self.assertEqual(x["ph"], f"örn. {x['il']} XYZ 123 ya da XYZ" if x["il"] else "örn. XYZ 123 ya da XYZ", x["src"])      # örnek plaka seçili ilin kendi kodunu taşır
             if x["il"]: self.assertRegex(x["ilMetin"], r"\(%s\)$" % x["il"], x["src"])
         ilk81 = r[:81]; self.assertEqual(len({x["il"] for x in ilk81}), 81)
-        self.assertEqual(self.s["degistirilmis"], {"il": "35", "sayfa": "/il/ankara"}); self.assertEqual(self.s["oneriSayfa"], "/il/ankara")      # kullanıcı Ankara sayfasından gelip İzmir'i seçti: il değişir, sayfa kalır
+        self.assertEqual(self.s["phDegisince"], "örn. 35 XYZ 123 ya da XYZ"); self.assertEqual(self.s["degistirilmis"], {"il": "35", "sayfa": "/il/ankara"}); self.assertEqual(self.s["oneriSayfa"], "/il/ankara")      # kullanıcı Ankara sayfasından gelip İzmir'i seçti: il değişir, sayfa kalır
 
     def test_tarayicidan_giden_gövdeler_gercek_sunucu_dogrulayicisindan_gecer(self):
         gövdeler = self.s["plaka"]["istekler"] + self.s["oneri"]["istekler"]; self.assertEqual(len(gövdeler), 4)
