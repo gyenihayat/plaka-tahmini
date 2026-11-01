@@ -7,6 +7,7 @@ from test_il_sayfasi import veri, sayfa, slug, TAM
 from test_ana_sayfa_regresyon import CHROME, CHROME_TEMEL
 ANA = u.oku(os.path.join(u.ROOT, "index.html"))
 ONCEKI_URETIM = "7086120"          # metin/adres değişmeden önceki üretim sürümü ("← Tüm illere dön" → /#il-baslik); yalnızca SEO alanları karşılaştırılır
+def veri_maskele(t): return re.sub(r"\d{1,2} (?:Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık) 20\d\d", "TARIH", re.sub(r"\b\d\d [A-Z]{3} \d{3}\b", "PLAKA", t))      # günlük veri güncellemesi son gözlem plakası/tarihini değiştirir; SEO şablonu karşılaştırmasında veri maskelenir
 BAGLANTI = '<p class="geri"><a href="/"><span aria-hidden="true">←</span> Ana sayfaya dön</a></p>'
 
 class Html81(unittest.TestCase):
@@ -28,7 +29,7 @@ class Html81(unittest.TestCase):
             eski = subprocess.run(["git", "show", f"{ONCEKI_URETIM}:il/{ad}.html"], cwd=u.ROOT, capture_output=True, text=True, check=True).stdout
             for desen in (r"<title>.*?</title>", r'<meta name="description" content="[^"]*">', r'<link rel="canonical" href="[^"]*">', r"<h1>.*?</h1>", r'<meta property="og:[a-z:]+" content="[^"]*">', r'<script type="application/ld\+json">.*?</script>',
                           r"<!--OLCUM-->.*?<!--/OLCUM-->", r'<p class="olcum-notu">.*?</p>', r'<p class="buyuk mono" data-live="plaka">[^<]*</p>'):
-                self.assertEqual(re.findall(desen, yeni, re.S), re.findall(desen, eski, re.S), f"{ad}: {desen}")
+                self.assertEqual([veri_maskele(x) for x in re.findall(desen, yeni, re.S)], [veri_maskele(x) for x in re.findall(desen, eski, re.S)], f"{ad}: {desen}")
 
 @unittest.skipUnless(CHROME and u.NODE, "Chrome/Node yok")
 class KlavyeVeKonum(unittest.TestCase):

@@ -72,7 +72,7 @@ class HaftalikGuncelleme(unittest.TestCase):
             kart = lambda h: re.sub(r"<!--ANA:KARTLAR-->.*?<!--/ANA:KARTLAR-->", "<!--KART-->", h, flags=re.S)       # statik kartlar üretim gününe bağlıdır; geri kalan her şey (DATA dahil) aynı olmalı
             for f in ("data/tahmin_data.json", "data/seri_gecisleri.csv"): self.assertEqual(u.oku(os.path.join(d, f)), orijinal[f], f)
             yeni_ana = u.oku(os.path.join(d, "index.html")); self.assertEqual(kart(yeni_ana), kart(orijinal["index.html"]), "index.html (kartlar hariç)")
-            self.assertEqual(len(re.findall(r'<a class="kart" href="/il/', yeni_ana)), 3); self.assertIn("23 Ekim 2026</span></a>", yeni_ana)       # kartlar yenilendi; son gözlem veriden
+            self.assertEqual(len(re.findall(r'<a class="kart" href="/il/', yeni_ana)), 3); self.assertIn("30 Ekim 2026</span></a>", yeni_ana)       # kartlar yenilendi; son gözlem veriden
             self.assertIn('<script src="/assets/tahmin-motoru.js"></script>', u.oku(os.path.join(d, "index.html")))
             sayfalar = sorted(glob.glob(os.path.join(d, "il", "*.html"))); self.assertEqual(len(sayfalar), 81)
             for s in veri(): self.assertIn(f"<dd class=\"k\">{tr(tarih)}</dd>", u.oku(os.path.join(d, "il", slug(TAM.get(s["il"], s["il"])) + ".html")))      # son kayıtlı gözlem tarihi veriden

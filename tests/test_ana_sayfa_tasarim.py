@@ -56,7 +56,7 @@ class Kartlar(unittest.TestCase):
             self.assertEqual(re.search(r'data-kart="tarih">([^<]*)<', ic)[1], tr(bas)); self.assertIn("itibarıyla", ic); self.assertIn("Tahmindir", ic)
             self.assertIn(f"Son gözlem: {kod:02d} {sr} {no:03d} · {tr(ld)}", metin(ic)); self.assertIn(f"{il} · {kod:02d}", metin(ic))                                                   # gözlem tahminden ayrı
             self.assertTrue(os.path.isfile(os.path.join(u.ROOT, href.lstrip("/") + ".html")))
-        self.assertIn('<span id="last-global">23.10.2026</span>', ANA)
+        self.assertIn('<span id="last-global">30.10.2026</span>', ANA)
 
     def test_kart_degerleri_sabit_degil_veriye_baglidir(self):
         d = u.kopya(ekstra=("sitemap.xml",))

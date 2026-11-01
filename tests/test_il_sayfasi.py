@@ -70,6 +70,9 @@ class IlkEkran(unittest.TestCase):
             h = sayfa(s["il"]); o = s["obs"]; L = o[-1]
             ort = min(o, key=lambda x: abs(x[0] - (L[0] - 28))); bas = min(o, key=lambda x: abs(x[0] - (L[0] - 56)))
             m = re.search(r'<dt>Son (\d+) günde ilerleme</dt><dd class="v">([\d.]+) sıra</dd><dd class="k">([^<]*)</dd>', h)
+            if m is None:       # gözlem aralığı düzensizse (±28/56 gün civarında gözlem yoksa) sayfa "Son iki gözlem arası" gösterir: değerler ham gözlemden
+                m2 = re.search(r'<dt>Son iki gözlem arası</dt><dd class="v">([\d.]+) sıra</dd><dd class="k">(\d+) günde</dd>', h); self.assertIsNotNone(m2, s["il"])
+                self.assertEqual((m2[1], int(m2[2])), (sayi(L[1] - o[-2][1]), L[0] - o[-2][0]), s["il"]); continue
             self.assertIsNotNone(m, s["il"]); a1 = L[1] - ort[1]; a0 = ort[1] - bas[1]; g1 = L[0] - ort[0]; g0 = ort[0] - bas[0]
             self.assertEqual((int(m[1]), m[2]), (g1, sayi(a1)), s["il"]); fark = ((a1/g1)/(a0/g0) - 1)*100
             beklenen = "önceki döneme benzer" if abs(fark) < 5 else f"önceki döneme göre %{abs(round(fark))} {'daha fazla' if fark > 0 else 'daha az'}"
@@ -107,7 +110,7 @@ class Guncellik(unittest.TestCase):
     def test_statik_uyari_21_gunden_eskiyse_gorunur(self):
         d = u.kopya()
         try:
-            for bugun, gorunur in (("2026-11-13", False), ("2026-11-17", True)):   # son gözlem 23 Ekim: 21 gün (uyarı yok) / 25 gün (uyarı var)
+            for bugun, gorunur in (("2026-11-20", False), ("2026-11-24", True)):   # son gözlem 30 Ekim: 21 gün (uyarı yok) / 25 gün (uyarı var)
                 r = u.uret(d, "--bugun", bugun, "--iller", "konya"); self.assertEqual(r.returncode, 0, r.stderr)
                 h = u.oku(os.path.join(d, "il", "konya.html")); self.assertEqual(not re.search(r'id="bayat"[^>]*\bhidden\b', h), gorunur, bugun)
                 self.assertIn("Tahmin güncel olmayabilir ve kesin değildir", h)
@@ -116,7 +119,7 @@ class Guncellik(unittest.TestCase):
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_js_ziyaret_tarihine_gore_uyari(self):
         h = os.path.join(u.ROOT, "il", "konya.html"); an = lambda y, m, d, sa=12: int(dt.datetime(y, m, d, sa, tzinfo=dt.timezone.utc).timestamp() * 1000)
-        r = [x["bayat"] for x in u.canli_sonuc(h, [an(2026, 10, 30), an(2026, 11, 13), an(2026, 11, 14), an(2027, 2, 1)])]     # yaş: 7, 21, 22 (Cumartesi), 101 gün (takvim günü; iş günü kuralından bağımsız)
+        r = [x["bayat"] for x in u.canli_sonuc(h, [an(2026, 11, 6), an(2026, 11, 20), an(2026, 11, 21), an(2027, 2, 1)])]     # son gözlem 30 Ekim: yaş 7, 21, 22 (Cumartesi), 94 gün (takvim günü; iş günü kuralından bağımsız)
         self.assertEqual(r, [False, False, True, True])
 
 class AcilirBolumlerVeBaglantilar(unittest.TestCase):

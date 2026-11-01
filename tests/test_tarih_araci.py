@@ -392,7 +392,7 @@ console.log(JSON.stringify(sonuc))""", u.ROOT], capture_output=True, text=True, 
     def test_diger_81_den_80_il_ve_ankara_ilk_gozlem_sonrasi_degismez_guncel_tahmin_korunur(self):
         self.assertEqual(self.r["digerIller"]["fark"], 0); self.assertGreater(self.r["digerIller"]["say"], 900)                                           # İstanbul, İzmir ve diğer 77 il: eski == yeni (tüm alanlar)
         self.assertEqual(self.r["ankaraSonrasi"]["fark"], 0); self.assertGreater(self.r["ankaraSonrasi"]["say"], 2400)                                    # Ankara ilk gözlemden 2030'a her gün aynı
-        self.assertEqual((self.r["guncel_eski"], self.r["guncel_yeni"]), ("06 GGL 096", "06 GGL 096"))                                                   # 30 Ekim 2026 güncel tahmin korunur
+        self.assertEqual((self.r["guncel_eski"], self.r["guncel_yeni"]), ("06 GGL 329", "06 GGL 329"))                                                   # 30 Ekim 2026: kayıtlı gözlem (31.10 tablosu, 30 Ekim iş günü); eski/yeni motor aynı
 
 class JsKapali(unittest.TestCase):
     def test_statik_bilgiler_ve_baglantilar_gorunur_arac_js_ister(self):

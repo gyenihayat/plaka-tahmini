@@ -9,6 +9,7 @@ ANA = u.oku(os.path.join(u.ROOT, "index.html"))
 PLAKA = re.compile(r"^\d\d [A-Z]{3} \d{3}$")
 KARTLAR = (("İstanbul", 34), ("Ankara", 6), ("İzmir", 35))
 ONCEKI_URETIM = "42a8460"          # tam plaka değişikliğinden önceki üretim sürümü: SEO alanlarının korunduğu bu sürümle karşılaştırılır
+def veri_maskele(t): return re.sub(r"\d{1,2} (?:Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık) 20\d\d", "TARIH", re.sub(r"\b\d\d [A-Z]{3} \d{3}\b", "PLAKA", t))      # günlük veri güncellemesi son gözlem plakası/tarihini değiştirir; SEO şablonu karşılaştırmasında veri maskelenir
 
 def referans_gunu(h): return dt.date.fromisoformat(re.search(r'data-baslangic="([^"]+)"', h)[1])
 def beklenen(s, h):
@@ -35,7 +36,7 @@ class Il81(unittest.TestCase):
             ad = slug(TAM.get(s["il"], s["il"])); yeni = sayfa(s["il"])
             eski = subprocess.run(["git", "show", f"{ONCEKI_URETIM}:il/{ad}.html"], cwd=u.ROOT, capture_output=True, text=True, check=True).stdout
             for desen in (r"<title>.*?</title>", r'<meta name="description" content="[^"]*">', r'<link rel="canonical" href="[^"]*">', r"<h1>.*?</h1>", r'<meta property="og:[a-z:]+" content="[^"]*">', r'<script type="application/ld\+json">.*?</script>'):
-                self.assertEqual(re.findall(desen, yeni, re.S), re.findall(desen, eski, re.S), f"{ad}: {desen}")
+                self.assertEqual([veri_maskele(x) for x in re.findall(desen, yeni, re.S)], [veri_maskele(x) for x in re.findall(desen, eski, re.S)], f"{ad}: {desen}")
 
 class AnaSayfaKartlari(unittest.TestCase):
     def test_uc_kart_tam_plaka_il_sayfasiyla_birebir_ve_baglanti_korunur(self):

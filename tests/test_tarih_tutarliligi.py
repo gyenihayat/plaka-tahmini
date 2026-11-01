@@ -133,7 +133,7 @@ class UretimTarihi(unittest.TestCase):
                 r = u.uret(d, "--bugun", bugun, "--iller", "konya"); self.assertEqual(r.returncode, 0, r.stderr)
                 yol = os.path.join(d, "il", "konya.html"); h = u.oku(yol); self.assertEqual(u.sayfa_bilgisi(yol), ref, bugun)
                 y, m, g = map(int, ref.split("-")); self.assertIn(f'<span data-live="tarih">{tr(D(y, m, g))}</span> itibarıyla · tahmindir', h)
-                self.assertIn('<dt>Son kayıtlı gözlem</dt><dd class="v mono nw">42 BJA 124</dd><dd class="k">23 Ekim 2026</dd>', h)     # gözlem tarihi kuraldan bağımsız
+                self.assertIn('<dt>Son kayıtlı gözlem</dt><dd class="v mono nw">42 BJB 426</dd><dd class="k">30 Ekim 2026</dd>', h)     # gözlem tarihi kuraldan bağımsız
             # aynı referans günündeki statik seri hafta sonu üretimiyle Cuma üretiminde aynıdır
             seri = {}
             for bugun in ("2026-10-30", "2026-10-31", "2026-11-01"):
