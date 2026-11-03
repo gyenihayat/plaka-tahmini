@@ -44,6 +44,21 @@ class LastmodKurali(unittest.TestCase):
             self.assertEqual(sorted(k_ for k_ in yeni if yeni[k_] != once[k_]), [ANA, ANA + "il/konya"]); self.assertEqual(yeni[ANA], "2026-11-06"); self.assertEqual(yeni[ANA + "il/konya"], "2026-11-06")
         finally: shutil.rmtree(d, ignore_errors=True)
 
+    def test_lastmod_secenegi_yalniz_degisen_sayfalara_yazilir_gelecek_reddedilir(self):
+        d = self._kopya()
+        try:
+            once = lm(os.path.join(d, "sitemap.xml"))
+            r = u.uret(d, "--bugun", "2026-11-06", "--lastmod", "2026-11-03"); self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(lm(os.path.join(d, "sitemap.xml")), once)                                                  # içerik değişmedi: --lastmod hiçbir tarihi oynatmaz
+            yol = os.path.join(d, "data", "tahmin_data.json"); v = json.loads(u.oku(yol)); k = next(x for x in v["iller"] if x["il"] == "Konya")
+            k["obs"].append([k["obs"][-1][0] + 7, k["obs"][-1][1] + 1700])
+            with open(yol, "w", encoding="utf-8") as f: f.write(json.dumps(v, ensure_ascii=False, separators=(",", ":")))
+            r = u.uret(d, "--bugun", "2026-11-06", "--lastmod", "2026-11-03"); self.assertEqual(r.returncode, 0, r.stderr); yeni = lm(os.path.join(d, "sitemap.xml"))
+            self.assertEqual({k_: yeni[k_] for k_ in yeni if yeni[k_] != once[k_]}, {ANA: "2026-11-03", ANA + "il/konya": "2026-11-03"})     # ana sayfa: "son kayıtlı veri" tarihi değişti
+            r = u.uret(d, "--lastmod", "2099-01-01"); self.assertNotEqual(r.returncode, 0); self.assertIn("gelecekte olamaz", r.stderr)
+            self.assertEqual(lm(os.path.join(d, "sitemap.xml")), yeni)                                                  # hata: hiçbir dosya yazılmadı
+        finally: shutil.rmtree(d, ignore_errors=True)
+
     def test_metin_sablon_degisimi_yalniz_ana_sayfa_lastmodunu_yeniler(self):
         d = self._kopya()
         try:

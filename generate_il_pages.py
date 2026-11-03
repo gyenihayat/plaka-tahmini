@@ -21,11 +21,15 @@ AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","
 _ap = argparse.ArgumentParser(description=__doc__)
 _ap.add_argument("--bugun", help="üretim tarihi (YYYY-MM-DD); varsayılan: bugün. Yalnızca tahmin tarihini/canlı tabloyu ve sitemap lastmod'unu etkiler; 'son gözlem' tarihleri her zaman data/tahmin_data.json'dan gelir")
 _ap.add_argument("--iller", help="yalnızca bu il sayfalarını yaz (virgülle ayrılmış slug'lar, örn. konya,denizli); verilirse sitemap yazılmaz")
+_ap.add_argument("--lastmod", help="anlamlı içeriği GERÇEKTEN değişen sayfalara yazılacak lastmod günü (YYYY-MM-DD); varsayılan: --bugun ya da bugün. İçeriği değişmeyen sayfaların lastmod'u yine korunur; gelecek tarih olamaz. "
+                                   "--bugun ile tahmin günü sabitlenip yalnızca şablon değiştiğinde değişikliğin gerçek gününü yazmak içindir")
 _args = _ap.parse_args()
 SADECE = set(_args.iller.split(",")) if _args.iller else None
 TR_UTC = datetime.timezone(datetime.timedelta(hours=3))     # Türkiye kalıcı UTC+3 (yaz saati yok); üretim makinesinin saat diliminden bağımsız
 def tr_bugun(): return datetime.datetime.now(TR_UTC).date()
 GERCEK_BUGUN = datetime.date.fromisoformat(_args.bugun) if _args.bugun else tr_bugun()   # Türkiye yerel takvim günü (sitemap lastmod için)
+LASTMOD_GUNU = datetime.date.fromisoformat(_args.lastmod) if _args.lastmod else GERCEK_BUGUN     # yalnızca anlamlı içeriği değişen sayfalara yazılır (aşağıda LASTMOD)
+if _args.lastmod and LASTMOD_GUNU > tr_bugun(): sys.exit(f"HATA: --lastmod {LASTMOD_GUNU} gelecekte olamaz (bugün {tr_bugun()})")
 try:
     today = onceki_is_gunu(GERCEK_BUGUN)       # güncel tahminin referans günü: Türkiye tarihinin en yakın önceki iş günü (hafta sonu/tam gün resmî tatilde değişmez)
     kapsam_kontrol(today, today + datetime.timedelta(days=TAHMIN_PENCERESI_GUN))      # tatil takvimi kapsamı aşılıyorsa üretim hatası (sayfalar yazılmadan)
@@ -66,6 +70,35 @@ var n=new Date(Date.now()+10800000),b=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(
 if(Math.round((b-g)/864e5)>__ESIK__){var by=document.getElementById("bayat");if(by)by.hidden=false;}
 }catch(x){console.error("plakatahmini: güncellik denetimi yapılamadı",x);uyar("Güncellik denetimi yapılamadı; son kayıtlı gözlem tarihine dikkat edin.");}
 })();"""
+def bayat_mesaji(last_d): return f"Son kayıtlı gözlem {BAYAT_ESIK_GUN} günden eski ({tr_date(last_d)}). Tahmin güncel olmayabilir ve kesin değildir."
+
+# --- AI arama görünürlüğü pilotu (yalnızca AI_OZET_ILLER'deki il sayfaları) ---------------------------------------------------------
+# 1) Tarihli kısa cevap: son KAYITLI GÖZLEM (plaka + tarih + harf grubu) tek cümlede; tahmin olduğu ve resmî kayıt olmadığı ayrıca söylenir.
+#    data-live taşımaz: canlı JS bu paragrafı DEĞİŞTİRMEZ (JS'siz okuyan bot da kullanıcı da aynı tarihli gözlemi görür). Mevcut "not" satırının yerine, CTA'nın altına gelir:
+#    büyük tahmini plaka ve CTA yerinden oynamaz.
+# 2) Veri satırı: son gözlem tarihi · sayfa güncellemesi (= sitemap lastmod, aynı değer) · tıklanabilir kaynak bağlantısı.
+# 3) #bayat: veri tazeyken uyarı METNİ HTML'de yer almaz (metin çıkarıcılar yanlışlıkla "21 günden eski" okumasın); satır içi betik veri eskidiğinde metni yazar ve gösterir.
+# Diğer iller baytça eski çıktıyı korur. Yaygınlaştırmak için kümeyi genişletmek yeterlidir.
+AI_OZET_ILLER = frozenset({34, 6, 35, 16, 7})       # plaka kodu: İstanbul, Ankara, İzmir, Bursa, Antalya
+KAYNAK_URL = "https://www.wowturkey.com/konu/turkiye-genelindeki-arac-plakalarinin-gelisimi.1299/"     # veride gönderi bazlı bağlantı yok: genel kaynak başlığı
+AI_OZET_CSS = (".ozet-cevap{font-size:15px;color:#4d5461;margin:0 0 6px;line-height:1.5}.ozet-cevap strong{color:#15171c}"
+               ".veri-satiri{font-size:14px;color:#5b6370;margin:0 0 8px;line-height:1.6}")
+GUNCELLEME_ISO, GUNCELLEME_TR = "__GUNCELLEME_ISO__", "__GUNCELLEME_TR__"      # lastmod kararından sonra doldurulur (sayfa metni lastmod'a, lastmod sayfa metnine bağlı olmasın diye)
+BAYAT_GOSTER_JS = "if(by)by.hidden=false;"
+assert BAYAT_GOSTER_JS in CANLI_JS
+def bulunma_eki(ad):
+    """Özel ada gelen bulunma eki (kesme işaretinden sonrası): Ankara -> da, İzmir -> de, Bayburt -> ta, Kilis -> te. Ünlü uyumu son ünlüden, sertleşme son harften."""
+    k = ad.replace("I", "ı").replace("İ", "i").lower()
+    son_unlu = next((c for c in reversed(k) if c in "aıoueiöü"), "a")
+    return ("t" if k[-1] in "fstkçşhp" else "d") + ("a" if son_unlu in "aıou" else "e")
+def ozet_cevap_html(ad, kod, ll, ln, last_d):
+    return (f'<p class="ozet-cevap">Son kayıtlı gözleme göre {html.escape(ad)}\'{bulunma_eki(ad)} plaka sırası <strong>{ll[0]}</strong> harf grubunda: '
+            f'<time datetime="{last_d.isoformat()}">{tr_date(last_d)}</time> tarihinde <span class="nw">{kod} {ll} {ln:03d}</span> gözlendi. '
+            'Güncel plaka tahmindir; resmî tahsis kaydı değildir.</p>')
+def veri_satiri_html(last_d):
+    return (f'<p class="veri-satiri"><span class="nw">Son gözlem: <time datetime="{last_d.isoformat()}">{tr_date(last_d)}</time></span> · '
+            f'<span class="nw">Sayfa güncellemesi: <time datetime="{GUNCELLEME_ISO}" data-guncelleme>{GUNCELLEME_TR}</time></span> · '
+            f'<span class="nw">Kaynak: <a href="{KAYNAK_URL}" rel="noopener">wowTURKEY forum tabloları</a></span></p>')
 iller = sorted(d["iller"], key=lambda s: s["kod"])
 # Yalnızca il sayfalarındaki "← Ana sayfaya dön" bağlantısı (ana sayfa CSS'i değişmez): sade, küçük ama belirgin metin bağlantısı; odak halkası genel a:focus-visible kuralından gelir.
 IL_CSS = ".geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}"
@@ -308,6 +341,7 @@ def anlamli(h):
     h = re.sub(r"<!--OLCUM-->.*?<!--/OLCUM-->\n", "", h, flags=re.S)             # analitik betiği ve bilgilendirme notu lastmod'u oynatmaz
     h = re.sub(r"<script>\(function.*?</script>", "", h, flags=re.S)
     h = re.sub(r'data-baslangic="[^"]*"', 'data-baslangic=""', h)
+    h = re.sub(r'(<time datetime=")[^"]*(" data-guncelleme>)[^<]*', r"\1\2", h)      # görünür "Sayfa güncellemesi" tarihi lastmod'un kendisidir, içerik sayılmaz
     return re.sub(r'(data-live="\w+">)[^<]*', r"\1", h)
 LASTMOD = {}
 # Ana sayfa lastmod: anlamlı içerik değiştiyse (ana_sayfa_guncelle: parmak izi farkı) üretim günü, aksi hâlde önceki değer korunur (aşağıda)
@@ -340,7 +374,9 @@ for s in iller:
     el, en = inv(est_n); ll, ln = inv(last[1])
     if s["kod"] in ANA_SAYFA_KARTLARI:        # ana sayfa kartı: aynı hesap (aynı el/ll/ln), aynı referans gün
         KARTLAR[s["kod"]] = {"il": il, "ad": ad, "kod": kod, "slug": sl, "plaka": f"{kod} {el} {en:03d}", "tarih": tr_date(today), "g_plaka": f"{kod} {ll} {ln:03d}", "g_tarih": tr_date(last_d)}
+    ai_ozet = s["kod"] in AI_OZET_ILLER
     canli_js = CANLI_JS.replace("__GOZLEM__", last_d.isoformat()).replace("__ESIK__", str(BAYAT_ESIK_GUN))
+    if ai_ozet: canli_js = canli_js.replace(BAYAT_GOSTER_JS, "if(by){if(!by.textContent)by.textContent=" + json.dumps(bayat_mesaji(last_d), ensure_ascii=False) + ";by.hidden=false;}")
     trans = [t for t in gec if t["il"] == il]
     rows = "".join(f"<tr><td>{t['ilk_gorulen_yeni_tarih'][8:10]}.{t['ilk_gorulen_yeni_tarih'][5:7]}.{t['ilk_gorulen_yeni_tarih'][:4]}</td><td class='mono'>{t['onceki_harf_grubu']} → {t['yeni_harf_grubu']}</td><td class='mono'>{html.escape(t['son_gorulen_eski'])} → {html.escape(t['ilk_gorulen_yeni'])}</td></tr>" for t in trans)
     gecis_html = f"<div class='card'><h2>Harf grubu geçişleri (Şubat 2024'ten beri)</h2><table><tr><th>Tarih</th><th>Grup</th><th>Seri</th></tr>{rows}</table></div>" if trans else f"<div class='card'><h2>Harf grubu geçişleri (Şubat 2024'ten beri)</h2><p class='meta' style='margin:0'>{html.escape(ad)}, Şubat 2024'ten bu yana <b>{ll[0]}</b> harf grubunda ilerliyor; bu dönemde grup değişimi yaşanmadı.</p></div>"
@@ -362,6 +398,12 @@ for s in iller:
     gozlem_html = f"<div class='card'><h2>Son plaka gözlemleri</h2>{obs_ozet}<table><tr><th>Tarih</th><th>Gözlenen seri</th></tr>{obs_rows}</table></div>"
     sd = son_degisim_veri(o, _c); sd_html = son_degisim_html(sd, ad)
     yas = (today - last_d).days; bayat_gizli = "" if yas > BAYAT_ESIK_GUN else " hidden"      # statik: üretim anında 21 günden eskiyse görünür; JS ziyaret anında da kontrol eder
+    if ai_ozet:     # pilot: tarihli kısa cevap + veri satırı "not" satırının yerine; uyarı metni yalnızca veri gerçekten eskiyse HTML'de
+        not_html = ozet_cevap_html(ad, kod, ll, ln, last_d) + "\n" + veri_satiri_html(last_d)
+        bayat_div = f'<div class="uyari" id="bayat" role="status"{bayat_gizli}>{bayat_mesaji(last_d) if not bayat_gizli else ""}</div>'
+    else:
+        not_html = '<p class="not">Son gözlemden hesaplanan tahmindir; resmî tahsis kaydı değildir.</p>'
+        bayat_div = f'<div class="uyari" id="bayat" role="status"{bayat_gizli}>{bayat_mesaji(last_d)}</div>'
     tahmin_grup_gizli = " hidden" if el[0] == ll[0] else ""
     if sd["donem"]:
         dn = sd["donem"]; donem_metrik = f"<div><dt>Son {dn['g1']} günde ilerleme</dt><dd class=\"v\">{sayi(dn['a1'])} sıra</dd><dd class=\"k\">{son_degisim_kisa(dn)}</dd></div>"
@@ -410,7 +452,7 @@ for s in iller:
 <meta name="twitter:title" content="{html.escape(title)}"><meta name="twitter:description" content="{html.escape(desc)}"><meta name="twitter:image" content="{BASE}/og.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
-<style>{CSS}{IL_CSS}</style>
+<style>{CSS}{IL_CSS}{AI_OZET_CSS if ai_ozet else ""}</style>
 <script type="application/ld+json">{breadcrumb}</script>
 </head>
 <body><main class="wrap">
@@ -428,8 +470,8 @@ for s in iller:
 <div id="tahmin-grup" data-gozlenen="{ll[0]}"{tahmin_grup_gizli}><dt>Tahmini harf grubu</dt><dd class="v mono" data-live="grup">{el[0]}</dd><dd class="k">tahmin; gözlem değil</dd></div>
 </dl>
 <a class="cta" href="#hesapla">Plakamın tarihini hesapla</a>
-<p class="not">Son gözlemden hesaplanan tahmindir; resmî tahsis kaydı değildir.</p>
-<div class="uyari" id="bayat" role="status"{bayat_gizli}>Son kayıtlı gözlem {BAYAT_ESIK_GUN} günden eski ({tr_date(last_d)}). Tahmin güncel olmayabilir ve kesin değildir.</div>
+{not_html}
+{bayat_div}
 <div class="uyari" id="guncellik" role="status" hidden><span></span> <a href="/?il={s['kod']}">Canlı tahmin aracını açın</a></div>
 </section>
 {arac}
@@ -454,13 +496,14 @@ for s in iller:
 </body></html>"""
     _yol = f"il/{sl}.html"; _url = f"{BASE}/il/{sl}"
     _eski = open(_yol, encoding="utf-8").read() if os.path.exists(_yol) else None
-    LASTMOD[_url] = ESKI_LASTMOD[_url] if (_eski is not None and _url in ESKI_LASTMOD and anlamli(_eski) == anlamli(page)) else GERCEK_BUGUN.isoformat()
+    LASTMOD[_url] = ESKI_LASTMOD[_url] if (_eski is not None and _url in ESKI_LASTMOD and anlamli(_eski) == anlamli(page)) else LASTMOD_GUNU.isoformat()
+    _lm = datetime.date.fromisoformat(LASTMOD[_url]); page = page.replace(GUNCELLEME_ISO, _lm.isoformat()).replace(GUNCELLEME_TR, tr_date(_lm))     # görünür sayfa güncellemesi = sitemap lastmod
     if SADECE is None or sl in SADECE:
         open(_yol,"w").write(page.replace(",", ".", 0))
     urls.append(_url)
 if SADECE is None:
     _ana = BASE + "/"       # ana sayfa kartları/listeleri/CSS (aynı referans gün, aynı hesap); lastmod yalnızca anlamlı içerik değiştiyse yenilenir
-    LASTMOD[_ana] = GERCEK_BUGUN.isoformat() if (ana_sayfa_guncelle() or _ana not in ESKI_LASTMOD) else ESKI_LASTMOD[_ana]
+    LASTMOD[_ana] = LASTMOD_GUNU.isoformat() if (ana_sayfa_guncelle() or _ana not in ESKI_LASTMOD) else ESKI_LASTMOD[_ana]
 if SADECE is None:
     _sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"  <url><loc>{u}</loc><lastmod>{LASTMOD[u]}</lastmod><changefreq>weekly</changefreq></url>" for u in urls) + "\n</urlset>\n"
     with open("sitemap.xml", "w", encoding="utf-8") as _f: _f.write(_sm)

@@ -28,6 +28,8 @@ def ilk_ekran(h):
 def metin(x): return html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", x))).strip()
 def git_eski(f):
     return subprocess.run(["git", "show", "9b65ce4:" + f], cwd=u.ROOT, capture_output=True, text=True, check=True).stdout
+AI_OZET = {34, 6, 35, 16, 7}     # AI arama pilotu (İstanbul, Ankara, İzmir, Bursa, Antalya): "not" satırının yerine tarihli kısa cevap (≤25 kelime) + veri/kaynak satırı (16 kelime)
+ILK_EKRAN_KELIME = 75; ILK_EKRAN_KELIME_AI = 100       # pilot bütçesi: 75 − not satırı (8) + kısa cevap (≤25) + veri satırı (~16) ≈ 100; paragraf başına 25 kelime sınırı herkes için aynı
 
 class SeoEtiketleri(unittest.TestCase):
     def test_title_h1_canonical_81_ilde_korunur(self):
@@ -81,7 +83,7 @@ class IlkEkran(unittest.TestCase):
     def test_metin_butcesi_ve_kaldirilan_ifadeler(self):
         for s in veri():
             h = sayfa(s["il"]); e = ilk_ekran(h); kelime = len(metin(e).split())
-            self.assertLessEqual(kelime, 75, f"{s['il']}: ilk ekran {kelime} kelime")
+            self.assertLessEqual(kelime, ILK_EKRAN_KELIME_AI if s["kod"] in AI_OZET else ILK_EKRAN_KELIME, f"{s['il']}: ilk ekran {kelime} kelime")
             for p in re.findall(r"<p[^>]*>(.*?)</p>", e, re.S): self.assertLessEqual(len(metin(p).split()), 25, (s["il"], metin(p)[:60]))
             for yasak in ("ilinde son doğrulanmış", "şu anda", "yaklaşık bir hafta", "999 plak", "Güncel tahminimiz", "basıyor"): self.assertNotIn(yasak, h, (s["il"], yasak))
             self.assertIn("tahmindir", e); self.assertIn("Son kayıtlı gözlem", e); self.assertIn("resmî tahsis kaydı değildir", e)

@@ -49,7 +49,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 .t-sonuc{margin-top:16px;padding:14px 16px;background:#fcfcfa;border:1px solid #dcdfe5;border-radius:12px}.t-plaka{font-size:clamp(2.25rem,9vw,2.75rem);font-weight:600;line-height:1.1;letter-spacing:.02em;margin:0 0 6px;white-space:nowrap}
 .t-alt{margin:0;font-size:15px;color:#4d5461;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}.t-etiket{display:inline-block;font-size:12px;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:99px;font-weight:600;border:1.5px solid currentColor}.t-etiket.tahmin,.t-etiket.geri{color:#7a3fb3}.t-etiket.kayit{color:#0a7a2f}.t-etiket.kaba{color:#9a5b00}.t-etiket.kalibre{color:#1f4fb0}.t-etiket.cokkaba{color:#9b2c1d}.t-etiket{max-width:100%;line-height:1.35}
 .t-atla{margin:8px 0 0;color:#7a4a00;font-weight:600}.tarih-arac .uyari{margin:12px 0 0}.t-ikincil{margin-top:14px;font:inherit;font-size:.9375rem;padding:9px 14px;border:1px solid #8b94a5;border-radius:8px;background:#fff;color:#4d5461;cursor:pointer}.t-ikincil:hover{background:#e3eefb;color:#15171c}
-@media (min-width:520px){.t-alanlar.t-iki{grid-template-columns:1fr 1fr}.t-btn{display:inline-block;width:auto;min-width:220px}}.geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}</style>
+@media (min-width:520px){.t-alanlar.t-iki{grid-template-columns:1fr 1fr}.t-btn{display:inline-block;width:auto;min-width:220px}}.geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}.ozet-cevap{font-size:15px;color:#4d5461;margin:0 0 6px;line-height:1.5}.ozet-cevap strong{color:#15171c}.veri-satiri{font-size:14px;color:#5b6370;margin:0 0 8px;line-height:1.6}</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Plaka Tahmini","item":"https://plakatahmini.com/"},{"@type":"ListItem","position":2,"name":"İzmir Plaka Sırası","item":"https://plakatahmini.com/il/izmir"}]}</script>
 </head>
 <body><main class="wrap">
@@ -67,8 +67,9 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 <div id="tahmin-grup" data-gozlenen="D" hidden><dt>Tahmini harf grubu</dt><dd class="v mono" data-live="grup">D</dd><dd class="k">tahmin; gözlem değil</dd></div>
 </dl>
 <a class="cta" href="#hesapla">Plakamın tarihini hesapla</a>
-<p class="not">Son gözlemden hesaplanan tahmindir; resmî tahsis kaydı değildir.</p>
-<div class="uyari" id="bayat" role="status" hidden>Son kayıtlı gözlem 21 günden eski (30 Ekim 2026). Tahmin güncel olmayabilir ve kesin değildir.</div>
+<p class="ozet-cevap">Son kayıtlı gözleme göre İzmir'de plaka sırası <strong>D</strong> harf grubunda: <time datetime="2026-10-30">30 Ekim 2026</time> tarihinde <span class="nw">35 DFZ 568</span> gözlendi. Güncel plaka tahmindir; resmî tahsis kaydı değildir.</p>
+<p class="veri-satiri"><span class="nw">Son gözlem: <time datetime="2026-10-30">30 Ekim 2026</time></span> · <span class="nw">Sayfa güncellemesi: <time datetime="2026-11-03" data-guncelleme>3 Kasım 2026</time></span> · <span class="nw">Kaynak: <a href="https://www.wowturkey.com/konu/turkiye-genelindeki-arac-plakalarinin-gelisimi.1299/" rel="noopener">wowTURKEY forum tabloları</a></span></p>
+<div class="uyari" id="bayat" role="status" hidden></div>
 <div class="uyari" id="guncellik" role="status" hidden><span></span> <a href="/?il=35">Canlı tahmin aracını açın</a></div>
 </section>
 <section class="arac" id="hesapla" aria-labelledby="arac-baslik"><h2 id="arac-baslik">Hedef plakanın tahmini tarihi</h2><form id="hedef-form" action="/" method="get" autocomplete="off" novalidate><input type="hidden" name="il" value="35"><label for="hedef">İzmir için hedef plaka veya seri</label><div class="alan"><input id="hedef" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="örn. DZZ 999" aria-describedby="hedef-ipucu"><button type="submit">Hesapla</button></div><p id="hedef-ipucu" class="ipucu">Harf grubu ve isteğe bağlı numara (örn. DFZ veya DFZ 500). İl bu sayfadan alınır. <a href="/?il=35">Ana sayfada aç</a></p><details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary><label for="atla">Verilmeyeceğini düşündüğünüz seriler</label><input id="atla" type="text" autocapitalize="characters" spellcheck="false" placeholder="örn. SXX, TXX" aria-describedby="atla-ipucu"><p id="atla-ipucu" class="ipucu">Harf, iki harf (X joker) veya aralık: SXX, TXX, BAA-BCZ.</p></details></form><div id="sonuc" class="sonuc" aria-live="polite"></div></section>
@@ -102,7 +103,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 function uyar(m){var u=document.getElementById("guncellik");if(!u)return;var t=u.querySelector("span");if(t)t.textContent=m;u.hidden=false;}
 try{
 var n=new Date(Date.now()+10800000),b=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()),q="2026-10-30".split("-"),g=Date.UTC(+q[0],+q[1]-1,+q[2]);
-if(Math.round((b-g)/864e5)>21){var by=document.getElementById("bayat");if(by)by.hidden=false;}
+if(Math.round((b-g)/864e5)>21){var by=document.getElementById("bayat");if(by){if(!by.textContent)by.textContent="Son kayıtlı gözlem 21 günden eski (30 Ekim 2026). Tahmin güncel olmayabilir ve kesin değildir.";by.hidden=false;}}
 }catch(x){console.error("plakatahmini: güncellik denetimi yapılamadı",x);uyar("Güncellik denetimi yapılamadı; son kayıtlı gözlem tarihine dikkat edin.");}
 })();</script>
 <!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->

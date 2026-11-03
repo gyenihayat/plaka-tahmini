@@ -22,6 +22,6 @@ const sonuc = anlar.map(an => {
   let v = null, hata = null; try { v = vm.runInContext("PlakaIlArac.guncelTahmin(document, __s, __an)", ctx); } catch (e) { hata = String(e); }
   const ana = vm.runInContext("(function(){const r=trReferansGun(__an), n=estimateAt(__s,r.gun).n, iv=invN(n); return {gun:r.gun, iso:r.iso, tr:trBugunIso(__an), kapsamDisi:r.kapsamDisi, n:n, seri:String(__s.kod).padStart(2,'0')+' '+iv.let, plaka:String(__s.kod).padStart(2,'0')+' '+iv.let+' '+String(iv.num).padStart(3,'0')};})()", ctx);
   const r = {}; els.forEach(e => r[e.k] = e.textContent);
-  return { an, canli: r, v, hata, ana, bayat: !by.hidden, tahminGrup: tg ? !tg.hidden : null, uyari: gu.hidden ? null : span.textContent, hatalar: errs };
+  return { an, canli: r, v, hata, ana, bayat: !by.hidden, bayatMetin: by.textContent || null, tahminGrup: tg ? !tg.hidden : null, uyari: gu.hidden ? null : span.textContent, hatalar: errs };
 });
 console.log(JSON.stringify(sonuc));

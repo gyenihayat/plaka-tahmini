@@ -54,6 +54,15 @@ class Yerlesim(unittest.TestCase):
             if r["w"] <= 390: self.assertLess(r["ctaAlt"], 700, f"{r['sayfa']} {r['w']}: CTA ilk ekranda olmalı"); self.assertLess(r["hedefUst"], 1100, f"{r['sayfa']} {r['w']}: araç tek kısa kaydırmada")
             self.assertTrue(r["etiketli"], r["sayfa"]); self.assertFalse(r["uyari"], f"{r['sayfa']} {r['w']}: motor yüklüyken canlı tahmin uyarısı görünmemeli")
 
+    def test_ai_ozet_paragrafi_canli_js_sonrasi_statikle_ayni(self):
+        from test_il_sayfasi import AI_OZET, metin
+        pilot = {"/il/" + p for p in ("istanbul", "ankara", "izmir", "bursa", "antalya")}; self.assertEqual(len(pilot), len(AI_OZET))
+        for r in self.sonuc:
+            if r["sayfa"] not in pilot: self.assertIsNone(r["ozet"], r["sayfa"]); continue
+            statik = metin(re.search(r'<p class="ozet-cevap">(.*?)</p>', u.oku(os.path.join(u.ROOT, r["sayfa"].lstrip("/") + ".html")), re.S)[1])
+            self.assertEqual(" ".join(r["ozet"].split()), statik, f"{r['sayfa']} {r['w']}: canlı JS kısa cevabı değiştirmemeli")
+            self.assertTrue(r["buyukMetin"], r["sayfa"])                                     # büyük tahmini plaka yerinde ve dolu
+
     def test_arac_etkilesimi(self):
         ilk = [r for r in self.sonuc if "sonucTahmin" in r]; self.assertEqual(len(ilk), 81)
         for r in ilk:
