@@ -10,7 +10,7 @@ const canli = [...sayfa.matchAll(/data-live="(\w+)">([^<]*)</g)].map(m => ({ k: 
 const bas = sayfa.match(/data-baslangic="([^"]+)"/)[1], tgM = sayfa.match(/id="tahmin-grup" data-gozlenen="(\w)"([^>]*)>/);
 const sonuc = anlar.map(an => {
   const els = canli.map(e => ({ ...e, getAttribute() { return this.k; } }));
-  const by = { hidden: /id="bayat"[^>]*\bhidden\b/.test(sayfa) }, gu = { hidden: true, querySelector: () => span }, span = { textContent: "" };
+  const byM = sayfa.match(/<div[^>]*id="bayat"([^>]*)>([^<]*)<\/div>/), by = { hidden: /\bhidden\b/.test(byM[1]), textContent: byM[2] }, gu ={ hidden: true, querySelector: () => span }, span = { textContent: "" };
   const tg = tgM ? { hidden: /\bhidden\b/.test(tgM[2]), getAttribute: () => tgM[1] } : null;
   const doc = { readyState: "complete", querySelector: s => s === "[data-baslangic]" ? { getAttribute: () => bas } : null,
     querySelectorAll: s => s === "[data-live]" ? els : [], getElementById: id => id === "bayat" ? by : id === "guncellik" ? gu : id === "tahmin-grup" ? tg : null, addEventListener() {} };

@@ -68,7 +68,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 </dl>
 <a class="cta" href="#hesapla">Plakamın tarihini hesapla</a>
 <p class="not">Son gözlemden hesaplanan tahmindir; resmî tahsis kaydı değildir.</p>
-<div class="uyari" id="bayat" role="status" hidden>Son kayıtlı gözlem 21 günden eski (30 Ekim 2026). Tahmin güncel olmayabilir ve kesin değildir.</div>
+<div class="uyari" id="bayat" role="status" hidden></div>
 <div class="uyari" id="guncellik" role="status" hidden><span></span> <a href="/?il=77">Canlı tahmin aracını açın</a></div>
 </section>
 <section class="arac" id="hesapla" aria-labelledby="arac-baslik"><h2 id="arac-baslik">Hedef plakanın tahmini tarihi</h2><form id="hedef-form" action="/" method="get" autocomplete="off" novalidate><input type="hidden" name="il" value="77"><label for="hedef">Yalova için hedef plaka veya seri</label><div class="alan"><input id="hedef" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="örn. AZZ 999" aria-describedby="hedef-ipucu"><button type="submit">Hesapla</button></div><p id="hedef-ipucu" class="ipucu">Harf grubu ve isteğe bağlı numara (örn. AEV veya AEV 500). İl bu sayfadan alınır. <a href="/?il=77">Ana sayfada aç</a></p><details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary><label for="atla">Verilmeyeceğini düşündüğünüz seriler</label><input id="atla" type="text" autocapitalize="characters" spellcheck="false" placeholder="örn. SXX, TXX" aria-describedby="atla-ipucu"><p id="atla-ipucu" class="ipucu">Harf, iki harf (X joker) veya aralık: SXX, TXX, BAA-BCZ.</p></details></form><div id="sonuc" class="sonuc" aria-live="polite"></div></section>
@@ -102,7 +102,7 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 function uyar(m){var u=document.getElementById("guncellik");if(!u)return;var t=u.querySelector("span");if(t)t.textContent=m;u.hidden=false;}
 try{
 var n=new Date(Date.now()+10800000),b=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()),q="2026-10-30".split("-"),g=Date.UTC(+q[0],+q[1]-1,+q[2]);
-if(Math.round((b-g)/864e5)>21){var by=document.getElementById("bayat");if(by)by.hidden=false;}
+if(Math.round((b-g)/864e5)>21){var by=document.getElementById("bayat");if(by){if(!by.textContent)by.textContent="Son kayıtlı gözlem 21 günden eski (30 Ekim 2026). Tahmin güncel olmayabilir ve kesin değildir.";by.hidden=false;}}
 }catch(x){console.error("plakatahmini: güncellik denetimi yapılamadı",x);uyar("Güncellik denetimi yapılamadı; son kayıtlı gözlem tarihine dikkat edin.");}
 })();</script>
 <!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->

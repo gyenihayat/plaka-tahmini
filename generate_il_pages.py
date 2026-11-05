@@ -62,12 +62,13 @@ def katki_baglantisi(kod=None, sl=None):
     return (f'<p class="katki" style="margin:28px 0 0"><a href="/geri-bildirim{q}" style="{kutu}"><span style="display:block;font-size:1.0625rem;font-weight:600">Öneri ve katkı gönder</span>'
             '<span style="display:block;font-size:15px;color:#27415f;margin-top:2px">Plaka bilgisi paylaşın, öneri veya hata bildirin</span></a></p>')
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
-
+# #bayat uyarısı (81 il, tek kod yolu): veri tazeyken uyarı METNİ HTML'de yer almaz; öğe boş ve hidden'dır (JS çalıştırmayan bot/metin çıkarıcı yanlışlıkla "21 günden eski" okumasın).
+# Üretim anında veri zaten eskiyse metin HTML'de ve görünürdür (JS kapalıyken de okunur). Ziyaret anında eşik aşılmışsa satır içi betik metni (öğe boşsa) yazar ve gösterir.
 CANLI_JS = """(function(){
 function uyar(m){var u=document.getElementById("guncellik");if(!u)return;var t=u.querySelector("span");if(t)t.textContent=m;u.hidden=false;}
 try{
 var n=new Date(Date.now()+10800000),b=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()),q="__GOZLEM__".split("-"),g=Date.UTC(+q[0],+q[1]-1,+q[2]);
-if(Math.round((b-g)/864e5)>__ESIK__){var by=document.getElementById("bayat");if(by)by.hidden=false;}
+if(Math.round((b-g)/864e5)>__ESIK__){var by=document.getElementById("bayat");if(by){if(!by.textContent)by.textContent=__BAYAT_METNI__;by.hidden=false;}}
 }catch(x){console.error("plakatahmini: güncellik denetimi yapılamadı",x);uyar("Güncellik denetimi yapılamadı; son kayıtlı gözlem tarihine dikkat edin.");}
 })();"""
 def bayat_mesaji(last_d): return f"Son kayıtlı gözlem {BAYAT_ESIK_GUN} günden eski ({tr_date(last_d)}). Tahmin güncel olmayabilir ve kesin değildir."
@@ -77,15 +78,13 @@ def bayat_mesaji(last_d): return f"Son kayıtlı gözlem {BAYAT_ESIK_GUN} günde
 #    data-live taşımaz: canlı JS bu paragrafı DEĞİŞTİRMEZ (JS'siz okuyan bot da kullanıcı da aynı tarihli gözlemi görür). Mevcut "not" satırının yerine, CTA'nın altına gelir:
 #    büyük tahmini plaka ve CTA yerinden oynamaz.
 # 2) Veri satırı: son gözlem tarihi · sayfa güncellemesi (= sitemap lastmod, aynı değer) · tıklanabilir kaynak bağlantısı.
-# 3) #bayat: veri tazeyken uyarı METNİ HTML'de yer almaz (metin çıkarıcılar yanlışlıkla "21 günden eski" okumasın); satır içi betik veri eskidiğinde metni yazar ve gösterir.
-# Diğer iller baytça eski çıktıyı korur. Yaygınlaştırmak için kümeyi genişletmek yeterlidir.
+# (#bayat uyarısı pilota özgü değildir: 81 ilde aynı kuralla üretilir, bkz. BAYAT_ESIK_GUN / CANLI_JS.)
+# Diğer iller "not" satırını korur. Yaygınlaştırmak için kümeyi genişletmek yeterlidir.
 AI_OZET_ILLER = frozenset({34, 6, 35, 16, 7})       # plaka kodu: İstanbul, Ankara, İzmir, Bursa, Antalya
 KAYNAK_URL = "https://www.wowturkey.com/konu/turkiye-genelindeki-arac-plakalarinin-gelisimi.1299/"     # veride gönderi bazlı bağlantı yok: genel kaynak başlığı
 AI_OZET_CSS = (".ozet-cevap{font-size:15px;color:#4d5461;margin:0 0 6px;line-height:1.5}.ozet-cevap strong{color:#15171c}"
                ".veri-satiri{font-size:14px;color:#5b6370;margin:0 0 8px;line-height:1.6}")
 GUNCELLEME_ISO, GUNCELLEME_TR = "__GUNCELLEME_ISO__", "__GUNCELLEME_TR__"      # lastmod kararından sonra doldurulur (sayfa metni lastmod'a, lastmod sayfa metnine bağlı olmasın diye)
-BAYAT_GOSTER_JS = "if(by)by.hidden=false;"
-assert BAYAT_GOSTER_JS in CANLI_JS
 def bulunma_eki(ad):
     """Özel ada gelen bulunma eki (kesme işaretinden sonrası): Ankara -> da, İzmir -> de, Bayburt -> ta, Kilis -> te. Ünlü uyumu son ünlüden, sertleşme son harften."""
     k = ad.replace("I", "ı").replace("İ", "i").lower()
@@ -342,6 +341,7 @@ def anlamli(h):
     h = re.sub(r"<script>\(function.*?</script>", "", h, flags=re.S)
     h = re.sub(r'data-baslangic="[^"]*"', 'data-baslangic=""', h)
     h = re.sub(r'(<time datetime=")[^"]*(" data-guncelleme>)[^<]*', r"\1\2", h)      # görünür "Sayfa güncellemesi" tarihi lastmod'un kendisidir, içerik sayılmaz
+    h = re.sub(r'(<div class="uyari" id="bayat" role="status" hidden>)[^<]*', r"\1", h)     # gizli (görünmeyen) güncellik uyarısının metni içerik sayılmaz; görünür uyarı sayılır
     return re.sub(r'(data-live="\w+">)[^<]*', r"\1", h)
 LASTMOD = {}
 # Ana sayfa lastmod: anlamlı içerik değiştiyse (ana_sayfa_guncelle: parmak izi farkı) üretim günü, aksi hâlde önceki değer korunur (aşağıda)
@@ -375,8 +375,7 @@ for s in iller:
     if s["kod"] in ANA_SAYFA_KARTLARI:        # ana sayfa kartı: aynı hesap (aynı el/ll/ln), aynı referans gün
         KARTLAR[s["kod"]] = {"il": il, "ad": ad, "kod": kod, "slug": sl, "plaka": f"{kod} {el} {en:03d}", "tarih": tr_date(today), "g_plaka": f"{kod} {ll} {ln:03d}", "g_tarih": tr_date(last_d)}
     ai_ozet = s["kod"] in AI_OZET_ILLER
-    canli_js = CANLI_JS.replace("__GOZLEM__", last_d.isoformat()).replace("__ESIK__", str(BAYAT_ESIK_GUN))
-    if ai_ozet: canli_js = canli_js.replace(BAYAT_GOSTER_JS, "if(by){if(!by.textContent)by.textContent=" + json.dumps(bayat_mesaji(last_d), ensure_ascii=False) + ";by.hidden=false;}")
+    canli_js = CANLI_JS.replace("__GOZLEM__", last_d.isoformat()).replace("__ESIK__", str(BAYAT_ESIK_GUN)).replace("__BAYAT_METNI__", json.dumps(bayat_mesaji(last_d), ensure_ascii=False))
     trans = [t for t in gec if t["il"] == il]
     rows = "".join(f"<tr><td>{t['ilk_gorulen_yeni_tarih'][8:10]}.{t['ilk_gorulen_yeni_tarih'][5:7]}.{t['ilk_gorulen_yeni_tarih'][:4]}</td><td class='mono'>{t['onceki_harf_grubu']} → {t['yeni_harf_grubu']}</td><td class='mono'>{html.escape(t['son_gorulen_eski'])} → {html.escape(t['ilk_gorulen_yeni'])}</td></tr>" for t in trans)
     gecis_html = f"<div class='card'><h2>Harf grubu geçişleri (Şubat 2024'ten beri)</h2><table><tr><th>Tarih</th><th>Grup</th><th>Seri</th></tr>{rows}</table></div>" if trans else f"<div class='card'><h2>Harf grubu geçişleri (Şubat 2024'ten beri)</h2><p class='meta' style='margin:0'>{html.escape(ad)}, Şubat 2024'ten bu yana <b>{ll[0]}</b> harf grubunda ilerliyor; bu dönemde grup değişimi yaşanmadı.</p></div>"
@@ -397,13 +396,12 @@ for s in iller:
             obs_ozet = f"<p class='meta'>Kayıtlı son gözlemlerde ({tr_date(d0)} – {tr_date(d1)}) {html.escape(ad)} plakaları <span class='mono'>{s0}</span> serisi içinde ilerlemiştir.</p>"
     gozlem_html = f"<div class='card'><h2>Son plaka gözlemleri</h2>{obs_ozet}<table><tr><th>Tarih</th><th>Gözlenen seri</th></tr>{obs_rows}</table></div>"
     sd = son_degisim_veri(o, _c); sd_html = son_degisim_html(sd, ad)
-    yas = (today - last_d).days; bayat_gizli = "" if yas > BAYAT_ESIK_GUN else " hidden"      # statik: üretim anında 21 günden eskiyse görünür; JS ziyaret anında da kontrol eder
-    if ai_ozet:     # pilot: tarihli kısa cevap + veri satırı "not" satırının yerine; uyarı metni yalnızca veri gerçekten eskiyse HTML'de
+    yas = (GERCEK_BUGUN - last_d).days; bayat_gizli = "" if yas > BAYAT_ESIK_GUN else " hidden"      # statik: üretim günü (Türkiye takvim günü; iş günü kuralı yalnızca tahmine uygulanır) 21 günden eskiyse görünür; JS ziyaret anında aynı takvim günü kuralıyla kontrol eder
+    bayat_div = f'<div class="uyari" id="bayat" role="status"{bayat_gizli}>{bayat_mesaji(last_d) if not bayat_gizli else ""}</div>'      # uyarı metni HTML'de yalnızca veri gerçekten eskiyse
+    if ai_ozet:     # pilot: tarihli kısa cevap + veri satırı "not" satırının yerine
         not_html = ozet_cevap_html(ad, kod, ll, ln, last_d) + "\n" + veri_satiri_html(last_d)
-        bayat_div = f'<div class="uyari" id="bayat" role="status"{bayat_gizli}>{bayat_mesaji(last_d) if not bayat_gizli else ""}</div>'
     else:
         not_html = '<p class="not">Son gözlemden hesaplanan tahmindir; resmî tahsis kaydı değildir.</p>'
-        bayat_div = f'<div class="uyari" id="bayat" role="status"{bayat_gizli}>{bayat_mesaji(last_d)}</div>'
     tahmin_grup_gizli = " hidden" if el[0] == ll[0] else ""
     if sd["donem"]:
         dn = sd["donem"]; donem_metrik = f"<div><dt>Son {dn['g1']} günde ilerleme</dt><dd class=\"v\">{sayi(dn['a1'])} sıra</dd><dd class=\"k\">{son_degisim_kisa(dn)}</dd></div>"

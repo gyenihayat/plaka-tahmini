@@ -1,15 +1,14 @@
 """AI arama görünürlüğü pilotu (İstanbul, Ankara, İzmir, Bursa, Antalya): JavaScript'siz okunabilen tarihli kısa cevap, veri/kaynak satırı,
-görünür sayfa güncellemesi = sitemap lastmod, gözlem–tahmin ayrımı ve veri tazeyken HTML'de yanıltıcı "21 günden eski" metni olmaması.
-Pilot dışındaki 76 il eski yapıyı korur. Beklenenler data/tahmin_data.json ve sitemap.xml'den, üreticiden bağımsız hesaplanır."""
+görünür sayfa güncellemesi = sitemap lastmod ve gözlem–tahmin ayrımı. Pilot dışındaki 76 il kısa cevap/veri satırı taşımaz ("not" satırı korunur).
+#bayat güncellik uyarısı pilota özgü değildir; 81 ilin ortak davranışı test_il_sayfasi.Guncellik'te sınanır.
+Beklenenler data/tahmin_data.json ve sitemap.xml'den, üreticiden bağımsız hesaplanır."""
 import datetime as dt, os, re, shutil, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _util as u
-from test_il_sayfasi import veri, sayfa, inv, tr, slug, ilk_ekran, metin, E0, TAM, AI_OZET, ILK_EKRAN_KELIME_AI
+from test_il_sayfasi import veri, sayfa, inv, tr, slug, ilk_ekran, metin, betiksiz, E0, TAM, AI_OZET, ILK_EKRAN_KELIME_AI
 BULUNMA = {34: "İstanbul'da", 6: "Ankara'da", 35: "İzmir'de", 16: "Bursa'da", 7: "Antalya'da"}
 KAYNAK = "https://www.wowturkey.com/konu/turkiye-genelindeki-arac-plakalarinin-gelisimi.1299/"
-BAYAT = "Son kayıtlı gözlem 21 günden eski ({}). Tahmin güncel olmayabilir ve kesin değildir."
 def lastmodlar(yol=os.path.join(u.ROOT, "sitemap.xml")): return dict(re.findall(r"<loc>([^<]+)</loc><lastmod>([^<]+)</lastmod>", u.oku(yol)))
-def betiksiz(h): return re.sub(r"<script\b.*?</script>", "", h, flags=re.S)
 def ozet(h): m = re.search(r'<p class="ozet-cevap">(.*?)</p>', h, re.S); return m[1] if m else None
 def veri_satiri(h): m = re.search(r'<p class="veri-satiri">(.*?)</p>', h, re.S); return m[1] if m else None
 def gozlem(s):
@@ -36,15 +35,13 @@ class PilotKisaCevap(unittest.TestCase):
             for yasak in ("şu anda", "bugün", "kesin olarak", "veriliyor"): self.assertNotIn(yasak, metin(p).lower(), (s["il"], yasak))
             self.assertNotIn('<p class="not">', h)                                                                # "not" satırının yerini aldı (aynı uyarı cevabın içinde)
 
-    def test_pilot_disi_76_il_eski_yapida(self):
+    def test_pilot_disi_76_ilde_kisa_cevap_ve_veri_satiri_yok(self):
         n = 0
         for s in veri():
             if s["kod"] in AI_OZET: continue
-            h = sayfa(s["il"]); n += 1; _, _, ld = gozlem(s)
+            h = sayfa(s["il"]); n += 1
             self.assertIsNone(ozet(h), s["il"]); self.assertIsNone(veri_satiri(h), s["il"]); self.assertNotIn("ozet-cevap", h); self.assertNotIn("data-guncelleme", h)
             self.assertIn('<p class="not">Son gözlemden hesaplanan tahmindir; resmî tahsis kaydı değildir.</p>', h)
-            self.assertIn(f'<div class="uyari" id="bayat" role="status" hidden>{BAYAT.format(tr(ld))}</div>', h)
-            self.assertIn('{var by=document.getElementById("bayat");if(by)by.hidden=false;}', h)
         self.assertEqual(n, 76)
 
 class VeriSatiri(unittest.TestCase):
@@ -72,32 +69,6 @@ class GozlemTahminAyrimi(unittest.TestCase):
             self.assertIn('<span data-live="tarih">12 Kasım 2026</span> itibarıyla · tahmindir', h)              # statik tahmin her zaman kendi tarihiyle
             self.assertIn(f'data-guncelleme>{tr(dt.date.fromisoformat(once))}</time>', h)                        # yalnızca tahmin günü değişti: sayfa güncellemesi tarihi oynamaz
         finally: shutil.rmtree(d, ignore_errors=True)
-
-class BayatUyarisi(unittest.TestCase):
-    def test_taze_veride_html_metninde_yaniltici_uyari_yok(self):
-        for s in veri():
-            if s["kod"] not in AI_OZET: continue
-            h = sayfa(s["il"]); _, _, ld = gozlem(s)
-            self.assertNotIn("günden eski", betiksiz(h), s["il"]); self.assertIn('<div class="uyari" id="bayat" role="status" hidden></div>', h)
-            self.assertIn('by.textContent="' + BAYAT.format(tr(ld)) + '"', h)                                     # metin yalnızca satır içi betikte
-
-    def test_statik_uretimde_veri_eskiyse_gorunur_metinle(self):
-        d = u.kopya(ekstra=("sitemap.xml", "il"), il_dizini=False)
-        try:
-            for bugun, gorunur in (("2026-11-20", False), ("2026-11-24", True)):     # son gözlem 30 Ekim: 21 gün (uyarı yok) / 25 gün (uyarı var)
-                r = u.uret(d, "--bugun", bugun, "--iller", "ankara"); self.assertEqual(r.returncode, 0, r.stderr)
-                h = u.oku(os.path.join(d, "il", "ankara.html")); m = re.search(r'<div class="uyari" id="bayat" role="status"( hidden)?>([^<]*)</div>', h)
-                self.assertEqual((m[1] is None, m[2]), (gorunur, BAYAT.format("30 Ekim 2026") if gorunur else ""), bugun)
-        finally: shutil.rmtree(d, ignore_errors=True)
-
-    @unittest.skipUnless(u.NODE, "node kurulu değil")
-    def test_js_ziyaret_tarihine_gore_metni_yazar_ve_gosterir(self):
-        an = lambda y, m, d_: int(dt.datetime(y, m, d_, 12, tzinfo=dt.timezone.utc).timestamp() * 1000)
-        for il in ("ankara", "istanbul"):
-            r = u.canli_sonuc(os.path.join(u.ROOT, "il", il + ".html"), [an(2026, 11, 6), an(2026, 11, 20), an(2026, 11, 21), an(2027, 2, 1)])
-            self.assertEqual([x["bayat"] for x in r], [False, False, True, True], il)
-            self.assertEqual([x["bayatMetin"] for x in r], [None, None, BAYAT.format("30 Ekim 2026"), BAYAT.format("30 Ekim 2026")], il)
-            self.assertEqual([x["hatalar"] for x in r], [[]] * 4)
 
 class Yayginlastirma(unittest.TestCase):
     """Üretici parametrik: pilot kümesi 81 ile genişletildiğinde her sayfa geçerli cevap üretir (ekler, kelime sınırları). Depoya dokunulmaz."""
