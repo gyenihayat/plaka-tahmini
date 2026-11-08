@@ -13,13 +13,13 @@ D = dt.date
 def an(*a): return int(dt.datetime(*a, tzinfo=dt.timezone.utc).timestamp() * 1000)       # UTC an (ms)
 # (UTC an, Türkiye'de gerçek takvim günü, beklenen REFERANS gün, açıklama) -- beklenenler elle yazılmıştır
 ANLAR = [
-    (an(2026, 10, 30, 20, 59, 59), D(2026, 10, 30), D(2026, 10, 30), "Cuma 23:59:59 TRT"),
-    (an(2026, 10, 30, 21, 0, 0), D(2026, 10, 31), D(2026, 10, 30), "Cumartesi 00:00:00 TRT (gece yarısı geçişi): değer değişmez"),
-    (an(2026, 10, 31, 12), D(2026, 10, 31), D(2026, 10, 30), "Cumartesi"),
-    (an(2026, 11, 1, 12), D(2026, 11, 1), D(2026, 10, 30), "Pazar"),
-    (an(2026, 11, 1, 20, 59, 59), D(2026, 11, 1), D(2026, 10, 30), "Pazar 23:59:59 TRT"),
-    (an(2026, 11, 1, 21, 0, 0), D(2026, 11, 2), D(2026, 11, 2), "Pazartesi 00:00:00 TRT: yeni iş günü, değer değişir"),
-    (an(2026, 11, 2, 12), D(2026, 11, 2), D(2026, 11, 2), "Pazartesi"),
+    (an(2026, 11, 6, 20, 59, 59), D(2026, 11, 6), D(2026, 11, 6), "Cuma 23:59:59 TRT"),
+    (an(2026, 11, 6, 21, 0, 0), D(2026, 11, 7), D(2026, 11, 6), "Cumartesi 00:00:00 TRT (gece yarısı geçişi): değer değişmez"),
+    (an(2026, 11, 7, 12), D(2026, 11, 7), D(2026, 11, 6), "Cumartesi"),
+    (an(2026, 11, 8, 12), D(2026, 11, 8), D(2026, 11, 6), "Pazar"),
+    (an(2026, 11, 8, 20, 59, 59), D(2026, 11, 8), D(2026, 11, 6), "Pazar 23:59:59 TRT"),
+    (an(2026, 11, 8, 21, 0, 0), D(2026, 11, 9), D(2026, 11, 9), "Pazartesi 00:00:00 TRT: yeni iş günü, değer değişir"),
+    (an(2026, 11, 9, 12), D(2026, 11, 9), D(2026, 11, 9), "Pazartesi"),
     (an(2026, 12, 31, 21, 0, 0), D(2027, 1, 1), D(2026, 12, 31), "Yılbaşı 00:00 TRT (yıl sınırı, resmî tatil, Cuma)"),
     (an(2027, 1, 1, 9), D(2027, 1, 1), D(2026, 12, 31), "1 Ocak 2027 (resmî tatil)"),
     (an(2027, 3, 9, 9), D(2027, 3, 9), D(2027, 3, 8), "Ramazan Bayramı 1. gün (Salı) -> Pazartesi arife (yarım gün, iş günü)"),
@@ -76,12 +76,12 @@ class SayfaIciTutarlilik(unittest.TestCase):
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_81_ilde_cuma_cumartesi_pazar_ayni_pazartesi_ileri(self):
-        cuma, cts, paz, paz_gece, pzt = (an(2026, 10, 30, 20, 59, 59), an(2026, 10, 31, 12), an(2026, 11, 1, 12), an(2026, 11, 1, 20, 59, 59), an(2026, 11, 2, 12))
+        cuma, cts, paz, paz_gece, pzt = (an(2026, 11, 6, 20, 59, 59), an(2026, 11, 7, 12), an(2026, 11, 8, 12), an(2026, 11, 8, 20, 59, 59), an(2026, 11, 9, 12))
         for yol in tum_sayfalar():
-            r = u.canli_sonuc(yol, [cuma, an(2026, 10, 30, 21), cts, paz, paz_gece, pzt]); ad = os.path.basename(yol)
+            r = u.canli_sonuc(yol, [cuma, an(2026, 11, 6, 21), cts, paz, paz_gece, pzt]); ad = os.path.basename(yol)
             for x in r[1:5]:
                 self.assertEqual((x["canli"]["plaka"], x["canli"]["tarih"], x["ana"]["n"], x["ana"]["plaka"]), (r[0]["canli"]["plaka"], r[0]["canli"]["tarih"], r[0]["ana"]["n"], r[0]["ana"]["plaka"]), ad)     # Cuma = Cumartesi = Pazar (tam plaka ve sıra numarası dahil, sayısal olarak da aynı)
-            self.assertEqual(r[0]["canli"]["tarih"], "30 Ekim 2026", ad); self.assertEqual(r[5]["canli"]["tarih"], "2 Kasım 2026", ad); self.assertGreater(r[5]["ana"]["n"], r[0]["ana"]["n"], ad); self.assertNotEqual(r[5]["canli"]["plaka"], r[0]["canli"]["plaka"], ad)          # Pazartesi: yeni iş günü, tam plaka (sıra numarası) ilerler
+            self.assertEqual(r[0]["canli"]["tarih"], "6 Kasım 2026", ad); self.assertEqual(r[5]["canli"]["tarih"], "9 Kasım 2026", ad); self.assertGreater(r[5]["ana"]["n"], r[0]["ana"]["n"], ad); self.assertNotEqual(r[5]["canli"]["plaka"], r[0]["canli"]["plaka"], ad)          # Pazartesi: yeni iş günü, tam plaka (sıra numarası) ilerler
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_29_ekim_resmi_tatilinde_28_ekim_tahmini_81_il(self):
@@ -133,7 +133,7 @@ class UretimTarihi(unittest.TestCase):
                 r = u.uret(d, "--bugun", bugun, "--iller", "konya"); self.assertEqual(r.returncode, 0, r.stderr)
                 yol = os.path.join(d, "il", "konya.html"); h = u.oku(yol); self.assertEqual(u.sayfa_bilgisi(yol), ref, bugun)
                 y, m, g = map(int, ref.split("-")); self.assertIn(f'<span data-live="tarih">{tr(D(y, m, g))}</span> itibarıyla · tahmindir', h)
-                self.assertIn('<dt>Son kayıtlı gözlem</dt><dd class="v mono nw">42 BJB 426</dd><dd class="k">30 Ekim 2026</dd>', h)     # gözlem tarihi kuraldan bağımsız
+                self.assertIn('<dt>Son kayıtlı gözlem</dt><dd class="v mono nw">42 BJC 732</dd><dd class="k">6 Kasım 2026</dd>', h)     # gözlem tarihi kuraldan bağımsız
             # aynı referans günündeki statik seri hafta sonu üretimiyle Cuma üretiminde aynıdır
             seri = {}
             for bugun in ("2026-10-30", "2026-10-31", "2026-11-01"):

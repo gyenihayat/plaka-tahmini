@@ -56,7 +56,7 @@ class Kartlar(unittest.TestCase):
             self.assertEqual(re.search(r'data-kart="tarih">([^<]*)<', ic)[1], tr(bas)); self.assertIn("itibarıyla", ic); self.assertIn("Tahmindir", ic)
             self.assertIn(f"Son gözlem: {kod:02d} {sr} {no:03d} · {tr(ld)}", metin(ic)); self.assertIn(f"{il} · {kod:02d}", metin(ic))                                                   # gözlem tahminden ayrı
             self.assertTrue(os.path.isfile(os.path.join(u.ROOT, href.lstrip("/") + ".html")))
-        self.assertIn('<span id="last-global">30.10.2026</span>', ANA)
+        self.assertIn('<span id="last-global">06.11.2026</span>', ANA)
 
     def test_kart_degerleri_sabit_degil_veriye_baglidir(self):
         d = u.kopya(ekstra=("sitemap.xml",))
@@ -65,7 +65,7 @@ class Kartlar(unittest.TestCase):
             with open(yol, encoding="utf-8") as f: v = json.load(f)
             ist = next(x for x in v["iller"] if x["il"] == "İstanbul"); ist["obs"][-1][1] += 90000                    # 90 seri ileri
             with open(yol, "w", encoding="utf-8") as f: json.dump(v, f, ensure_ascii=False, separators=(",", ":"))
-            r = u.uret(d, "--bugun", "2026-10-30"); self.assertEqual(r.returncode, 0, r.stderr)
+            r = u.uret(d, "--bugun", "2026-11-06"); self.assertEqual(r.returncode, 0, r.stderr)
             yeni = u.oku(os.path.join(d, "index.html")); eski_seri = re.search(r'data-il="İstanbul">.*?data-kart="plaka">([^<]*)<', ANA, re.S)[1]
             yeni_seri = re.search(r'data-il="İstanbul">.*?data-kart="plaka">([^<]*)<', yeni, re.S)[1]; self.assertNotEqual(yeni_seri, eski_seri)
             self.assertEqual(yeni_seri, re.search(r'data-live="plaka">([^<]*)<', u.oku(os.path.join(d, "il", "istanbul.html")))[1])                  # kart = il sayfası

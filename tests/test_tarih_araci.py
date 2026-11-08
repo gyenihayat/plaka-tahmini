@@ -226,7 +226,7 @@ class Tarayici(unittest.TestCase):
         e = self.s["esdeger"]["ana"]["Konya"]; ist = self.s["esdeger"]["ana"]["İstanbul"]
         self.assertTrue(ist["2032-01-01"]["gizli"] and "seri alfabesinin dışına" in ist["2032-01-01"]["hata"])                         # çok uzak ileri tarih: plaka uydurulmaz, açık hata
         self.assertEqual(e["2025-06-15"]["etiket"], "Kayıtlı veri"); self.assertIn("kayıtlı gözlemlere göre", e["2025-06-15"]["out"])
-        self.assertEqual(e["2060-01-01"]["etiket"], "Tahmin"); self.assertRegex(e["2060-01-01"]["out"], r"· ±\d+ gün$"); self.assertGreater(int(re.search(r"±(\d+)", e["2060-01-01"]["out"])[1]), int(re.search(r"±(\d+)", e["2026-10-31"]["out"])[1]))
+        self.assertEqual(e["2060-01-01"]["etiket"], "Tahmin"); self.assertRegex(e["2060-01-01"]["out"], r"· ±\d+ gün$"); self.assertGreater(int(re.search(r"±(\d+)", e["2060-01-01"]["out"])[1]), int(re.search(r"±(\d+)", e["2027-01-01"]["out"])[1]))
         gecisler = [(il, iso) for il, v in self.s["esdeger"]["ana"].items() for iso, r in v.items() if "harf grubu sınırını aşıyor" in r["uyari"]]
         self.assertGreater(len(gecisler), 10); self.assertTrue(all("→" in self.s["esdeger"]["ana"][il][iso]["uyari"] for il, iso in gecisler))
         self.assertFalse(any("harf grubu sınırını aşıyor" in r["uyari"] for v in self.s["esdeger"]["ana"].values() for iso, r in v.items() if iso < "2024-02-09"))   # ileri harf grubu uyarısı geriye dönük sonuçta çıkmaz
