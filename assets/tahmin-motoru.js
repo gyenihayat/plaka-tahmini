@@ -91,13 +91,32 @@ function atC(c, day){
   const dx = c[hi][0]-c[lo][0];
   return c[lo][1] + (dx ? (c[hi][1]-c[lo][1])*(day-c[lo][0])/dx : 0);
 }
-// Ileri ilerleme: son 365 gun medyan hizi ile gecen yilin ayni takvim araliginin ilerlemesinin ortalamasi.
+// Ileri ilerleme: son 365 gun medyan hizi ile gecen yilin ayni takvim araliginin ilerlemesinin ortalamasi (temel), eğilim düzeltmesiyle.
 // Geriye donuk test (hata gun): 30g %20, 90g %25, 180g %30 daha iyi (yalniz medyan180'e gore).
+// Eğilim düzeltmesi (Kasım 2026): r = son 8 haftadaki (56 gün) gözlem aralığı hızlarının medyanı / geçen yılın aynı 8 haftasındaki medyan.
+// Katsayı = 1 + 0,75*(r-1), [0,6; 1,4] ile sınırlı: önümüzdeki 56 günlük temel ilerleme bu katsayıyla düzeltilir, sonrasında yıllık hıza dönülür
+// (düzeltme miktarı sabit kalır; tahmin zamanla artmaya devam eder). Medyan, tek seferlik seri atlamalarına ve kayıt kırılmalarına dayanıklıdır.
+// Düzeltme yapılmaz (katsayı 1): geçen yılın penceresi ilk gözlemden önceyse, pencerelerden birinde 3'ten az aralık varsa ya da geçen yılın medyanı > 0 değilse.
+// Geriye dönük test (Nisan 2025 – Kasım 2026, 81 il, her gözlemden; düzeltmesiz modele göre medyan hata): Eylül 2026'dan beri 1/4/9 haftada %45/%51/%67 azalır;
+// tüm dönemde 9/13/26 haftada %14/%28/%13 azalır, 1/4 haftada %4/%6 artar. Ağırlık 0,5 tüm dönemde biraz daha iyiydi; son haftaların koşullarının
+// sürmesine daha çok ağırlık vermek için 0,75 seçildi (Kasım 2026). Bu ağırlıkta en iyi düzeltme süresi 56 gündü.
+// forecast.py (egilim_orani, advance) ile aynı formül ve aynı işlem sırası: Python ve JS ham tahmini bit-bit aynıdır.
+const EGILIM_PENCERE = 56, EGILIM_AGIRLIK = 0.75, EGILIM_UFUK = 56, EGILIM_MIN = 0.6, EGILIM_MAKS = 1.4, EGILIM_EN_AZ_ARALIK = 3;
+function egilimHizlari(o, a, b){ const r = []; for (let i=1;i<o.length;i++) if (o[i][0] > a && o[i][0] <= b && o[i][0] > o[i-1][0]) r.push((o[i][1]-o[i-1][1])/(o[i][0]-o[i-1][0])); return r; }
+function egilimKatsayisi(o, T){
+  if (T - 365 - EGILIM_PENCERE < o[0][0]) return 1;
+  const med = a => { const b=[...a].sort((x,y)=>x-y); const m=b.length>>1; return b.length%2 ? b[m] : (b[m-1]+b[m])/2; };
+  const simdi = egilimHizlari(o, T-EGILIM_PENCERE, T), gecen = egilimHizlari(o, T-365-EGILIM_PENCERE, T-365);
+  if (simdi.length < EGILIM_EN_AZ_ARALIK || gecen.length < EGILIM_EN_AZ_ARALIK) return 1;
+  const g = med(gecen); if (!(g > 0)) return 1;
+  const r = Math.max(0, med(simdi)) / g;
+  return Math.min(EGILIM_MAKS, Math.max(EGILIM_MIN, 1 + EGILIM_AGIRLIK*(r - 1)));
+}
 function advAt(s, f, h){
   const c = cleanCum(s), T = f.last[0];
-  const Y = atC(c,T) - atC(c,T-365), k = Math.floor(h/365), rem = h - 365*k;
-  const seas = k*Y + atC(c, T-365+rem) - atC(c, T-365);
-  return 0.5*f.slope*h + 0.5*seas;
+  const temel = x => { const Y = atC(c,T) - atC(c,T-365), k = Math.floor(x/365), rem = x - 365*k; const seas = k*Y + atC(c, T-365+rem) - atC(c, T-365); return 0.5*f.slope*x + 0.5*seas; };
+  const a = temel(h);
+  return a + (egilimKatsayisi(s.obs.filter(x => x[0] <= T), T) - 1)*(h <= EGILIM_UFUK ? a : temel(EGILIM_UFUK));
 }
 function errDays(s, f, horizon){
   const base = Math.max(s.bterr || 0, f.rstd/f.slope || 0, 2);

@@ -3,10 +3,13 @@
 //   git show 9b65ce4:index.html > /tmp/eski_index.html
 //   node tests/golden/uret_golden.js /tmp/eski_index.html tests/golden/motor_veri.json tests/golden/motor_golden.json
 // Motor, eski index.html'in 158-164 ve 170-311. satırlarıdır (DATA ve DOM satırları hariç).
+// Kasım 2026 eğilim düzeltmesi (bilinçli matematik değişikliği) sonrası altın çıktı ortak modülden üretildi; ilk argüman .js ise dosya olduğu gibi motor sayılır:
+//   node tests/golden/uret_golden.js assets/tahmin-motoru.js tests/golden/motor_veri.json tests/golden/motor_golden.json
+// O değişiklikte yalnızca ileri tahmin alanları (estimate h>0 ve ileri reach/reach_excl) değişti; kodlama, parseExcl, fit, geçmiş tarihler ve geçmiş hedefler eski motorla aynı kaldı.
 const fs = require("fs"), hesapla = require("./ortak.js");
 const [, , indexYol, veriYol, ciktiYol] = process.argv;
 const L = fs.readFileSync(indexYol, "utf8").split("\n");
-const motor = [...L.slice(157, 164), ...L.slice(169, 311)].join("\n");
+const motor = indexYol.endsWith(".js") ? L.join("\n") : [...L.slice(157, 164), ...L.slice(169, 311)].join("\n");
 const out = hesapla(motor, JSON.parse(fs.readFileSync(veriYol, "utf8")));
 fs.writeFileSync(ciktiYol, JSON.stringify(out));
 console.log("golden:", Object.keys(out.iller).length, "il");

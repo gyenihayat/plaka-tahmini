@@ -27,6 +27,10 @@ class AnaSayfaRegresyon(unittest.TestCase):
             for a_, b_ in (("const todayDay = Math.floor((Date.now()-EPOCH)/DAY);", f"const todayDay = {(ref - dt.date(2024, 1, 1)).days};"),
                            ("const isoToday = new Date().toISOString().slice(0,10);", f'const isoToday = "{ref.isoformat()}";')):
                 self.assertEqual(eski.count(a_), 1, a_); eski = eski.replace(a_, b_)
+            # Bilinçli matematik değişikliği (Kasım 2026, eğilim düzeltmesi): eski kopyanın advAt'ı ortak motordaki yeni blokla (sabitler + egilimHizlari + egilimKatsayisi + advAt)
+            # değiştirilir; böylece yalnızca bu değişiklik iki tarafta ortak olur, arayüzün geri kalanı birebir karşılaştırılır.
+            yeni_blok = re.search(r"const EGILIM_PENCERE.*?\nfunction advAt\(s, f, h\)\{.*?\n\}", u.oku(os.path.join(u.ROOT, "assets", "tahmin-motoru.js")), re.S)[0]
+            eski_blok = re.findall(r"function advAt\(s, f, h\)\{\n.*?\n\}", eski, re.S); self.assertEqual(len(eski_blok), 1); eski = eski.replace(eski_blok[0], yeni_blok)
             for ad, icerik in (("index.html", yeni), ("eski.html", eski)):
                 icerik = re.sub(r'<link[^>]+fonts\.(?:googleapis|gstatic)\.com[^>]*>', "", icerik)       # harness davranışı karşılaştırır: internetten yazı tipi beklenmez (render-blocking stil dosyası betik çalışmasını geciktirip testi kararsız yapıyordu)
                 with open(os.path.join(d, ad), "w", encoding="utf-8") as f: f.write(icerik)

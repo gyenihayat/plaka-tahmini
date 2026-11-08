@@ -94,6 +94,16 @@ def ozet_cevap_html(ad, kod, ll, ln, last_d):
     return (f'<p class="ozet-cevap">Son kayıtlı gözleme göre {html.escape(ad)}\'{bulunma_eki(ad)} plaka sırası <strong>{ll[0]}</strong> harf grubunda: '
             f'<time datetime="{last_d.isoformat()}">{tr_date(last_d)}</time> tarihinde <span class="nw">{kod} {ll} {ln:03d}</span> gözlendi. '
             'Güncel plaka tahmindir; resmî tahsis kaydı değildir.</p>')
+EGILIM_PAY = {0.5: "yarısı", 0.75: "dörtte üçü", 1: "tamamı"}      # forecast.EGILIM_AGIRLIK'ın il sayfasındaki yazımı (listede olmayan ağırlık üretimi durdurur)
+assert fc.EGILIM_UFUK % 7 == 0 and fc.EGILIM_AGIRLIK in EGILIM_PAY
+def egilim_cumlesi(ad, o, T):
+    """İl sayfası "Nasıl hesaplanıyor?" için eğilim düzeltmesinin bu ildeki değeri (forecast.egilim_orani; tahmin motoruyla aynı oran ve katsayı)."""
+    r, k = fc.egilim_orani(o, T); a = html.escape(ad)
+    if r is None: return f"{a} için geçen yılın aynı dönemine ait yeterli kayıt olmadığından bu düzeltme uygulanmadı."
+    fark, duz = math.floor((r - 1) * 100 + 0.5), math.floor((k - 1) * 100 + 0.5)
+    hiz = f"{a}'{bulunma_eki(ad)} son 8 haftanın hızı geçen yılın aynı dönemine göre " + (f"%{abs(fark)} daha {'düşük' if fark < 0 else 'yüksek'}" if fark else "aynı")
+    if not duz: return hiz + "; düzeltme %1'in altında."
+    return hiz + f"; tahmin %{abs(duz)} {'aşağı' if duz < 0 else 'yukarı'} düzeltildi" + (" (düzeltme en çok %40 ile sınırlıdır)." if k in (fc.EGILIM_MIN, fc.EGILIM_MAKS) else ".")
 def veri_satiri_html(last_d):
     return (f'<p class="veri-satiri"><span class="nw">Son gözlem: <time datetime="{last_d.isoformat()}">{tr_date(last_d)}</time></span> · '
             f'<span class="nw">Sayfa güncellemesi: <time datetime="{GUNCELLEME_ISO}" data-guncelleme>{GUNCELLEME_TR}</time></span> · '
@@ -417,7 +427,8 @@ for s in iller:
         {"@type":"ListItem","position":2,"name":f"{ad} Plaka Sırası","item":f"{BASE}/il/{sl}"}]}, ensure_ascii=False, separators=(",",":"))
     sd_bolum = f'<details class="bolum"><summary><h2>Son gelişmeler</h2></summary><div class="ic">{sd_html}</div></details>' if sd_html else ""
     nasil = (f'<details class="bolum"><summary><h2>Nasıl hesaplanıyor?</h2></summary><div class="ic"><ul>'
-             f'<li><b>Tahmini seri:</b> son kayıtlı gözlemden, ilin son ~365 günlük aralık hızlarının medyanı ile geçen yılın aynı dönemindeki ilerlemenin ortalamasıyla uzatılır. Güncel tahmin, Türkiye yerel tarihinin en yakın önceki iş gününe aittir: Cumartesi, Pazar ve resmî tatilde değer değişmez (arife günleri iş günü sayılır). Değer bir tahmindir, gerçek tescil değildir.</li>'
+             f'<li><b>Tahmini seri:</b> son kayıtlı gözlemden, ilin son ~365 günlük aralık hızlarının medyanı ile geçen yılın aynı dönemindeki ilerlemenin ortalamasıyla uzatılır. '
+             f'Son 8 haftanın hızı geçen yılın aynı 8 haftasından farklıysa önümüzdeki {fc.EGILIM_UFUK // 7} haftalık tahmin bu farkın {EGILIM_PAY[fc.EGILIM_AGIRLIK]} kadar düzeltilir (eğilim düzeltmesi): {egilim_cumlesi(ad, o, last[0])} Güncel tahmin, Türkiye yerel tarihinin en yakın önceki iş gününe aittir: Cumartesi, Pazar ve resmî tatilde değer değişmez (arife günleri iş günü sayılır). Değer bir tahmindir, gerçek tescil değildir.</li>'
              f'<li><b>Tahmin hızı:</b> günde yaklaşık {sayi(hiz_gun)} sıra (haftada yaklaşık {sayi(hiz_hafta)}). Atlamasız ilerleme varsayımıyla bir seri (1.000 sıralık aralık; numaralar 001–999) {seri_suresi(rate)} dolar.</li>'
              f'<li><b>Gözlenen hız:</b> iki gözlem arasındaki sıra ilerlemesinin gün sayısına oranıdır ("Son gelişmeler"); tahmin hızından farklı olabilir.</li>'
              f'<li><b>Sıra:</b> plaka numaraları arasındaki farktır; gerçek tescil sayısı değildir. Seri atlamaları sayıya dahil olabilir; "atlanacak seriler" alanı hedef hesabında bunları düşer.</li>'

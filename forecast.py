@@ -29,9 +29,28 @@ def seasonal(c,T,h):
     # gecen yilin ayni takvim araligindaki ilerleme; h>365 ise tam yillar tekrarlanir
     Y=at(c,T)-at(c,T-365); k=int(h//365); rem=h-365*k
     return k*Y+at(c,T-365+rem)-at(c,T-365)
+# Eğilim düzeltmesi (Kasım 2026; assets/tahmin-motoru.js egilimKatsayisi/advAt ile aynı formül ve işlem sırası, ham tahmin bit-bit aynı):
+# r = son 56 gündeki gözlem aralığı hızlarının medyanı / geçen yılın aynı 56 günündeki medyan; katsayı = 1 + 0.75*(r-1), [0.6, 1.4] ile sınırlı.
+# Önümüzdeki 56 günlük temel ilerleme bu katsayıyla düzeltilir, sonrasında yıllık hıza dönülür (düzeltme miktarı sabit kalır).
+# Katsayı 1: geçen yılın penceresi ilk gözlemden önceyse, pencerelerden birinde 3'ten az aralık varsa ya da geçen yılın medyanı > 0 değilse.
+EGILIM_PENCERE,EGILIM_AGIRLIK,EGILIM_UFUK,EGILIM_MIN,EGILIM_MAKS,EGILIM_EN_AZ_ARALIK=56,0.75,56,0.6,1.4,3
+def _egilim_hizlari(o,a,b):
+    return [(o[i][1]-o[i-1][1])/(o[i][0]-o[i-1][0]) for i in range(1,len(o)) if a<o[i][0]<=b and o[i][0]>o[i-1][0]]
+def egilim_orani(o,T):
+    """(r, katsayı): r = son 56 günün medyan hızı / geçen yılın aynı 56 gününün medyan hızı (hesaplanamıyorsa None); katsayı ileri tahmine uygulanan çarpan."""
+    o=[x for x in o if x[0]<=T]
+    if T-365-EGILIM_PENCERE<o[0][0]: return None,1
+    simdi,gecen=_egilim_hizlari(o,T-EGILIM_PENCERE,T),_egilim_hizlari(o,T-365-EGILIM_PENCERE,T-365)
+    if len(simdi)<EGILIM_EN_AZ_ARALIK or len(gecen)<EGILIM_EN_AZ_ARALIK: return None,1
+    g=med(gecen)
+    if not g>0: return None,1
+    r=max(0,med(simdi))/g
+    return r,min(EGILIM_MAKS,max(EGILIM_MIN,1+EGILIM_AGIRLIK*(r-1)))
 def advance(o,c,T,h,sl=None):
     sl=sl or slope(o,T)
-    return 0.5*sl*h+0.5*seasonal(c,T,h)
+    temel=lambda x:0.5*sl*x+0.5*seasonal(c,T,x)
+    a=temel(h)
+    return a+(egilim_orani(o,T)[1]-1)*(a if h<=EGILIM_UFUK else temel(EGILIM_UFUK))
 def bterr(o,h=60,span=280):
     c=clean(o); last=o[-1][0]; errs=[]
     for k in range(0,span//7):

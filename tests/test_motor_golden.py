@@ -1,4 +1,5 @@
-"""Ortak motor (assets/tahmin-motoru.js): ana sayfadaki eski motorla üretilmiş altın çıktılarla birebir eşleşir; kaynak DOM/DATA'ya bağımlı değildir."""
+"""Ortak motor (assets/tahmin-motoru.js): altın çıktılarla birebir eşleşir (ilk üretim eski ana sayfa motorundan; Kasım 2026 eğilim düzeltmesinden sonra yalnızca ileri tahmin
+alanları değişecek şekilde yeniden üretildi); kaynak DOM/DATA'ya bağımlı değildir; Python (forecast.py) ile aynı matematik."""
 import os, re, subprocess, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _util as u
