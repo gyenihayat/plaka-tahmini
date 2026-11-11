@@ -6,6 +6,7 @@ import _util as u
 from test_ana_sayfa_regresyon import CHROME, CHROME_TEMEL
 
 ONCEKI_URETIM = "4feab5d"          # geri bildirim bağlantısı eklenmeden önceki yayın: sayfalar bu bağlantı dışında birebir aynı kalmalı
+KATKI_COMMIT = "b3a993d"           # katkı sistemini ekleyen commit (ebeveyni ONCEKI_URETIM)
 SAYFA = u.oku(os.path.join(u.ROOT, "geri-bildirim.html"))
 ANA = u.oku(os.path.join(u.ROOT, "index.html"))
 BAGLANTI_METNI = "Öneri ve katkı gönder"
@@ -58,7 +59,15 @@ class YapiVeSayfa(unittest.TestCase):
                           r"<!--OLCUM-->.*?<!--/OLCUM-->", r'<p class="olcum-notu">.*?</p>'):
                 self.assertEqual([maske(x) for x in re.findall(desen, yeni, re.S)], [maske(x) for x in re.findall(desen, eski, re.S)], (s, desen))
             self.assertEqual(len(re.findall(r"<!--KATKI-->|<!--ANA:KATKI-->", yeni)), 1, s); self.assertEqual(len(re.findall(r"<!--KATKI-->|<!--ANA:KATKI-->", eski)), 0, s)
-        self.assertEqual(git("diff", "HEAD", "--stat", "--", "assets/ana-sayfa.js", "assets/takvim.js", "vercel.json", "robots.txt", "forecast.py", "is_gunu.py"), "")
+        # Katkı sistemi bu dosyalara dokunmaz. Önceki biçim `git diff HEAD` idi: commit edilmemiş, beklenen her değişiklikte başarısız oluyor (liste bu yüzden zamanla kısaltılmıştı),
+        # commit'ten sonra ise hiçbir şey denetlemiyordu. HEAD'den bağımsız iki denetim: (1) katkı sistemini ekleyen commit'in bu dosyalardaki ayak izi boştur (özgün iddia, kalıcı);
+        # (2) bu dosyaların hiçbirinde, commit edilmiş olsun ya da olmasın, katkı sistemine bağlanan kod yoktur (sayfa/API yolu, katkı olay adları, GitHub, ağ isteği).
+        # Dosyaların kendi içerik doğruluğu ayrı testlerdedir (motor golden ve Python–JS eşliği, iş günü/takvim eşliği, ana sayfa ve ölçüm testleri).
+        korunan = ("assets/ana-sayfa.js", "assets/takvim.js", "vercel.json", "robots.txt", "forecast.py", "is_gunu.py")
+        self.assertEqual(git("rev-parse", f"{KATKI_COMMIT}^"), git("rev-parse", ONCEKI_URETIM))                  # ayak izi, katkı öncesi yayına göre ölçülür
+        self.assertEqual(git("diff", "--stat", f"{KATKI_COMMIT}^", KATKI_COMMIT, "--", *korunan), "")
+        self.assertNotEqual(git("diff", "--stat", f"{KATKI_COMMIT}^", KATKI_COMMIT, "--", "geri-bildirim.html", "api"), "")      # ayak izi ölçümü gerçekten katkı commit'ini görüyor
+        for f in korunan: self.assertNotRegex(u.oku(os.path.join(u.ROOT, f)), r"(?i)geri[-_]bildirim|/api/|katk[ıi]|plaka_bildirimi|genel_oneri|github|fetch\(|XMLHttpRequest|sendBeacon", f)
 
     def test_sitemap_ve_arama_motoru(self):
         sm = u.oku(os.path.join(u.ROOT, "sitemap.xml")); self.assertEqual(sm.count("<url>"), 82); self.assertNotIn("geri-bildirim", sm)
@@ -86,9 +95,14 @@ class YapiVeSayfa(unittest.TestCase):
         self.assertEqual(re.findall(r"\bolay\(([^)]*)\)", kod), ['ad', 'ad === "plaka" ? "plaka_bildirimi" : "genel_oneri"']); self.assertEqual(len(re.findall(r"PlakaOlcum", kod)), 2)
         self.assertRegex(js, r'if \(s\.ok && s\.j && s\.j\.ok === true\) \{\n\s+if \(!s\.j\.tekrar\) olay\(')
         self.assertLess(js.index("PlakaOlcum"), js.index("fetch(")); self.assertGreater(js.index('olay(ad === "plaka"'), js.index("fetch("))
-        # olcum.js: yalnızca izin listesine iki ad eklendi (bir önceki yayına göre); yükleme koşulları ve geri kalan her şey aynı
+        # olcum.js: yalnızca izin listesine iki ad eklendi (bir önceki yayına göre); yükleme koşulları ve geri kalan her şey aynı.
+        # Kasım 2026'daki hesaplayıcı hata kategorileri eklemesi (izin listesindeki kategori olayları, KATEGORI_OLAYLARI..girisBicimi bloğu, dışa aktarılan adlar) çıkarılınca da aynı kalmalı.
         yorumsuz = lambda t: "\n".join(l for l in t.split("\n") if not l.lstrip().startswith("//"))
-        self.assertEqual(yorumsuz(u.oku(os.path.join(u.ROOT, "assets", "olcum.js"))).replace("|plaka_bildirimi|genel_oneri", ""), yorumsuz(git("show", f"{ONCEKI_URETIM}:assets/olcum.js")))
+        yeni = yorumsuz(u.oku(os.path.join(u.ROOT, "assets", "olcum.js"))).replace("|plaka_bildirimi|genel_oneri", "")
+        kategori = (r"\|ana-hesapla-hata\\/\(\?:bos\|tek-harf\|iki-harf\|format\|karakter\|il-kodu\|hesaplama\)\|il-hesapla-hata\\/\(\?:bos\|tek-harf\|iki-harf\|format\|karakter\|il-kodu\|baska-il\|atla\|hesaplama\)",
+                    r"\|ana-il-ara-hata\\/\(\?:bos\|belirsiz\|bulunamadi\|celisik\)", r"  const KATEGORI_OLAYLARI = .*?\n(?=  const kayit = \[\];)", r", KATEGORI_OLAYLARI, kategoriOlayi, hedefHataKategorisi, girisBicimi(?= \})")
+        for desen in kategori: yeni, n = re.subn(desen, "", yeni, count=1, flags=re.S); self.assertEqual(n, 1, desen)
+        self.assertEqual(yeni, yorumsuz(git("show", f"{ONCEKI_URETIM}:assets/olcum.js")))
 
     def test_olcum_uretimde_yalniz_iki_yeni_olayi_icerik_olmadan_gonderir(self):
         kod = r"""

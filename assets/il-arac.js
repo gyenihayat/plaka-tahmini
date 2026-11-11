@@ -44,6 +44,12 @@ const PlakaIlArac = (function () {
 
   // Analitik olayı (olcum.js yüklü değilse ya da üretimde değilsek sessizce yok sayılır)
   const olay = ad => { try { if (typeof PlakaOlcum !== "undefined") PlakaOlcum.olay(ad); } catch (e) { /* ölçüm hatası aracı etkilemez */ } };
+  // Başarısız işlem: mevcut toplam "il-hesapla-hata" olayı (geçmişle karşılaştırılabilir; başka il yönlendirmesi de eskisi gibi dahil) + TEK sabit kategori olayı.
+  // Kategori olcum.js'teki kapalı listeden seçilir (hedefHataKategorisi), olay adı sabit tablodan gelir; girdi metni hiçbir biçimde gönderilmez.
+  const hataOlaylari = kategori => {
+    olay("il-hesapla-hata");
+    try { if (typeof PlakaOlcum !== "undefined") PlakaOlcum.olay(PlakaOlcum.kategoriOlayi("il-hesapla-hata", kategori())); } catch (e) { /* ölçüm hatası aracı etkilemez */ }
+  };
   function satir(ad, metin) { const p = document.createElement("p"); p.className = ad; p.textContent = metin; return p; }
   function goster(kutu, o) {
     kutu.textContent = "";
@@ -86,8 +92,13 @@ const PlakaIlArac = (function () {
     const bugunGun = () => trReferansGun().gun;                          // ana sayfadaki todayDay ile aynı: referans gün (önceki iş günü)
     form.addEventListener("submit", e => {
       e.preventDefault(); olay("il-hesapla-basla");                      // anonim olay: yalnızca ad; girdi metni gönderilmez
-      try { const o = hesapla(s, hedef.value, atla ? atla.value : "", bugunGun()); goster(kutu, o); olay(o.tip === "hata" || o.tip === "baska_il" ? "il-hesapla-hata" : "il-hesapla-sonuc"); }
-      catch (err) { console.error("plakatahmini: hesaplama başarısız", err); olay("il-hesapla-hata"); kutu.textContent = ""; const p = satir("hata", "Hesaplama yapılamadı. Ana sayfadaki aracı deneyin."); p.setAttribute("role", "alert"); kutu.appendChild(p); }
+      try {
+        const o = hesapla(s, hedef.value, atla ? atla.value : "", bugunGun()); goster(kutu, o);
+        if (o.tip === "hata" || o.tip === "baska_il")
+          hataOlaylari(() => PlakaOlcum.hedefHataKategorisi(hedef.value, { sayfaKodu: s.kod, harfGecerli: (l, n) => toN(l, n) != null, atlaHatali: parseExcl(String(atla ? atla.value : "")).bad.length > 0 }));
+        else olay("il-hesapla-sonuc");
+      }
+      catch (err) { console.error("plakatahmini: hesaplama başarısız", err); hataOlaylari(() => "hesaplama"); kutu.textContent = ""; const p = satir("hata", "Hesaplama yapılamadı. Ana sayfadaki aracı deneyin."); p.setAttribute("role", "alert"); kutu.appendChild(p); }
     });
     if (typeof PlakaTarih !== "undefined") PlakaTarih.kur(document, { onek: "il", s: () => s, ref: trReferansGun(), olay });          // "Belirli bir tarihte hangi plakada?": ortak araç (tarih-sorgu.js), sayfanın kendi ili
     const cta = document.querySelector('a[href="#hesapla"]');

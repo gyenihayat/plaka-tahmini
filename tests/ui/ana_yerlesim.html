@@ -36,6 +36,10 @@ function yukle(src, w) { return new Promise(r => { const f = document.createElem
       r.ilHatalar = {bos: gir(""), yok: gir("82"), belirsiz: gir("k"), celisik: gir("konya 06")};
       giris.value = "Çankırı"; const once = win.location.pathname; form.dispatchEvent(new win.Event("submit", {cancelable: true}));
       r.ilGecis = await new Promise(res => { f.addEventListener("load", () => res(f.contentWindow.location.pathname), {once: true}); setTimeout(() => res("gecis-yok"), 3000); });
+      // alternatif il adı (yalnızca arama eşleştirmesi) mobil genişlikte de resmî il sayfasına gider; hata metni görünmez
+      { const f2 = await yukle("/", w), w2 = f2.contentWindow, d2 = w2.document; d2.getElementById("il-ara").value = "Maraş";
+        const yol = new Promise(res => { f2.addEventListener("load", () => res(f2.contentWindow.location.pathname), {once: true}); setTimeout(() => res("gecis-yok"), 3000); });
+        d2.getElementById("il-form").dispatchEvent(new w2.Event("submit", {cancelable: true})); r.ilTakmaHata = d2.getElementById("il-hata").textContent; r.ilTakma = await yol; f2.remove(); }
     }
     f.remove(); out.push(r);
   }

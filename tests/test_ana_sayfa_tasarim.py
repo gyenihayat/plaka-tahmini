@@ -108,6 +108,63 @@ class IlSecimiVeBaglantilar(unittest.TestCase):
         hatalar = json.loads(subprocess.run([u.NODE, "-e", kod.replace("c.__g.map", "c.__g.map"), json.dumps(liste), json.dumps([[""], ["82"], ["0"], ["00"], ["abc"], ["konya 06"], ["k"], ["ka"], ["1 2"], ["42 42"], ["   "]])], cwd=u.ROOT, capture_output=True, text=True, check=True).stdout)
         self.assertEqual([h[0] for h in hatalar], ["bos", "yok", "yok", "yok", "yok", "celisik", "belirsiz", "belirsiz", "yok", "yok", "bos"])
 
+    # Alternatif il adları (yalnızca arama eşleştirmesi): ana sayfa il araması. Değişiklik öncesi sürüm sabit commit'ten alınır (ALTERNATIF_AD_ONCESI) ve aynı girdilerde karşılaştırılır.
+    TAKMA = {"Maraş": "kahramanmaras", "K.Maraş": "kahramanmaras", "Urfa": "sanliurfa", "Antep": "gaziantep", "İzmit": "kocaeli", "Adapazarı": "sakarya", "Antakya": "hatay", "İçel": "mersin"}
+    ALTERNATIF_AD_ONCESI = "6c62082"
+    def _il_bul_karsilastir(self, girisler):
+        ops = re.findall(r'<option value="[^"]+" data-ad="([^"]+)" data-kod="(\d+)" data-slug="([a-z]+)">', ANA); liste = [{"ad": html.unescape(a), "kod": int(k), "slug": s} for a, k, s in ops]
+        eski = subprocess.run(["git", "show", f"{self.ALTERNATIF_AD_ONCESI}:assets/ana-sayfa.js"], cwd=u.ROOT, capture_output=True, text=True, check=True).stdout
+        self.assertNotIn("TAKMA_ADLAR", eski)
+        d = tempfile.mkdtemp(prefix="plaka_ilbul_")
+        try:
+            for ad, icerik in (("eski.js", eski), ("liste.json", json.dumps(liste)), ("g.json", json.dumps(girisler, ensure_ascii=False))):
+                with open(os.path.join(d, ad), "w", encoding="utf-8") as f: f.write(icerik)
+            kod = ("const fs=require('fs'),vm=require('vm'),p=require('path'),d=process.argv[1];const yukle=k=>{const c={Math,Date,console};vm.createContext(c);vm.runInContext(k+';this.P=PlakaAnaSayfa;',c);return c.P;};"
+                   "const E=yukle(fs.readFileSync(p.join(d,'eski.js'),'utf8')),Y=yukle(fs.readFileSync('assets/ana-sayfa.js','utf8'));const l=JSON.parse(fs.readFileSync(p.join(d,'liste.json'),'utf8'));"
+                   "const oz=r=>[r.tip,r.il?r.il.slug:null,r.adaylar?r.adaylar.map(x=>x.slug):null];"
+                   "console.log(JSON.stringify(JSON.parse(fs.readFileSync(p.join(d,'g.json'),'utf8')).map(g=>{const t=Y.trNorm(g),ad=t.replace(/\\b\\d{1,2}\\b/g,' ').replace(/\\s+/g,' ').trim();return [g,ad,oz(E.ilBul(g,l)),oz(Y.ilBul(g,l))];})));")
+            return liste, json.loads(subprocess.run([u.NODE, "-e", kod, d], cwd=u.ROOT, capture_output=True, text=True, check=True).stdout)
+        finally: shutil.rmtree(d, ignore_errors=True)
+
+    def test_alternatif_il_adlari_dogru_ile_gider(self):
+        fold = lambda t: t.translate(str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU"))
+        girisler, beklenen = [], {}
+        for takma, sl in self.TAKMA.items():
+            for g in (takma, takma.lower(), takma.replace("i", "İ").replace("ı", "I").upper(), fold(takma), fold(takma).lower(), fold(takma).upper(), f"  {takma}  ", takma.replace(".", ". ")):
+                girisler.append(g); beklenen[g] = ("tamam", sl)
+        liste, sonuc = self._il_bul_karsilastir(girisler + ["Maraş 46", "46 Maraş", "Maraş 27", "Urfa (63)", "K. Maraş", "k.maras"])
+        kod = {x["slug"]: x["kod"] for x in liste}
+        beklenen.update({"Maraş 46": ("tamam", "kahramanmaras"), "46 Maraş": ("tamam", "kahramanmaras"), "Maraş 27": ("celisik", "kahramanmaras"), "Urfa (63)": ("tamam", "sanliurfa"),
+                         "K. Maraş": ("tamam", "kahramanmaras"), "k.maras": ("tamam", "kahramanmaras")})
+        self.assertEqual((kod["kahramanmaras"], kod["sanliurfa"], kod["gaziantep"], kod["kocaeli"], kod["sakarya"], kod["hatay"], kod["mersin"]), (46, 63, 27, 41, 54, 31, 33))      # hedef iller ve kodları değişmedi
+        for g, ad, eski, yeni in sonuc:
+            self.assertEqual(tuple(yeni[:2]), beklenen[g], g)
+            self.assertEqual(eski[0], "yok", f"{g}: değişiklikten önce bulunamıyordu")              # alternatif adlar yeni eşleşmedir; başka bir ile gitmiyordu
+
+    def test_alternatif_adlar_mevcut_aramayi_degistirmez(self):
+        # Değişiklik öncesiyle aynı girdilerde birebir aynı sonuç (tip, il, belirsiz adaylar); TEK fark: ad kısmı tam olarak bir alternatif ad olan girdiler.
+        import random; rnd = random.Random(20261111)
+        ops = re.findall(r'data-ad="([^"]+)" data-kod="(\d+)"', ANA); fold = lambda t: t.translate(str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU"))
+        girisler = ["", " ", "k", "ka", "kar", "an", "ant", "anta", "a", "ad", "ada", "mar", "mara", "ur", "urf", "ante", "izm", "izmi", "ic", "ice", "sa", "ha", "me", "ko", "ga", "kah", "san"]
+        for a, k in ops:
+            a = html.unescape(a); f = fold(a).lower()
+            girisler += [a, a.upper(), a.lower(), f, f"{a} {k}", f"{k} {a}", f"{a} 99", k, f"{int(k):02d}"] + [f[:i] for i in range(1, len(f) + 1)] + [a[:i] for i in range(1, len(a) + 1)]
+        for t in self.TAKMA: girisler += [t[:i] for i in range(1, len(t) + 1)] + [t + "x", "x" + t, t + " " + t, t + " merkez"]
+        harfler = "abcçdefgğhıijklmnoöprsştuüvyzABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ0123456789 .-'()"
+        girisler += ["".join(rnd.choice(harfler) for _ in range(rnd.randint(1, 12))) for _ in range(4000)] + [str(i) for i in range(0, 101)]
+        _, sonuc = self._il_bul_karsilastir(girisler)
+        takma_anahtar = {"maras", "k maras", "urfa", "antep", "izmit", "adapazari", "antakya", "icel"}; degisen = 0
+        for g, ad, eski, yeni in sonuc:
+            if ad in takma_anahtar: degisen += 1; self.assertEqual(eski[0], "yok", g); self.assertIn(yeni[0], ("tamam", "celisik"), g); continue
+            self.assertEqual(eski, yeni, g)
+        self.assertGreater(len(sonuc), 5000); self.assertGreater(degisen, 0)
+        bek = {g: ("belirsiz", None) for g in ("k", "ka", "an", "a", "ad", "sa", "ha", "ko", "ma", "i", "b", "e", "s", "m")}          # belirsiz kısmi aramalar belirsiz kalır
+        bek.update({"kah": ("tamam", "kahramanmaras"), "san": ("tamam", "sanliurfa"), "ant": ("tamam", "antalya"), "mar": ("tamam", "mardin"), "ada": ("tamam", "adana"), "izmi": ("tamam", "izmir"), "me": ("tamam", "mersin"), "ga": ("tamam", "gaziantep"),   # alternatif adın öneki
+                    "mara": ("yok", None), "urf": ("yok", None), "ante": ("yok", None), "ic": ("yok", None), "ice": ("yok", None), "ur": ("yok", None)})                             # kısmi eşleşmeye katılmaz
+        for g, ad, eski, yeni in sonuc:
+            if g in bek: self.assertEqual(tuple(yeni[:2]), bek[g], g); self.assertEqual(eski, yeni, g)
+        self.assertTrue(set(bek) <= {x[0] for x in sonuc})
+
 @unittest.skipUnless(CHROME, "Chrome yok")
 class TarayiciYerlesim(unittest.TestCase):
     @classmethod
@@ -173,5 +230,6 @@ class TarayiciYerlesim(unittest.TestCase):
         r = next(x for x in self.sonuc if x["w"] == 375)
         self.assertIn("Bir il adı", r["ilHatalar"]["bos"]); self.assertIn("bulunamadı", r["ilHatalar"]["yok"]); self.assertIn("Birden fazla il", r["ilHatalar"]["belirsiz"]); self.assertIn("plaka kodu 42", r["ilHatalar"]["celisik"])
         self.assertEqual(r["ilGecis"], "/il/cankiri")
+        self.assertEqual((r["ilTakma"], r["ilTakmaHata"]), ("/il/kahramanmaras", ""))          # alternatif ad (Maraş), 375 px: resmî il sayfasına gider
 
 if __name__ == "__main__": unittest.main()
