@@ -65,9 +65,9 @@ class LastmodKurali(unittest.TestCase):
             once = lm(os.path.join(d, "sitemap.xml")); yol = os.path.join(d, "il", "konya.html"); h = u.oku(yol)
             bos = '<div class="uyari" id="bayat" role="status" hidden></div>'; self.assertIn(bos, h)
             with open(yol, "w", encoding="utf-8") as f:       # düzeltme öncesi biçim: gizli öğede uyarı metni
-                f.write(h.replace(bos, '<div class="uyari" id="bayat" role="status" hidden>Son kayıtlı gözlem 21 günden eski (6 Kasım 2026). Tahmin güncel olmayabilir ve kesin değildir.</div>'))
-            self._uret(d, "2026-11-08"); self.assertEqual(lm(os.path.join(d, "sitemap.xml")), once); self.assertIn(bos, u.oku(yol))       # metin kalktı, lastmod yerinde
-            self._uret(d, "2026-12-01"); self.assertEqual(lm(os.path.join(d, "sitemap.xml"))[ANA + "il/konya"], "2026-12-01")          # veri gerçekten eskidi: görünür uyarı anlamlı içeriktir
+                f.write(h.replace(bos, '<div class="uyari" id="bayat" role="status" hidden>Son kayıtlı gözlem 21 günden eski (13 Kasım 2026). Tahmin güncel olmayabilir ve kesin değildir.</div>'))
+            self._uret(d, "2026-11-15"); self.assertEqual(lm(os.path.join(d, "sitemap.xml")), once); self.assertIn(bos, u.oku(yol))       # metin kalktı, lastmod yerinde
+            self._uret(d, "2026-12-08"); self.assertEqual(lm(os.path.join(d, "sitemap.xml"))[ANA + "il/konya"], "2026-12-08")          # veri gerçekten eskidi: görünür uyarı anlamlı içeriktir
         finally: shutil.rmtree(d, ignore_errors=True)
 
     def test_metin_sablon_degisimi_yalniz_ana_sayfa_lastmodunu_yeniler(self):

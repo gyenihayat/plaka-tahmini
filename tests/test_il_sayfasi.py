@@ -133,13 +133,13 @@ class Guncellik(unittest.TestCase):
     def test_uretimde_takvim_gunune_gore_21_gunden_eskiyse_html_de_gorunur_metin(self):
         d = u.kopya()
         try:
-            # son gözlem 6 Kasım (Cuma). 27 Kasım: 21 gün (uyarı yok); 28 Kasım Cumartesi: 22 gün, 29 Kasım Pazar: 23 gün (uyarı var; iş günü sayılsaydı
-            # ikisi de 27 Kasım'a göre 21 gün olurdu); 1 Aralık: 25 gün. Görünür metin JS kapalıyken de okunur.
-            for bugun, gorunur, referans in (("2026-11-27", False, "2026-11-27"), ("2026-11-28", True, "2026-11-27"), ("2026-11-29", True, "2026-11-27"), ("2026-12-01", True, "2026-12-01")):
+            # son gözlem 13 Kasım (Cuma). 4 Aralık: 21 gün (uyarı yok); 5 Aralık Cumartesi: 22 gün, 6 Aralık Pazar: 23 gün (uyarı var; iş günü sayılsaydı
+            # ikisi de 4 Aralık'a göre 21 gün olurdu); 8 Aralık: 25 gün. Görünür metin JS kapalıyken de okunur.
+            for bugun, gorunur, referans in (("2026-12-04", False, "2026-12-04"), ("2026-12-05", True, "2026-12-04"), ("2026-12-06", True, "2026-12-04"), ("2026-12-08", True, "2026-12-08")):
                 r = u.uret(d, "--bugun", bugun, "--iller", "konya,ankara"); self.assertEqual(r.returncode, 0, r.stderr)
                 for sl in ("konya", "ankara"):          # pilot dışı ve pilot il
                     h = u.oku(os.path.join(d, "il", sl + ".html"))
-                    self.assertEqual(re.findall(BAYAT_RE, h), [("", BAYAT.format("6 Kasım 2026"))] if gorunur else [(" hidden", "")], (sl, bugun))
+                    self.assertEqual(re.findall(BAYAT_RE, h), [("", BAYAT.format("13 Kasım 2026"))] if gorunur else [(" hidden", "")], (sl, bugun))
                     self.assertEqual("günden eski" in betiksiz(h), gorunur, (sl, bugun))
                     self.assertIn(f'data-baslangic="{referans}"', h, (sl, bugun))                               # tahminin referans günü iş günü kuralıyla kalır
         finally: shutil.rmtree(d, ignore_errors=True)
@@ -164,20 +164,20 @@ class Guncellik(unittest.TestCase):
     def test_ayni_gun_uretim_ve_ziyaret_ayni_uyari_durumu(self):
         d = u.kopya()
         try:
-            for i in range(8):                          # 25 Kasım – 2 Aralık 2026 (28–29 Kasım hafta sonu); son gözlem 6 Kasım: yaş 19–26
-                bugun = dt.date(2026, 11, 25) + dt.timedelta(i); r = u.uret(d, "--bugun", bugun.isoformat(), "--iller", "konya"); self.assertEqual(r.returncode, 0, r.stderr)
+            for i in range(8):                          # 2 – 9 Aralık 2026 (5–6 Aralık hafta sonu); son gözlem 13 Kasım: yaş 19–26
+                bugun = dt.date(2026, 12, 2) + dt.timedelta(i); r = u.uret(d, "--bugun", bugun.isoformat(), "--iller", "konya"); self.assertEqual(r.returncode, 0, r.stderr)
                 h = os.path.join(d, "il", "konya.html"); statik = re.findall(BAYAT_RE, u.oku(h))[0][0] == ""
                 x = u.canli_sonuc(h, [int(dt.datetime(bugun.year, bugun.month, bugun.day, 9, tzinfo=dt.timezone.utc).timestamp() * 1000)])[0]          # aynı gün TR 12:00
-                beklenen = (bugun - dt.date(2026, 11, 6)).days > 21
-                self.assertEqual((statik, x["bayat"]), (beklenen, beklenen), bugun); self.assertEqual(x["bayatMetin"], BAYAT.format("6 Kasım 2026") if beklenen else None, bugun)
+                beklenen = (bugun - dt.date(2026, 11, 13)).days > 21
+                self.assertEqual((statik, x["bayat"]), (beklenen, beklenen), bugun); self.assertEqual(x["bayatMetin"], BAYAT.format("13 Kasım 2026") if beklenen else None, bugun)
         finally: shutil.rmtree(d, ignore_errors=True)
 
     @unittest.skipUnless(u.NODE, "node kurulu değil")
     def test_js_ziyaret_tarihine_gore_metni_yazar_ve_gosterir(self):
         an = lambda y, m, d, sa=12, dk=0: int(dt.datetime(y, m, d, sa, dk, tzinfo=dt.timezone.utc).timestamp() * 1000)
-        # son gözlem 6 Kasım; Türkiye takvim gününe göre yaş: 7, 21, 21 (TR 27 Kasım 23:59), 22 (TR 28 Kasım 00:00), 22 (Cumartesi; iş günü kuralından bağımsız), 94
-        anlar = [an(2026, 11, 13), an(2026, 11, 27), an(2026, 11, 27, 20, 59), an(2026, 11, 27, 21, 0), an(2026, 11, 28), an(2027, 2, 8)]
-        beklenen = [False, False, False, True, True, True]; m = BAYAT.format("6 Kasım 2026")
+        # son gözlem 13 Kasım; Türkiye takvim gününe göre yaş: 7, 21, 21 (TR 4 Aralık 23:59), 22 (TR 5 Aralık 00:00), 22 (Cumartesi; iş günü kuralından bağımsız), 94
+        anlar = [an(2026, 11, 20), an(2026, 12, 4), an(2026, 12, 4, 20, 59), an(2026, 12, 4, 21, 0), an(2026, 12, 5), an(2027, 2, 15)]
+        beklenen = [False, False, False, True, True, True]; m = BAYAT.format("13 Kasım 2026")
         for il in ("konya", "ankara"):
             for tz in (None, "America/Los_Angeles", "Asia/Tokyo"):
                 r = u.canli_sonuc(os.path.join(u.ROOT, "il", il + ".html"), anlar, tz)
@@ -188,9 +188,9 @@ class Guncellik(unittest.TestCase):
     def test_uretimde_eski_sayfada_js_ayni_uyariyi_korur(self):
         d = u.kopya()
         try:
-            r = u.uret(d, "--bugun", "2026-12-01", "--iller", "konya"); self.assertEqual(r.returncode, 0, r.stderr)
-            x = u.canli_sonuc(os.path.join(d, "il", "konya.html"), [int(dt.datetime(2026, 12, 1, 12, tzinfo=dt.timezone.utc).timestamp() * 1000)])[0]
-            self.assertEqual((x["bayat"], x["bayatMetin"], x["hatalar"]), (True, BAYAT.format("6 Kasım 2026"), []))
+            r = u.uret(d, "--bugun", "2026-12-08", "--iller", "konya"); self.assertEqual(r.returncode, 0, r.stderr)
+            x = u.canli_sonuc(os.path.join(d, "il", "konya.html"), [int(dt.datetime(2026, 12, 8, 12, tzinfo=dt.timezone.utc).timestamp() * 1000)])[0]
+            self.assertEqual((x["bayat"], x["bayatMetin"], x["hatalar"]), (True, BAYAT.format("13 Kasım 2026"), []))
         finally: shutil.rmtree(d, ignore_errors=True)
 
 class AcilirBolumlerVeBaglantilar(unittest.TestCase):
