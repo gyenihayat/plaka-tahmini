@@ -1,0 +1,97 @@
+<!-- /istatistik sayfası çizim ve etkileşim harness'ı. tests/test_istatistik.py kullanır: sayfa iframe'de çeşitli genişliklerde açılır, seçenekler tıklanır, grafiklerin SVG'si ölçülür. -->
+<!doctype html><meta charset="utf-8"><body style="margin:0"><pre id="o">çalışıyor</pre>
+<script>
+const GENISLIKLER = __GENISLIKLER__, out = {};
+const bekle = ms => new Promise(r => setTimeout(r, ms));
+async function kosul(f, ad, ms = 8000) { const t = Date.now(); while (Date.now() - t < ms) { try { const v = f(); if (v) return v; } catch (e) {} await bekle(15); } throw new Error("zaman aşımı: " + ad); }
+function yukle(src, w = 390, h = 900, hazir = d => !d.getElementById("icerik").hidden && d.querySelector("#g-iller svg")) {
+  return new Promise((ok, hata) => { const f = document.createElement("iframe"); f.style.cssText = `width:${w}px;height:${h}px;border:0;display:block`;
+    f.onload = () => { f.contentWindow.__hatalar = []; f.contentWindow.addEventListener("error", e => f.contentWindow.__hatalar.push(String(e.message)));
+      kosul(() => f.contentDocument && hazir(f.contentDocument), "hazır " + src, 8000).then(() => ok(f), hata); };
+    f.src = src; document.body.appendChild(f); });
+}
+const tikla = (d, s) => d.querySelector(s).click();
+function uzerinde(d, s, fx, fy) { const e = d.querySelector(s), r = e.getBoundingClientRect(); e.dispatchEvent(new d.defaultView.PointerEvent("pointermove", { clientX: r.left + r.width * fx, clientY: r.top + r.height * fy, pointerType: "mouse", bubbles: true })); }
+const kutu = e => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
+// Grafik ölçümü: SVG kartına sığıyor mu, eksen/etiket yazıları SVG'nin içinde mi, aynı satırdaki x ekseni etiketleri birbirine giriyor mu?
+function olc(d, id) {
+  const b = d.getElementById(id), svg = b.querySelector(".cizim svg"), s = kutu(svg), kart = kutu(b.querySelector(".kart"));
+  const yazilar = [...svg.querySelectorAll("text")].map(t => Object.assign(kutu(t), { m: t.textContent }));
+  const altSatir = yazilar.filter(t => t.b > s.b - 14).sort((p, q) => p.l - q.l);
+  return { sigiyor: s.l >= kart.l - 0.5 && s.r <= kart.r + 0.5, tasanYazi: yazilar.filter(t => t.l < s.l - 1 || t.r > s.r + 1).map(t => t.m),
+           cakisan: altSatir.filter((t, i) => i && t.l < altSatir[i - 1].r - 0.5).map(t => t.m), yaziSayisi: yazilar.length,
+           sutun: svg.querySelectorAll("path[fill]:not([fill=none])").length, cizgi: svg.querySelectorAll("path[fill=none]").length,
+           lejant: [...b.querySelectorAll(".lejant span")].map(x => x.textContent), aciklama: b.querySelector(".aciklama").textContent, dipnot: b.querySelector(".dipnot").hidden ? "" : b.querySelector(".dipnot").textContent,
+           etiket: svg.getAttribute("aria-label"), tablo: [...b.querySelectorAll(".tablo tr")].map(tr => [...tr.children].map(c => c.textContent)) };
+}
+const ilEkle = (d, k) => { const e = d.getElementById("b-ekle"); e.value = String(k); e.dispatchEvent(new d.defaultView.Event("change", { bubbles: true })); };
+const ipucu = (d, id) => { const k = d.querySelector("#" + id + " .gr-ipucu"); return k && !k.hidden ? k.innerText : null; };
+
+(async () => {
+  // --- 1. her genişlikte ilk görünüm: taşma yok, dört grafik çizili -----------------------------------------------------
+  out.yerlesim = [];
+  for (const w of GENISLIKLER) {
+    const f = await yukle("/istatistik?il=06", w, 900), d = f.contentDocument, de = d.documentElement;
+    const r = { w, cw: de.clientWidth, sw: de.scrollWidth, hatalar: f.contentWindow.__hatalar };
+    for (const id of ["g-hafta", "g-donem", "g-kumulatif", "g-iller"]) r[id] = olc(d, id);
+    tikla(d, '[data-durum=n] [data-deger="52"]'); tikla(d, "[data-deger=hafta]"); tikla(d, "[data-deger=yuzde]"); tikla(d, "[data-deger=tum]");
+    for (const id of ["g-hafta", "g-donem", "g-iller"]) r[id + "-2"] = olc(d, id);
+    tikla(d, "[data-deger=ceyrek]"); tikla(d, "[data-deger=yil]"); r["g-donem-3"] = olc(d, "g-donem"); r["g-iller-3"] = olc(d, "g-iller");
+    ilEkle(d, 34); ilEkle(d, 46); r["g-kumulatif-2"] = olc(d, "g-kumulatif"); tikla(d, "[data-durum=bOlcek] [data-deger=oran]"); r["g-kumulatif-3"] = olc(d, "g-kumulatif");      // 3 il: adet ve oran ölçeği
+    r.sw2 = de.scrollWidth; r.kucukDugme = [...d.querySelectorAll(".secim button, select, .ek")].filter(e => e.getBoundingClientRect().height < 40).length;
+    f.remove(); out.yerlesim.push(r);
+  }
+  // --- 2. etkileşim (390 px): il seçimi, adres, ipuçları, seçenek düğmeleri ---------------------------------------------
+  {
+    const f = await yukle("/istatistik?il=06", 390, 900), d = f.contentDocument, w = f.contentWindow, e = out.etkilesim = {};
+    e.il = d.getElementById("il").value; e.ilBag = d.getElementById("il-sayfa").getAttribute("href"); e.ilBagMetin = d.getElementById("il-sayfa").textContent; e.veriTarihi = d.getElementById("veri-tarihi").textContent;
+    e.ozet = [...d.querySelectorAll(".ozet .kutu")].map(k => [k.querySelector(".e").textContent, k.querySelector(".v").textContent, k.querySelector(".k").textContent]);
+    e.durum = JSON.parse(w.eval("JSON.stringify(PlakaIstatistik.durum)"));
+    uzerinde(d, "#g-hafta svg", 0.95, 0.5); e.ipucuHafta = ipucu(d, "g-hafta");
+    uzerinde(d, "#g-donem svg", 0.5, 0.5); e.ipucuDonem = ipucu(d, "g-donem");
+    uzerinde(d, "#g-kumulatif svg", 0.3, 0.5); e.ipucuKumulatif = ipucu(d, "g-kumulatif");
+    uzerinde(d, "#g-iller svg", 0.5, 0.1); e.ipucuIller = ipucu(d, "g-iller");
+    uzerinde(d, "#g-hafta svg", 0.01, 0.5); e.ipucuEksenUstunde = ipucu(d, "g-hafta");                    // eksen bölgesi: ipucu yok
+    e.basili = [...d.querySelectorAll(".secim button[aria-pressed=true]")].map(b => b.dataset.deger);
+    // il değişimi: Türkiye'ye dön
+    const sec = d.getElementById("il"); sec.value = "0"; sec.dispatchEvent(new w.Event("change", { bubbles: true }));
+    e.trAciklama = d.querySelector("#g-hafta .aciklama").textContent; e.trAdres = w.location.search; e.trBagGizli = d.getElementById("il-sayfa").hidden;
+    sec.value = "62"; sec.dispatchEvent(new w.Event("change", { bubbles: true })); e.tunceliAdres = w.location.search; e.tunceliVurgu = d.querySelectorAll('#g-iller svg text[font-weight="600"]').length;
+    e.tunceliSatir = [...d.querySelectorAll("#g-iller svg text")].map(t => t.textContent).filter(t => /Tunceli/.test(t));
+    // dönem seçici
+    tikla(d, "[data-durum=kTur] [data-deger=ceyrek]"); e.ceyrekSecenek = [...d.getElementById("k-donem").options].map(o => o.textContent); e.ceyrekSecili = d.getElementById("k-donem").selectedOptions[0].textContent;
+    tikla(d, "[data-durum=kTur] [data-deger=yil]"); e.yilSecenek = [...d.getElementById("k-donem").options].map(o => o.textContent); e.yilAciklama = d.querySelector("#g-iller .aciklama").textContent;
+    tikla(d, "[data-durum=kTur] [data-deger=ay]"); e.aySecili = d.getElementById("k-donem").selectedOptions[0].textContent; e.ayAdet = d.getElementById("k-donem").options.length;
+    e.hatalar = w.__hatalar; f.remove();
+  }
+  // --- 2b. birikim grafiğine il ekleme: seçili il + en çok 2 il; renk ile bağlı kalır ------------------------------------
+  {
+    const f = await yukle("/istatistik?il=66", 390, 900), d = f.contentDocument, w = f.contentWindow, b = out.birikim = {};
+    const durum = () => ({ g: olc(d, "g-kumulatif"), cipler: [...d.querySelectorAll("#b-ekler .ek")].map(x => [x.dataset.kod, x.textContent, x.querySelector("i").style.color, x.getAttribute("aria-label")]),
+      secKapali: d.getElementById("b-ekle").disabled, secenek: d.getElementById("b-ekle").options.length, ilkSecenek: d.getElementById("b-ekle").options[0].textContent, olcekGizli: d.getElementById("b-olcek").hidden,
+      renkler: [...d.querySelectorAll("#g-kumulatif svg path[fill=none]")].map(p => p.getAttribute("stroke")), yuzdeEksen: [...d.querySelectorAll("#g-kumulatif svg text")].filter(t => /^%/.test(t.textContent)).length,
+      ek: JSON.parse(w.eval("JSON.stringify(PlakaIstatistik.durum.ek)")), anaGizli: w.eval("PlakaIstatistik.durum.anaGizli") });
+    b.bos = durum(); ilEkle(d, 6); b.bir = durum(); ilEkle(d, 34); b.iki = durum(); ilEkle(d, 35); b.ucuncu = durum();
+    uzerinde(d, "#g-kumulatif svg", 0.5, 0.5); b.ipucu = ipucu(d, "g-kumulatif");
+    tikla(d, "[data-durum=bOlcek] [data-deger=oran]"); b.oran = durum(); uzerinde(d, "#g-kumulatif svg", 0.5, 0.5); b.ipucuOran = ipucu(d, "g-kumulatif");
+    tikla(d, '#b-ekler .ek[data-kod="6"]'); b.ankaraCikti = durum(); ilEkle(d, 0); b.turkiyeEklendi = durum();
+    const sec = d.getElementById("il"); sec.value = "34"; sec.dispatchEvent(new w.Event("change", { bubbles: true })); b.anaIstanbul = durum();          // ana il eklenenlerden biri olursa ekten düşer
+    tikla(d, '#b-ekler .ek[data-kod="0"]'); b.tek = durum();
+    // seçili (ana) il de çıkarılabilir: grafikte yalnızca eklenen iller kalır
+    const anaSec = k => { sec.value = k; sec.dispatchEvent(new w.Event("change", { bubbles: true })); };
+    ilEkle(d, 6); tikla(d, '#b-ekler .ek[data-kod="ana"]'); b.anaCikti = durum(); ilEkle(d, 35); ilEkle(d, 16); b.ucIlAnasiz = durum();
+    anaSec("42"); b.doluykenAnaDegisti = durum();                                                          // 3 çizgi dolu: yeni seçili il çizilmez
+    tikla(d, '#b-ekler .ek[data-kod="35"]'); anaSec("66"); b.yerAcilincaAna = durum();                     // yer açıldı: seçili il yeniden çizilir
+    tikla(d, '#b-ekler .ek[data-kod="ana"]'); b.anaYineCikti = durum(); ilEkle(d, 66); b.anaGeriEklendi = durum();    // çıkarılan ana il listeden geri eklenebilir
+    tikla(d, '#b-ekler .ek[data-kod="6"]'); tikla(d, '#b-ekler .ek[data-kod="16"]'); b.sonTek = durum(); b.sw = d.documentElement.scrollWidth; b.cw = d.documentElement.clientWidth; b.hatalar = w.__hatalar; f.remove();
+  }
+  // --- 3. geçersiz il parametresi → Türkiye; veri yüklenemezse hata mesajı ------------------------------------------------
+  out.gecersiz = [];
+  for (const q of ["?il=99", "?il=abc", "?il=%3Cscript%3E", ""]) { const f = await yukle("/istatistik" + q, 390, 600), d = f.contentDocument; out.gecersiz.push([q, d.getElementById("il").value, d.querySelector("#g-hafta .aciklama").textContent.split(" · ")[0]]); f.remove(); }
+  await fetch("/__mod?m=bozuk");
+  { const f = await yukle("/istatistik", 390, 600, d => d.getElementById("yukleniyor").className === "uyari"), d = f.contentDocument;
+    out.bozuk = { mesaj: d.getElementById("yukleniyor").textContent, icerikGizli: d.getElementById("icerik").hidden, svg: d.querySelectorAll("svg").length }; f.remove(); }
+  await fetch("/__mod?m=normal");
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+})().catch(e => { document.getElementById("o").textContent = "HATA " + (e && e.stack || e); });
+</script></body>

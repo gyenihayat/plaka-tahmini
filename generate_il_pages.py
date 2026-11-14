@@ -61,6 +61,11 @@ def katki_baglantisi(kod=None, sl=None):
     kutu = "display:block;padding:14px 16px;border:1.5px solid #2a78d6;border-radius:10px;background:#e3eefb;color:#1f4fb0;text-align:center;text-decoration:none"      # belirgin ama ana eylemin (mavi dolu düğme) altında kalan açık mavi kutu
     return (f'<p class="katki" style="margin:28px 0 0"><a href="/geri-bildirim{q}" style="{kutu}"><span style="display:block;font-size:1.0625rem;font-weight:600">Öneri ve katkı gönder</span>'
             '<span style="display:block;font-size:15px;color:#27415f;margin-top:2px">Plaka bilgisi paylaşın, öneri veya hata bildirin</span></a></p>')
+# Altbilgideki "Plaka istatistikleri ve grafikler" bağlantısı (/istatistik: bağımsız grafik sayfası, istatistik.html + assets/istatistik.js; bu betik o sayfayı ÜRETMEZ).
+# Tek satır metin bağlantısıdır; <!--ISTATISTIK--> işaretleri arasındadır ve KATKI bağlantısı gibi sitemap lastmod / ana sayfa parmak izi hesabına GİRMEZ. İl sayfasından gelince grafikler o ille açılır.
+def istatistik_baglantisi(kod=None):
+    q = "?il=%02d" % kod if kod else ""
+    return f'<p class="istatistik" style="margin:16px 0 0;font-size:15px;text-align:center"><a href="/istatistik{q}">Plaka istatistikleri ve grafikler</a></p>'
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
 # #bayat uyarısı (81 il, tek kod yolu): veri tazeyken uyarı METNİ HTML'de yer almaz; öğe boş ve hidden'dır (JS çalıştırmayan bot/metin çıkarıcı yanlışlıkla "21 günden eski" okumasın).
 # Üretim anında veri zaten eskiyse metin HTML'de ve görünürdür (JS kapalıyken de okunur). Ziyaret anında eşik aşılmışsa satır içi betik metni (öğe boşsa) yazar ve gösterir.
@@ -329,12 +334,13 @@ def ana_sayfa_guncelle():
     h = _bolge(h, "<!--ANA:IL-LISTE-->", "<!--/ANA:IL-LISTE-->", liste_html)
     h = _bolge(h, "<!--ANA:IL-BAGLANTILAR-->", "<!--/ANA:IL-BAGLANTILAR-->", bag_html)
     h = _bolge(h, "<!--ANA:KATKI-->", "<!--/ANA:KATKI-->", katki_baglantisi())
+    h = _bolge(h, "<!--ANA:ISTATISTIK-->", "<!--/ANA:ISTATISTIK-->", istatistik_baglantisi())
     h = _bolge(h, "<!--ANA:OLCUM-NOTU-->", "<!--/ANA:OLCUM-NOTU-->", OLCUM_NOTU_ANA)
     h = _bolge(h, "<!--ANA:TARIH-ARACI-->", "<!--/ANA:TARIH-ARACI-->", tarih_arac_html(True))
     # Anlamlı içerik parmak izi: kartlardaki günlük seri/tarih değişimi tek başına yeni içerik SAYILMAZ; gözlem verisi (DATA), metin, şablon ve CSS değişimi sayılır.
     # İz index.html içinde saklanır (git'e ya da saate bağlı değil); değişmediyse sitemap lastmod'u korunur.
     _iz_girdisi = re.sub(r"(<!--ANA:SURUM-->).*?(<!--/ANA:SURUM-->)", r"\1\2", re.sub(r'(data-kart="(?:plaka|tarih)">)[^<]*', r"\1", h), flags=re.S)
-    _iz_girdisi = re.sub(r"<!--ANA:OLCUM-NOTU-->.*?<!--/ANA:OLCUM-NOTU-->\n|<!--ANA:KATKI-->.*?<!--/ANA:KATKI-->\n|<!--OLCUM-->.*?<!--/OLCUM-->\n", "", _iz_girdisi, flags=re.S)       # analitik betiği/notu anlamlı içerik değildir       # izin kendisi ve günlük değerler girdiye katılmaz
+    _iz_girdisi = re.sub(r"<!--ANA:OLCUM-NOTU-->.*?<!--/ANA:OLCUM-NOTU-->\n|<!--ANA:KATKI-->.*?<!--/ANA:KATKI-->\n|<!--ANA:ISTATISTIK-->.*?<!--/ANA:ISTATISTIK-->\n|<!--OLCUM-->.*?<!--/OLCUM-->\n", "", _iz_girdisi, flags=re.S)       # analitik betiği/notu anlamlı içerik değildir       # izin kendisi ve günlük değerler girdiye katılmaz
     yeni_iz = hashlib.sha256(_iz_girdisi.encode("utf-8")).hexdigest()[:16]
     h = _bolge(h, "<!--ANA:SURUM-->", "<!--/ANA:SURUM-->", yeni_iz)
     with open("index.html", "w", encoding="utf-8") as f: f.write(h)
@@ -347,6 +353,7 @@ def ana_sayfa_guncelle():
 ESKI_LASTMOD = dict(re.findall(r"<loc>([^<]+)</loc>\s*<lastmod>([^<]+)</lastmod>", open("sitemap.xml", encoding="utf-8").read())) if os.path.exists("sitemap.xml") else {}
 def anlamli(h):
     h = re.sub(r"<!--KATKI-->.*?<!--/KATKI-->\n", "", h, flags=re.S)            # geri bildirim bağlantısı lastmod'u oynatmaz
+    h = re.sub(r"<!--ISTATISTIK-->.*?<!--/ISTATISTIK-->\n", "", h, flags=re.S)   # istatistik sayfası bağlantısı lastmod'u oynatmaz
     h = re.sub(r"<!--OLCUM-->.*?<!--/OLCUM-->\n", "", h, flags=re.S)             # analitik betiği ve bilgilendirme notu lastmod'u oynatmaz
     h = re.sub(r"<script>\(function.*?</script>", "", h, flags=re.S)
     h = re.sub(r'data-baslangic="[^"]*"', 'data-baslangic=""', h)
@@ -493,6 +500,7 @@ for s in iller:
 {kaynak}
 {DIGER_ILLER}
 <!--KATKI-->{katki_baglantisi(s['kod'], sl)}<!--/KATKI-->
+<!--ISTATISTIK-->{istatistik_baglantisi(s['kod'])}<!--/ISTATISTIK-->
 <!--OLCUM-->{OLCUM_NOTU_IL}<!--/OLCUM-->
 </main>
 <script type="application/json" id="il-veri">{il_veri}</script>
@@ -513,6 +521,13 @@ for s in iller:
 if SADECE is None:
     _ana = BASE + "/"       # ana sayfa kartları/listeleri/CSS (aynı referans gün, aynı hesap); lastmod yalnızca anlamlı içerik değiştiyse yenilenir
     LASTMOD[_ana] = LASTMOD_GUNU.isoformat() if (ana_sayfa_guncelle() or _ana not in ESKI_LASTMOD) else ESKI_LASTMOD[_ana]
+# İstatistik sayfası (/istatistik) bu betikle ÜRETİLMEZ (istatistik.html elle yazılmıştır, veriyi ziyaret anında okur) ama sitemap'te yer alır.
+# İçeriği gözlem verisidir: verideki son gözlem günü sitemap'teki önceki lastmod'dan yeniyse (ya da sayfa sitemap'te ilk kez yer alıyorsa) üretim günü yazılır, aksi hâlde önceki değer korunur.
+# (Durum saklanmaz; önceki lastmod'un kendisi karşılaştırma değeridir. Sayfanın şablonundaki değişiklikler lastmod'u oynatmaz; gerekirse --lastmod ile elle verilir.)
+if SADECE is None:
+    _ist = BASE + "/istatistik"; _son_gozlem = (EPOCH + datetime.timedelta(days=max(x["obs"][-1][0] for x in iller))).isoformat()
+    LASTMOD[_ist] = ESKI_LASTMOD[_ist] if (_ist in ESKI_LASTMOD and _son_gozlem <= ESKI_LASTMOD[_ist]) else LASTMOD_GUNU.isoformat()
+    urls.append(_ist)
 if SADECE is None:
     _sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"  <url><loc>{u}</loc><lastmod>{LASTMOD[u]}</lastmod><changefreq>weekly</changefreq></url>" for u in urls) + "\n</urlset>\n"
     with open("sitemap.xml", "w", encoding="utf-8") as _f: _f.write(_sm)

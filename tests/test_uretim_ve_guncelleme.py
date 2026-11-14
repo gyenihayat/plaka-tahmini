@@ -76,7 +76,7 @@ class HaftalikGuncelleme(unittest.TestCase):
             self.assertIn('<script src="/assets/tahmin-motoru.js"></script>', u.oku(os.path.join(d, "index.html")))
             sayfalar = sorted(glob.glob(os.path.join(d, "il", "*.html"))); self.assertEqual(len(sayfalar), 81)
             for s in veri(): self.assertIn(f"<dd class=\"k\">{tr(tarih)}</dd>", u.oku(os.path.join(d, "il", slug(TAM.get(s["il"], s["il"])) + ".html")))      # son kayıtlı gözlem tarihi veriden
-            self.assertEqual(len(re.findall(r"<loc>", u.oku(os.path.join(d, "sitemap.xml")))), 82)
+            self.assertEqual(len(re.findall(r"<loc>", u.oku(os.path.join(d, "sitemap.xml")))), 83)
         finally: shutil.rmtree(d, ignore_errors=True)
 
     def test_takvim_kapsam_korumasi_tablo_ekle_dosya_yazmadan_durdurur(self):

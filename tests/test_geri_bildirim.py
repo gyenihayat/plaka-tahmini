@@ -70,7 +70,7 @@ class YapiVeSayfa(unittest.TestCase):
         for f in korunan: self.assertNotRegex(u.oku(os.path.join(u.ROOT, f)), r"(?i)geri[-_]bildirim|/api/|katk[ıi]|plaka_bildirimi|genel_oneri|github|fetch\(|XMLHttpRequest|sendBeacon", f)
 
     def test_sitemap_ve_arama_motoru(self):
-        sm = u.oku(os.path.join(u.ROOT, "sitemap.xml")); self.assertEqual(sm.count("<url>"), 82); self.assertNotIn("geri-bildirim", sm)
+        sm = u.oku(os.path.join(u.ROOT, "sitemap.xml")); self.assertEqual(sm.count("<url>"), 83); self.assertNotIn("geri-bildirim", sm)       # ana sayfa + 81 il + /istatistik
         self.assertIn('<meta name="robots" content="noindex, follow">', SAYFA); self.assertNotIn("canonical", SAYFA)
         self.assertNotIn("geri-bildirim", u.oku(os.path.join(u.ROOT, "robots.txt")))
 

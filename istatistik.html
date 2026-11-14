@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plaka İstatistikleri — il il plaka artışı grafikleri · Plaka Tahmini</title>
+<meta name="description" content="81 il için haftalık, aylık ve üç aylık plaka artışı grafikleri: son haftalar, geçen yılın aynı dönemleriyle karşılaştırma ve iller arası sıralama. Haftalık gözlem verileriyle.">
+<link rel="canonical" href="https://plakatahmini.com/istatistik">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://plakatahmini.com/istatistik">
+<meta property="og:title" content="Plaka İstatistikleri — il il plaka artışı grafikleri">
+<meta property="og:description" content="81 ilde plaka sırası ne hızla ilerliyor? Haftalık, aylık ve üç aylık grafikler; geçen yılla ve illerle karşılaştırma.">
+<meta property="og:image" content="https://plakatahmini.com/og.png">
+<meta property="og:locale" content="tr_TR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Plaka İstatistikleri — il il plaka artışı grafikleri">
+<meta name="twitter:image" content="https://plakatahmini.com/og.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔮</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f5f5f1;color:#15171c;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 56px}a{color:#1f63bb}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#5b6370;margin-bottom:8px}.eyebrow a{color:inherit;text-decoration:none}
+.geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}
+h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:clamp(1.75rem,7vw,2.5rem);font-weight:700;line-height:1.1;margin:0 0 12px}
+h2{font-size:1.25rem;font-weight:600;margin:0 0 2px;line-height:1.3}
+.giris{font-size:1.0625rem;color:#4d5461;margin:0 0 6px;max-width:640px}.veri-tarihi{font-size:15px;color:#5b6370;margin:0 0 10px}
+a:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #f0a000;outline-offset:2px}
+.uyari{background:#fff6e0;border:1px solid #e3c36a;color:#7a4a00;border-radius:9px;padding:10px 14px;font-size:15px;margin:10px 0}
+select{font:inherit;font-size:1rem;min-height:44px;padding:8px 12px;border:1.5px solid #8b94a5;border-radius:8px;background:#fff;color:#15171c;max-width:100%}
+.il-secim{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 -16px;padding:10px 16px;background:#f5f5f1;border-bottom:1px solid #dcdfe5}
+.il-secim label{font-weight:600;font-size:15px}.il-secim a{font-size:15px;font-weight:600;text-decoration:none}.il-secim a:hover{text-decoration:underline}
+.ozet{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0 0}
+.kutu{background:#fcfcfa;border:1px solid #dcdfe5;border-radius:12px;padding:12px 14px;min-width:0}
+.kutu .e{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#5b6370;margin:0}
+.kutu .v{font-size:1.375rem;font-weight:600;line-height:1.3;margin:2px 0 0}.kutu .k{font-size:14px;line-height:1.4;color:#4d5461;margin:2px 0 0}
+.grafik{margin:28px 0 0;padding-top:18px;border-top:1px solid #dcdfe5}
+.aciklama{font-size:15px;color:#4d5461;margin:0 0 12px}
+.secenekler{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 12px}
+.secim{display:flex;flex-wrap:wrap;gap:6px}
+.secim button{font:inherit;font-size:.9375rem;min-height:40px;padding:6px 14px;border:1.5px solid #8b94a5;border-radius:8px;background:#fff;color:#4d5461;cursor:pointer}
+.secim button:hover{background:#eef3fb}.secim button[aria-pressed=true]{background:#e3eefb;border-color:#2a78d6;color:#1f4fb0;font-weight:600}
+.ekler{display:flex;flex-wrap:wrap;gap:6px}.ek{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:.9375rem;min-height:40px;padding:6px 12px;border:1.5px solid #8b94a5;border-radius:99px;background:#fff;color:#15171c;cursor:pointer}
+.ek:hover{background:#eef3fb}.ek i{flex:none;width:12px;height:12px;border-radius:3px;background:currentColor}.ek span{color:#5b6370;font-size:1.125rem;line-height:1}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.kart{background:#fcfcfa;border:1px solid #dcdfe5;border-radius:12px;padding:12px 12px 6px}
+.lejant{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:#4d5461;margin:0 0 8px}.lejant span{display:inline-flex;align-items:center;gap:6px}
+.lejant i,.gr-ipucu i{flex:none;display:inline-block;width:12px;height:12px;border-radius:3px;background:currentColor}
+.lejant i.cizgi,.gr-ipucu i.cizgi{height:2px;width:16px;border-radius:1px}.lejant i.isaret,.gr-ipucu i.isaret{width:2px;height:14px;border-radius:0;margin:0 5px}
+.lejant i.tarali{background:repeating-linear-gradient(45deg,currentColor 0 2px,transparent 2px 5px);border:1px solid currentColor}
+.cizim{position:relative}.cizim svg{display:block;max-width:100%;height:auto;touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+svg .eksen{font:12px "IBM Plex Sans",system-ui,sans-serif;fill:#5b6370;font-variant-numeric:tabular-nums}
+.gr-ipucu{position:absolute;z-index:2;pointer-events:none;max-width:250px;background:#fff;border:1px solid #c5cad3;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.45;box-shadow:0 2px 10px rgba(21,23,28,.14)}
+.gr-ipucu .b{font-weight:600;margin:0 0 3px}.gr-ipucu .s{display:flex;align-items:center;gap:6px;color:#4d5461}.gr-ipucu .s b{color:#15171c;font-variant-numeric:tabular-nums}.gr-ipucu .n{color:#4d5461;margin-top:4px}
+.dipnot{font-size:14px;line-height:1.5;color:#5b6370;margin:8px 0 0}
+details.tablo{margin:8px 0 0;font-size:15px}details.tablo summary{cursor:pointer;color:#1f4fb0;padding:6px 0;width:max-content}
+.kaydir{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:14px;border:1px solid #c5cad3;background:#fff}td,th{text-align:left;padding:6px 8px;border:1px solid #d5d9e0;white-space:nowrap}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;background:#eef0f3}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+details.bolum{border-top:1px solid #dcdfe5;padding:12px 0;margin-top:28px}details.bolum>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.bolum>summary::-webkit-details-marker{display:none}details.bolum>summary::after{content:"+";font-size:1.5rem;line-height:1;color:#5b6370}details.bolum[open]>summary::after{content:"−"}
+.ic{padding-top:10px}.ic ul{padding-left:20px;margin:0}.ic li{margin:0 0 8px;font-size:15px}
+.olcum-notu{font-size:14px;line-height:1.5;color:#5b6370;margin:22px 0 0}
+@media (min-width:600px){.ozet{grid-template-columns:repeat(4,1fr)}.wrap{padding-top:36px}}
+</style>
+</head>
+<body><main class="wrap">
+<div class="eyebrow"><a href="/">Plaka Tahmini</a> · İstatistik</div>
+<p class="geri"><a href="/"><span aria-hidden="true">←</span> Ana sayfaya dön</a></p>
+<h1>Plaka İstatistikleri</h1>
+<p class="giris">İllerde plaka sırası ne hızla ilerliyor? Son haftaları, yılın aynı dönemlerini ve illeri grafiklerle karşılaştırın.</p>
+<p class="veri-tarihi" id="veri-tarihi">Kaynak: haftalık gözlem tabloları</p>
+<noscript><p class="uyari">Grafikler için tarayıcınızda JavaScript açık olmalı.</p></noscript>
+<p id="yukleniyor" class="aciklama" role="status">Veri yükleniyor…</p>
+
+<div id="icerik" hidden>
+<div class="il-secim"><label for="il">İl</label>
+<select id="il"><option value="0">Türkiye (81 il toplamı)</option>
+<option value="01" data-slug="adana" data-ad="Adana">Adana (01)</option>
+<option value="02" data-slug="adiyaman" data-ad="Adıyaman">Adıyaman (02)</option>
+<option value="03" data-slug="afyonkarahisar" data-ad="Afyonkarahisar">Afyonkarahisar (03)</option>
+<option value="04" data-slug="agri" data-ad="Ağrı">Ağrı (04)</option>
+<option value="68" data-slug="aksaray" data-ad="Aksaray">Aksaray (68)</option>
+<option value="05" data-slug="amasya" data-ad="Amasya">Amasya (05)</option>
+<option value="06" data-slug="ankara" data-ad="Ankara">Ankara (06)</option>
+<option value="07" data-slug="antalya" data-ad="Antalya">Antalya (07)</option>
+<option value="75" data-slug="ardahan" data-ad="Ardahan">Ardahan (75)</option>
+<option value="08" data-slug="artvin" data-ad="Artvin">Artvin (08)</option>
+<option value="09" data-slug="aydin" data-ad="Aydın">Aydın (09)</option>
+<option value="10" data-slug="balikesir" data-ad="Balıkesir">Balıkesir (10)</option>
+<option value="74" data-slug="bartin" data-ad="Bartın">Bartın (74)</option>
+<option value="72" data-slug="batman" data-ad="Batman">Batman (72)</option>
+<option value="69" data-slug="bayburt" data-ad="Bayburt">Bayburt (69)</option>
+<option value="11" data-slug="bilecik" data-ad="Bilecik">Bilecik (11)</option>
+<option value="12" data-slug="bingol" data-ad="Bingöl">Bingöl (12)</option>
+<option value="13" data-slug="bitlis" data-ad="Bitlis">Bitlis (13)</option>
+<option value="14" data-slug="bolu" data-ad="Bolu">Bolu (14)</option>
+<option value="15" data-slug="burdur" data-ad="Burdur">Burdur (15)</option>
+<option value="16" data-slug="bursa" data-ad="Bursa">Bursa (16)</option>
+<option value="17" data-slug="canakkale" data-ad="Çanakkale">Çanakkale (17)</option>
+<option value="18" data-slug="cankiri" data-ad="Çankırı">Çankırı (18)</option>
+<option value="19" data-slug="corum" data-ad="Çorum">Çorum (19)</option>
+<option value="20" data-slug="denizli" data-ad="Denizli">Denizli (20)</option>
+<option value="21" data-slug="diyarbakir" data-ad="Diyarbakır">Diyarbakır (21)</option>
+<option value="81" data-slug="duzce" data-ad="Düzce">Düzce (81)</option>
+<option value="22" data-slug="edirne" data-ad="Edirne">Edirne (22)</option>
+<option value="23" data-slug="elazig" data-ad="Elazığ">Elazığ (23)</option>
+<option value="24" data-slug="erzincan" data-ad="Erzincan">Erzincan (24)</option>
+<option value="25" data-slug="erzurum" data-ad="Erzurum">Erzurum (25)</option>
+<option value="26" data-slug="eskisehir" data-ad="Eskişehir">Eskişehir (26)</option>
+<option value="27" data-slug="gaziantep" data-ad="Gaziantep">Gaziantep (27)</option>
+<option value="28" data-slug="giresun" data-ad="Giresun">Giresun (28)</option>
+<option value="29" data-slug="gumushane" data-ad="Gümüşhane">Gümüşhane (29)</option>
+<option value="30" data-slug="hakkari" data-ad="Hakkari">Hakkari (30)</option>
+<option value="31" data-slug="hatay" data-ad="Hatay">Hatay (31)</option>
+<option value="76" data-slug="igdir" data-ad="Iğdır">Iğdır (76)</option>
+<option value="32" data-slug="isparta" data-ad="Isparta">Isparta (32)</option>
+<option value="34" data-slug="istanbul" data-ad="İstanbul">İstanbul (34)</option>
+<option value="35" data-slug="izmir" data-ad="İzmir">İzmir (35)</option>
+<option value="46" data-slug="kahramanmaras" data-ad="Kahramanmaraş">Kahramanmaraş (46)</option>
+<option value="78" data-slug="karabuk" data-ad="Karabük">Karabük (78)</option>
+<option value="70" data-slug="karaman" data-ad="Karaman">Karaman (70)</option>
+<option value="36" data-slug="kars" data-ad="Kars">Kars (36)</option>
+<option value="37" data-slug="kastamonu" data-ad="Kastamonu">Kastamonu (37)</option>
+<option value="38" data-slug="kayseri" data-ad="Kayseri">Kayseri (38)</option>
+<option value="71" data-slug="kirikkale" data-ad="Kırıkkale">Kırıkkale (71)</option>
+<option value="39" data-slug="kirklareli" data-ad="Kırklareli">Kırklareli (39)</option>
+<option value="40" data-slug="kirsehir" data-ad="Kırşehir">Kırşehir (40)</option>
+<option value="79" data-slug="kilis" data-ad="Kilis">Kilis (79)</option>
+<option value="41" data-slug="kocaeli" data-ad="Kocaeli">Kocaeli (41)</option>
+<option value="42" data-slug="konya" data-ad="Konya">Konya (42)</option>
+<option value="43" data-slug="kutahya" data-ad="Kütahya">Kütahya (43)</option>
+<option value="44" data-slug="malatya" data-ad="Malatya">Malatya (44)</option>
+<option value="45" data-slug="manisa" data-ad="Manisa">Manisa (45)</option>
+<option value="47" data-slug="mardin" data-ad="Mardin">Mardin (47)</option>
+<option value="33" data-slug="mersin" data-ad="Mersin">Mersin (33)</option>
+<option value="48" data-slug="mugla" data-ad="Muğla">Muğla (48)</option>
+<option value="49" data-slug="mus" data-ad="Muş">Muş (49)</option>
+<option value="50" data-slug="nevsehir" data-ad="Nevşehir">Nevşehir (50)</option>
+<option value="51" data-slug="nigde" data-ad="Niğde">Niğde (51)</option>
+<option value="52" data-slug="ordu" data-ad="Ordu">Ordu (52)</option>
+<option value="80" data-slug="osmaniye" data-ad="Osmaniye">Osmaniye (80)</option>
+<option value="53" data-slug="rize" data-ad="Rize">Rize (53)</option>
+<option value="54" data-slug="sakarya" data-ad="Sakarya">Sakarya (54)</option>
+<option value="55" data-slug="samsun" data-ad="Samsun">Samsun (55)</option>
+<option value="56" data-slug="siirt" data-ad="Siirt">Siirt (56)</option>
+<option value="57" data-slug="sinop" data-ad="Sinop">Sinop (57)</option>
+<option value="58" data-slug="sivas" data-ad="Sivas">Sivas (58)</option>
+<option value="63" data-slug="sanliurfa" data-ad="Şanlıurfa">Şanlıurfa (63)</option>
+<option value="73" data-slug="sirnak" data-ad="Şırnak">Şırnak (73)</option>
+<option value="59" data-slug="tekirdag" data-ad="Tekirdağ">Tekirdağ (59)</option>
+<option value="60" data-slug="tokat" data-ad="Tokat">Tokat (60)</option>
+<option value="61" data-slug="trabzon" data-ad="Trabzon">Trabzon (61)</option>
+<option value="62" data-slug="tunceli" data-ad="Tunceli">Tunceli (62)</option>
+<option value="64" data-slug="usak" data-ad="Uşak">Uşak (64)</option>
+<option value="65" data-slug="van" data-ad="Van">Van (65)</option>
+<option value="77" data-slug="yalova" data-ad="Yalova">Yalova (77)</option>
+<option value="66" data-slug="yozgat" data-ad="Yozgat">Yozgat (66)</option>
+<option value="67" data-slug="zonguldak" data-ad="Zonguldak">Zonguldak (67)</option>
+</select>
+<a id="il-sayfa" href="/" hidden></a></div>
+
+<section class="ozet" aria-label="Özet: plaka artışı">
+<div class="kutu" data-ozet="hafta"><p class="e"></p><p class="v"></p><p class="k"></p></div>
+<div class="kutu" data-ozet="dortHafta"><p class="e"></p><p class="v"></p><p class="k"></p></div>
+<div class="kutu" data-ozet="yilBasi"><p class="e"></p><p class="v"></p><p class="k"></p></div>
+<div class="kutu" data-ozet="elliIki"><p class="e"></p><p class="v"></p><p class="k"></p></div>
+</section>
+
+<section class="grafik" id="g-hafta" aria-labelledby="g-hafta-b">
+<h2 id="g-hafta-b">Son haftalarda plaka artışı</h2>
+<p class="aciklama"></p>
+<div class="secenekler"><div class="secim" data-durum="n" role="group" aria-label="Hafta sayısı">
+<button type="button" data-deger="8" aria-pressed="false">8 hafta</button><button type="button" data-deger="13" aria-pressed="true">13 hafta</button><button type="button" data-deger="26" aria-pressed="false">26 hafta</button><button type="button" data-deger="52" aria-pressed="false">52 hafta</button>
+</div></div>
+<div class="kart"><div class="lejant"></div><div class="cizim"></div></div>
+<p class="dipnot" hidden></p>
+<details class="tablo"><summary>Tabloyu göster</summary><div class="kaydir"></div></details>
+</section>
+
+<section class="grafik" id="g-donem" aria-labelledby="g-donem-b">
+<h2 id="g-donem-b">Yılın aynı dönemlerinde plaka artışı</h2>
+<p class="aciklama"></p>
+<div class="secenekler"><div class="secim" data-durum="tur" role="group" aria-label="Dönem uzunluğu">
+<button type="button" data-deger="hafta" aria-pressed="false">Haftalık</button><button type="button" data-deger="ay" aria-pressed="true">Aylık</button><button type="button" data-deger="ceyrek" aria-pressed="false">3 aylık</button>
+</div></div>
+<div class="kart"><div class="lejant"></div><div class="cizim"></div></div>
+<p class="dipnot" hidden></p>
+<details class="tablo"><summary>Tabloyu göster</summary><div class="kaydir"></div></details>
+</section>
+
+<section class="grafik" id="g-kumulatif" aria-labelledby="g-kumulatif-b">
+<h2 id="g-kumulatif-b">Yılbaşından beri biriken artış</h2>
+<p class="aciklama"></p>
+<div class="secenekler"><label class="sr" for="b-ekle">Karşılaştırmak için il ekle</label><select id="b-ekle"></select><div class="ekler" id="b-ekler"></div></div>
+<div class="secenekler" id="b-olcek" hidden><div class="secim" data-durum="bOlcek" role="group" aria-label="Ölçek">
+<button type="button" data-deger="adet" aria-pressed="true">Plaka artışı</button><button type="button" data-deger="oran" aria-pressed="false">Geçen yılın toplamına oran</button>
+</div></div>
+<div class="kart"><div class="lejant"></div><div class="cizim"></div></div>
+<p class="dipnot" hidden></p>
+<details class="tablo"><summary>Tabloyu göster</summary><div class="kaydir"></div></details>
+</section>
+
+<section class="grafik" id="g-iller" aria-labelledby="g-iller-b">
+<h2 id="g-iller-b">İllerin karşılaştırması</h2>
+<p class="aciklama"></p>
+<div class="secenekler">
+<div class="secim" data-durum="kTur" role="group" aria-label="Dönem türü"><button type="button" data-deger="ay" aria-pressed="true">Ay</button><button type="button" data-deger="ceyrek" aria-pressed="false">3 ay</button><button type="button" data-deger="yil" aria-pressed="false">Yıl</button></div>
+<select id="k-donem" aria-label="Dönem"></select>
+</div>
+<div class="secenekler">
+<div class="secim" data-durum="olcu" role="group" aria-label="Ölçü"><button type="button" data-deger="adet" aria-pressed="true">Plaka artışı</button><button type="button" data-deger="yuzde" aria-pressed="false">Geçen yıla göre %</button></div>
+<div class="secim" data-durum="goster" role="group" aria-label="Gösterilen iller"><button type="button" data-deger="ilk" aria-pressed="true">İlk 15</button><button type="button" data-deger="son" aria-pressed="false">Son 15</button><button type="button" data-deger="tum" aria-pressed="false">Tümü</button></div>
+</div>
+<div class="kart"><div class="lejant"></div><div class="cizim"></div></div>
+<p class="dipnot" hidden></p>
+<details class="tablo"><summary>Tabloyu göster</summary><div class="kaydir"></div></details>
+</section>
+
+<details class="bolum"><summary><h2>Bu sayılar nasıl hesaplanıyor?</h2></summary><div class="ic"><ul>
+<li><b>Plaka artışı</b>, iki tarih arasında plaka sırasının (plaka numarasının) ne kadar ilerlediğidir; gerçek tescil sayısı değildir. Değerler yaklaşıktır ve yuvarlanmıştır.</li>
+<li>Veri, wowturkey.com “Türkiye Genelindeki Araç Plakalarının Gelişimi” başlığında Güven_Hoca’nın paylaştığı tablolardan gelir. Gözlem günleri arasındaki tarihler doğrusal interpolasyonla bulunur; ay ve yıl sınırları bu yüzden birkaç yüz sıra oynayabilir.</li>
+<li><b>Seri atlamaları (†):</b> bir ilde plaka sırası bir anda bin ya da on binlerce sıra atlayabilir (verilmeyen seriler, harf grubu geçişleri) ya da kayıt serisi kırılabilir. Bunlar verilen plaka değildir: atlanan seriler (1.000’in katları) sayıdan düşülür, büyük sıçramalar ve kırılmalar çevredeki haftaların olağan hızıyla değiştirilir; dönem † ile işaretlenir. Bir ilin birkaç hafta güncellenmeyip sonra birden ilerlemesi ya da illerin çoğunun aynı hafta birlikte hızlanması atlama sayılmaz. Hızlı ilerleyen illerde (haftada yaklaşık 1.000 sıranın üstü) tek bir serinin atlanması ayırt edilemez ve sayıya dahil kalır.</li>
+<li><b>Süren dönemler</b> (içinde bulunulan ay, üç ay ya da yıl) son veri tarihine kadarki kısmi değerdir; yüzde değişim geçen yılın aynı takvim aralığına göre hesaplanır.</li>
+<li>Haftalık karşılaştırmalarda “bir yıl önce”, 52 hafta (364 gün) önceki aynı hafta günleridir. Bayram tatilleri her yıl farklı haftalara denk geldiği için tek tek haftalarda büyük farklar görülebilir.</li>
+<li>Düşük hacimli illerde küçük sayısal farklar büyük yüzde değişim olarak görünebilir. “Türkiye” seçeneği 81 ilin toplamıdır.</li>
+<li>Bu sayfa tahmin içermez; güncel ve ileri tarihli plaka tahminleri için <a href="/">ana sayfayı</a> ya da il sayfalarını kullanın.</li>
+</ul></div></details>
+</div>
+<!--OLCUM--><p class="olcum-notu">Bu sitede sayfa görüntüleme ve özellik kullanımı (hesaplama, il arama gibi) sayıları, üçüncü taraf bir analitik hizmeti olan <a href="https://www.goatcounter.com/privacy" rel="noopener">GoatCounter</a> ile ölçülür; hizmete sayfa adresi, yönlendiren site ve tarayıcı/ekran bilgisi gibi standart ziyaret verileri iletilir. Girdiğiniz plaka, il arama metni veya forma yazdığınız diğer içerikler gönderilmez.</p><!--/OLCUM-->
+</main>
+<!--OLCUM--><script src="/assets/olcum.js" defer></script><!--/OLCUM-->
+<script src="/assets/istatistik.js" defer></script>
+</body></html>
