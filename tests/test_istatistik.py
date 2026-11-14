@@ -216,14 +216,19 @@ class SayfaVeBaglanti(unittest.TestCase):
             r = u.uret(d, "--bugun", gun_(12)); self.assertEqual(r.returncode, 0, r.stderr); self.assertEqual(lm(sm)[url], gun_(8))                # aynı veriyle yeniden üretim: korunur
         finally: shutil.rmtree(d, ignore_errors=True)
 
-    def test_ana_sayfa_ve_81_il_sayfasinda_tek_satir_baglanti(self):
-        self.assertRegex(ANA, r'<!--/ANA:IL-BAGLANTILAR-->\n<!--ANA:ISTATISTIK-->\n<p class="istatistik"[^>]*><a href="/istatistik">' + BAGLANTI_METNI + r'</a></p>\n<!--/ANA:ISTATISTIK-->\n<!--ANA:OLCUM-NOTU-->')
+    def test_ana_sayfa_ve_81_il_sayfasinda_tek_kutu_baglanti(self):
+        """Yeşil tonda tek kutu (katkı kutusuyla aynı biçim, ayrı renk): araçların hemen altında, açılır bölümlerin üstünde — ana sayfada "Tahminler nasıl hesaplanıyor?",
+        il sayfasında "Son plaka gözlemleri" satırının üstünde. Stil satır içidir; ortak CSS'e ve betiklere dokunulmaz."""
+        KUTU = r'<p class="istatistik" style="margin:14px 0"><a href="%s" style="display:block;[^"]*border:1\.5px solid #2f9e73;[^"]*background:#e4f4ec;color:#0d5c3f;[^"]*"><span[^>]*>' + BAGLANTI_METNI + r'</span><span[^>]*>Haftalık ve aylık artış, illerle karşılaştırma</span></a></p>'
+        self.assertRegex(ANA, r'<!--/ANA:TARIH-ARACI-->\n\n<!--ANA:ISTATISTIK-->\n' + KUTU % "/istatistik" + r'\n<!--/ANA:ISTATISTIK-->\n  <details class="bolum"><summary><h2>Tahminler nasıl hesaplanıyor\?</h2>')
+        self.assertEqual(ANA.index('<details class="bolum">'), ANA.index("<!--/ANA:ISTATISTIK-->\n") + len("<!--/ANA:ISTATISTIK-->\n") + 2)                       # ilk açılır bölümün hemen üstü
         self.assertEqual(ANA.count("/istatistik"), 1); self.assertEqual(ANA.count(BAGLANTI_METNI), 1); self.assertLess(ANA.index("ANA:ISTATISTIK"), ANA.index("</main>"))
         sayfalar = sorted(glob.glob(os.path.join(u.ROOT, "il", "*.html"))); self.assertEqual(len(sayfalar), 81); esle = {s: k for k, _, s in il_listesi()}
         for yol in sayfalar:
             s = os.path.basename(yol)[:-5]; h = u.oku(yol)
-            b = re.findall(r'<!--/KATKI-->\n<!--ISTATISTIK--><p class="istatistik"[^>]*><a href="(/istatistik\?il=\d\d)">' + BAGLANTI_METNI + r'</a></p><!--/ISTATISTIK-->\n<!--OLCUM--><p class="olcum-notu">', h)
-            self.assertEqual(b, [f"/istatistik?il={esle[s]:02d}"], s); self.assertEqual(h.count("/istatistik"), 1, s); self.assertLess(h.index("<!--ISTATISTIK-->"), h.index("</main>"))
+            b = re.findall(r'</section>\n<!--ISTATISTIK-->' + KUTU % r'(/istatistik\?il=\d\d)' + r'<!--/ISTATISTIK-->\n<details class="bolum"><summary><h2>Son plaka gözlemleri</h2>', h)
+            self.assertEqual(b, [f"/istatistik?il={esle[s]:02d}"], s); self.assertEqual(h.count("/istatistik"), 1, s)
+            self.assertEqual(h.index('<details class="bolum">'), h.index("<!--/ISTATISTIK-->\n") + len("<!--/ISTATISTIK-->\n"), s)                               # ilk açılır bölümün hemen üstü, araçların altı
         # bağlantı satırı dışında sayfalara başka bir şey eklenmedi: ortak CSS'te, betiklerde ve başlıkta iz yok
         for h in [ANA] + [u.oku(p) for p in sayfalar]:
             kalan = re.sub(r"<!--(ANA:)?ISTATISTIK-->.*?<!--/(ANA:)?ISTATISTIK-->", "", h, flags=re.S); self.assertNotRegex(kalan, r'/istatistik|class="istatistik"|istatistik\.js|PlakaIstatistik')

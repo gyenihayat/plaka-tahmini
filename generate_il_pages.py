@@ -61,11 +61,15 @@ def katki_baglantisi(kod=None, sl=None):
     kutu = "display:block;padding:14px 16px;border:1.5px solid #2a78d6;border-radius:10px;background:#e3eefb;color:#1f4fb0;text-align:center;text-decoration:none"      # belirgin ama ana eylemin (mavi dolu düğme) altında kalan açık mavi kutu
     return (f'<p class="katki" style="margin:28px 0 0"><a href="/geri-bildirim{q}" style="{kutu}"><span style="display:block;font-size:1.0625rem;font-weight:600">Öneri ve katkı gönder</span>'
             '<span style="display:block;font-size:15px;color:#27415f;margin-top:2px">Plaka bilgisi paylaşın, öneri veya hata bildirin</span></a></p>')
-# Altbilgideki "Plaka istatistikleri ve grafikler" bağlantısı (/istatistik: bağımsız grafik sayfası, istatistik.html + assets/istatistik.js; bu betik o sayfayı ÜRETMEZ).
-# Tek satır metin bağlantısıdır; <!--ISTATISTIK--> işaretleri arasındadır ve KATKI bağlantısı gibi sitemap lastmod / ana sayfa parmak izi hesabına GİRMEZ. İl sayfasından gelince grafikler o ille açılır.
+# "Plaka istatistikleri ve grafikler" kutusu (/istatistik: bağımsız grafik sayfası, istatistik.html + assets/istatistik.js; bu betik o sayfayı ÜRETMEZ).
+# Katkı kutusuyla aynı biçimde ama yeşil tonda bir kutudur (iki kutu karışmasın; yeşil sitede "kayıtlı/gerçek veri" rengidir). Yeri: araçların (hedef plaka, tarih) hemen altı,
+# açılır bölümlerin üstü — il sayfasında "Son plaka gözlemleri", ana sayfada "Tahminler nasıl hesaplanıyor?" satırının üstü (açılır bölümler az tıklandığı için aralarına konmadı). <!--ISTATISTIK--> işaretleri arasındadır ve KATKI gibi
+# sitemap lastmod / ana sayfa parmak izi hesabına GİRMEZ; stil satır içidir, ortak CSS'e dokunulmaz. İl sayfasından gelince grafikler o ille açılır.
 def istatistik_baglantisi(kod=None):
     q = "?il=%02d" % kod if kod else ""
-    return f'<p class="istatistik" style="margin:16px 0 0;font-size:15px;text-align:center"><a href="/istatistik{q}">Plaka istatistikleri ve grafikler</a></p>'
+    kutu = "display:block;padding:14px 16px;border:1.5px solid #2f9e73;border-radius:10px;background:#e4f4ec;color:#0d5c3f;text-align:center;text-decoration:none"
+    return (f'<p class="istatistik" style="margin:14px 0"><a href="/istatistik{q}" style="{kutu}"><span style="display:block;font-size:1.0625rem;font-weight:600">Plaka istatistikleri ve grafikler</span>'
+            '<span style="display:block;font-size:15px;color:#2b5a47;margin-top:2px">Haftalık ve aylık artış, illerle karşılaştırma</span></a></p>')
 BAYAT_ESIK_GUN = 21   # son gözlem bundan eskiyse (üretim anında statik, ziyaret anında JS ile) kısa güncellik uyarısı gösterilir
 # #bayat uyarısı (81 il, tek kod yolu): veri tazeyken uyarı METNİ HTML'de yer almaz; öğe boş ve hidden'dır (JS çalıştırmayan bot/metin çıkarıcı yanlışlıkla "21 günden eski" okumasın).
 # Üretim anında veri zaten eskiyse metin HTML'de ve görünürdür (JS kapalıyken de okunur). Ziyaret anında eşik aşılmışsa satır içi betik metni (öğe boşsa) yazar ve gösterir.
@@ -492,6 +496,7 @@ for s in iller:
 </section>
 {arac}
 {tarih_arac}
+<!--ISTATISTIK-->{istatistik_baglantisi(s['kod'])}<!--/ISTATISTIK-->
 {acilir(gozlem_html, True)}
 {sd_bolum}
 {acilir(yoy_html)}
@@ -500,7 +505,6 @@ for s in iller:
 {kaynak}
 {DIGER_ILLER}
 <!--KATKI-->{katki_baglantisi(s['kod'], sl)}<!--/KATKI-->
-<!--ISTATISTIK-->{istatistik_baglantisi(s['kod'])}<!--/ISTATISTIK-->
 <!--OLCUM-->{OLCUM_NOTU_IL}<!--/OLCUM-->
 </main>
 <script type="application/json" id="il-veri">{il_veri}</script>
