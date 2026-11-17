@@ -67,6 +67,12 @@ th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5d6572;ba
 @media (min-width:520px){.t-alanlar.t-iki{grid-template-columns:1fr 1fr}.t-btn{display:inline-block;width:auto;min-width:220px}}
 /*/ANA:TEMEL-CSS*/
 :root{--ink:#15171c;--ink-2:#4d5461;--ink-3:#5b6370;--line:#dcdfe5;--line-2:#e9ebef;--surface:#fcfcfa;--accent:#1f63bb;--accent-soft:#e3eefb;--warn-bg:#fff6e0;--warn-ink:#7a4a00;--good:#0a7a2f;--est:#7a3fb3;--band:#1f4fb0}
+/* Başlık satırı: H1 solda, istatistik sayfasının duyuru bağlantısı sağda. Yan yana sığmazsa (ölçüm: 700 px altı) bağlantı H1'in altına, sağa hizalı iner; H1 punto ve satır sayısı değişmez.
+   Bağlantının dokunma alanı 40 px; negatif alt dış boşluk bu alanın satır yüksekliğini büyütmesini önler (geniş ekranda başlık satırı 44 px kalır, altındaki içerik yerinden oynamaz). Renkler alttaki yeşil istatistik kutusuyla aynıdır. */
+.baslik-satiri{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:20px;margin:0 0 18px}.baslik-satiri h1{margin:0}
+.yeni-bag{display:inline-flex;align-items:center;gap:6px;margin:0 0 -10px auto;padding:9px 0;font-size:15px;font-weight:600;line-height:22px;color:#0d5c3f;text-decoration:none;white-space:nowrap}
+.yeni-bag .rozet{font-size:12px;line-height:18px;letter-spacing:.06em;padding:0 7px;border-radius:99px;background:#e4f4ec;border:1px solid #2f9e73}.yeni-bag svg{flex:none;fill:#2f9e73}
+.yeni-bag .ad{text-decoration:underline;text-decoration-color:#2f9e73;text-decoration-thickness:1px;text-underline-offset:3px}.yeni-bag:hover .ad{text-decoration-thickness:2px}
 .alt-baslik{font-size:1.0625rem;color:var(--ink-2);margin:0 0 20px;max-width:640px}
 .kartlar{display:grid;grid-template-columns:1fr;gap:12px;margin:0 0 6px}
 .kart{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--ink);text-decoration:none}
@@ -108,7 +114,10 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 
 <main class="wrap">
   <div class="eyebrow">Plaka Tahmini</div>
+  <div class="baslik-satiri">
   <h1>Türkiye Plaka Sırası Tahminleri</h1>
+  <a class="yeni-bag" href="/istatistik"><span class="rozet">YENİ</span> <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 16 16"><rect x="1.5" y="8.5" width="3" height="6" rx="1"/><rect x="6.5" y="5" width="3" height="9.5" rx="1"/><rect x="11.5" y="1.5" width="3" height="13" rx="1"/></svg> <span class="ad">Plaka İstatistikleri</span></a>
+  </div>
   <p class="alt-baslik">81 il için güncel tahmini plaka serilerini inceleyin, istediğiniz plakanın yaklaşık çıkış tarihini hesaplayın.</p>
 
 <!--ANA:KARTLAR-->
@@ -204,7 +213,7 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 <!--/ANA:OLCUM-NOTU-->
 </main>
 <!--ANA:SURUM-->
-4ad293d0e87968a9
+248eaf9a65ce76e8
 <!--/ANA:SURUM-->
 
 <script src="/assets/takvim.js"></script>

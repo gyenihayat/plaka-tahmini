@@ -1,0 +1,27 @@
+<!-- Ana sayfa başlık satırı harness'ı: H1 ile "/istatistik" duyuru bağlantısının (a.yeni-bag) yerleşimi, 8 genişlikte ölçülür; iki genişlikte bağlantıya tıklanır. tests/test_ana_baslik_baglantisi.py kullanır. -->
+<!doctype html><meta charset="utf-8"><body style="margin:0"><pre id="o">çalışıyor</pre><div id="k"></div>
+<script>
+const GENISLIKLER = __GENISLIKLER__, TIKLA = __TIKLA__, out = [];
+function yukle(src, w) { return new Promise(r => { const f = document.createElement("iframe"); f.style.cssText = `width:${w}px;height:800px;border:0;display:block`; f.onload = () => r(f); f.src = src; document.getElementById("k").appendChild(f); }); }
+const bekle = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  for (const w of GENISLIKLER) {
+    const f = await yukle("/", w), win = f.contentWindow, d = win.document, de = d.documentElement; await d.fonts.ready; await bekle(120);
+    const q = s => d.querySelector(s), R = e => e.getBoundingClientRect(), cs = e => win.getComputedStyle(e), h1 = q("h1"), b = q("a.yeni-bag"), alt = q(".alt-baslik"), goz = q(".eyebrow"), wrap = q(".wrap");
+    const rg = d.createRange(); rg.selectNodeContents(h1); const hm = rg.getBoundingClientRect(), hk = R(h1), br = R(b), rb = d.createRange(); rb.selectNodeContents(b); const bi = rb.getBoundingClientRect(),      // hm: H1 metninin glif kutusu (satır yüksekliği 1.1 olduğundan H1 kutusundan 1-2 px taşar); bi: bağlantının görünen içeriği (dokunma dolgusu hariç)
+      kesisir = (x, y) => x.left < y.right - 0.5 && y.left < x.right - 0.5 && x.top < y.bottom - 0.5 && y.top < x.bottom - 0.5;
+    const r = {w, cw: de.clientWidth, sw: de.scrollWidth, icerikSol: R(wrap).left + parseFloat(cs(wrap).paddingLeft), icerikSag: R(wrap).right - parseFloat(cs(wrap).paddingRight),
+      h1Metin: h1.textContent, h1Px: parseFloat(cs(h1).fontSize), h1Satir: Math.round(hk.height / parseFloat(cs(h1).lineHeight)), h1Gen: hm.width, h1Sol: hm.left, h1Sag: hm.right, h1Ust: hk.top, h1Alt: hk.bottom,
+      bag: {sol: br.left, sag: br.right, ust: br.top, alt: br.bottom, gen: br.width, yuk: br.height, href: b.getAttribute("href"), metin: b.textContent.replace(/\s+/g, " ").trim(), px: parseFloat(cs(b).fontSize), kalinlik: cs(b).fontWeight, renk: cs(b).color,
+        simge: !!b.querySelector("svg[aria-hidden='true']"), rozet: b.querySelector(".rozet").textContent, tekSatir: br.height <= 41},
+      yanYana: br.top < hk.bottom - 1 && br.left >= hm.right, h1Kesisir: kesisir(br, hk) || kesisir(bi, hm), altKesisir: kesisir(br, R(alt)), gozKesisir: kesisir(br, R(goz)),
+      altUst: R(alt).top, kutuVar: !!q('p.istatistik a[href="/istatistik"]'), baglantiSayisi: d.querySelectorAll('a[href="/istatistik"]').length};
+    b.focus(); r.odak = {aktif: d.activeElement === b, gorunur: b.matches(":focus-visible"), cerceve: cs(b).outlineStyle + " " + cs(b).outlineWidth};
+    // klavye sırası: bağlantı, sayfadaki ilk kart bağlantısından ÖNCE ve H1'den sonra gelir (DOM sırası = sekme sırası; tabindex yok)
+    r.sira = {h1Once: !!(h1.compareDocumentPosition(b) & 4), karttanOnce: !!(b.compareDocumentPosition(q("a.kart")) & 4), tabindex: b.getAttribute("tabindex")};
+    if (TIKLA.includes(w)) { const yuklendi = new Promise(res => f.addEventListener("load", res, {once: true})); b.click(); await yuklendi; await bekle(150); r.tik = {yol: f.contentWindow.location.pathname + f.contentWindow.location.search, baslik: f.contentWindow.document.title}; }
+    f.remove(); out.push(r);
+  }
+  document.getElementById("o").textContent = "SONUC " + JSON.stringify(out);
+})();
+</script>

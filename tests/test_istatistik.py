@@ -222,7 +222,7 @@ class SayfaVeBaglanti(unittest.TestCase):
         KUTU = r'<p class="istatistik" style="margin:14px 0"><a href="%s" style="display:block;[^"]*border:1\.5px solid #2f9e73;[^"]*background:#e4f4ec;color:#0d5c3f;[^"]*"><span[^>]*>' + BAGLANTI_METNI + r'</span><span[^>]*>Haftalık ve aylık artış, illerle karşılaştırma</span></a></p>'
         self.assertRegex(ANA, r'<!--/ANA:TARIH-ARACI-->\n\n<!--ANA:ISTATISTIK-->\n' + KUTU % "/istatistik" + r'\n<!--/ANA:ISTATISTIK-->\n  <details class="bolum"><summary><h2>Tahminler nasıl hesaplanıyor\?</h2>')
         self.assertEqual(ANA.index('<details class="bolum">'), ANA.index("<!--/ANA:ISTATISTIK-->\n") + len("<!--/ANA:ISTATISTIK-->\n") + 2)                       # ilk açılır bölümün hemen üstü
-        self.assertEqual(ANA.count("/istatistik"), 1); self.assertEqual(ANA.count(BAGLANTI_METNI), 1); self.assertLess(ANA.index("ANA:ISTATISTIK"), ANA.index("</main>"))
+        self.assertEqual(ANA.count("/istatistik"), 2); self.assertEqual(ANA.count(BAGLANTI_METNI), 1); self.assertLess(ANA.index("ANA:ISTATISTIK"), ANA.index("</main>"))       # ikinci "/istatistik": başlık satırındaki duyuru bağlantısı (tests/test_ana_baslik_baglantisi.py)
         sayfalar = sorted(glob.glob(os.path.join(u.ROOT, "il", "*.html"))); self.assertEqual(len(sayfalar), 81); esle = {s: k for k, _, s in il_listesi()}
         for yol in sayfalar:
             s = os.path.basename(yol)[:-5]; h = u.oku(yol)
@@ -231,7 +231,9 @@ class SayfaVeBaglanti(unittest.TestCase):
             self.assertEqual(h.index('<details class="bolum">'), h.index("<!--/ISTATISTIK-->\n") + len("<!--/ISTATISTIK-->\n"), s)                               # ilk açılır bölümün hemen üstü, araçların altı
         # bağlantı satırı dışında sayfalara başka bir şey eklenmedi: ortak CSS'te, betiklerde ve başlıkta iz yok
         for h in [ANA] + [u.oku(p) for p in sayfalar]:
-            kalan = re.sub(r"<!--(ANA:)?ISTATISTIK-->.*?<!--/(ANA:)?ISTATISTIK-->", "", h, flags=re.S); self.assertNotRegex(kalan, r'/istatistik|class="istatistik"|istatistik\.js|PlakaIstatistik')
+            kalan = re.sub(r"<!--(ANA:)?ISTATISTIK-->.*?<!--/(ANA:)?ISTATISTIK-->", "", h, flags=re.S)
+            if h is ANA: kalan, n = re.subn(r'  <a class="yeni-bag" href="/istatistik">.*?</a>\n', "", kalan); self.assertEqual(n, 1)      # ana sayfada ayrıca başlık satırındaki duyuru bağlantısı var; onun dışında iz yok
+            self.assertNotRegex(kalan, r'/istatistik|class="istatistik"|istatistik\.js|PlakaIstatistik')
             self.assertNotRegex(re.search(r"<style>.*?</style>", h, re.S)[0], r"\.istatistik")
 
     def test_baglanti_sitemap_lastmodunu_ve_ana_sayfa_izini_oynatmaz(self):
