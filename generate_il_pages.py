@@ -119,7 +119,10 @@ def veri_satiri_html(last_d):
             f'<span class="nw">Kaynak: <a href="{KAYNAK_URL}" rel="noopener">wowTURKEY forum tabloları</a></span></p>')
 iller = sorted(d["iller"], key=lambda s: s["kod"])
 # Yalnızca il sayfalarındaki "← Ana sayfaya dön" bağlantısı (ana sayfa CSS'i değişmez): sade, küçük ama belirgin metin bağlantısı; odak halkası genel a:focus-visible kuralından gelir.
-IL_CSS = ".geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}"
+# h2.e: büyük tahmini plakanın üstündeki etiket "[İl] Güncel Plaka Serisi (Tahmini)" bir alt başlıktır (h2) ama görünümü eski küçük etiketle (.e) aynıdır; punto, kalınlık ve boşluk .e'den gelir,
+# burada genel h2 kuralının satır yüksekliği geri alınır ve harf aralığı .1em'den .06em'e çekilir: metin eski etiketin iki katı uzun olduğundan, .1em ile web yazı tipi yüklenmeden önce (yedek yazı tipinde)
+# 375 px'te 8-9 ilde ikinci satıra iniyordu. .06em ile yazı tipinden bağımsız olarak yalnızca en uzun iki il adı (Kahramanmaraş, Afyonkarahisar) 375/390 px'te iki satıra iner; 430 px'te hepsi tek satırdır, hiçbiri taşmaz.
+IL_CSS = ".geri{margin:0 0 4px}.geri a{display:inline-block;padding:8px 0;font-size:15px;font-weight:600;color:#1f63bb;text-decoration:none}.geri a:hover{text-decoration:underline}h2.e{line-height:1.55;letter-spacing:.06em}"
 CSS = """*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f5f5f1;color:#15171c;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:16px;line-height:1.55}
 .wrap{max-width:720px;margin:0 auto;padding:20px 16px 56px}a{color:#1f63bb}
 .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#5b6370;margin-bottom:8px}.eyebrow a{color:inherit;text-decoration:none}
@@ -480,7 +483,7 @@ for s in iller:
 <p class="geri"><a href="/"><span aria-hidden="true">←</span> Ana sayfaya dön</a></p>
 <h1>{html.escape(ad)} Plaka Sırası Hangi Harfte?</h1>
 <section aria-label="Özet" data-baslangic="{today.isoformat()}">
-<p class="e">Tahmini güncel plaka</p>
+<h2 class="e">{html.escape(ad)} Güncel Plaka Serisi (Tahmini)</h2>
 <p class="buyuk mono" data-live="plaka">{kod} {el} {en:03d}</p>
 <p class="alt"><span data-live="tarih">{tr_date(today)}</span> itibarıyla · tahmindir</p>
 <dl class="metrik">

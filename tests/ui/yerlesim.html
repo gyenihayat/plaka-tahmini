@@ -14,6 +14,8 @@ function yukle(src, w) { return new Promise(r => { const f = document.createElem
     r.vPx = px(q(".metrik .v"), "fontSize"); r.h1Px = px(h1, "fontSize"); r.h2Px = px(q("details.bolum > summary h2"), "fontSize"); r.govdePx = px(d.body, "fontSize");
     r.ctaAlt = cta ? Math.round(cta.getBoundingClientRect().bottom) : null; r.hedefUst = hedef ? Math.round(hedef.getBoundingClientRect().top) : null; r.nwSatir = nw ? nw.getClientRects().length : null;
     const oz = q(".ozet-cevap"); r.ozet = oz ? oz.textContent : null; r.buyukMetin = buyuk ? buyuk.textContent : null;      // AI pilotu: canlı JS sonrası kısa cevap metni (statik HTML ile aynı kalmalı)
+    const et = q("section[aria-label='Özet'] > .e");      // büyük tahmini plakanın üstündeki "[İl] Güncel Plaka Serisi (Tahmini)" alt başlığı
+    if (et) { const eb = et.getBoundingClientRect(), bb = buyuk.getBoundingClientRect(); r.etiket = {tag: et.tagName, metin: et.textContent, px: px(et, "fontSize"), satir: Math.round(eb.height / px(et, "lineHeight")), sol: Math.round(eb.left), sag: Math.round(eb.right), bosluk: Math.round(bb.top - eb.bottom), sonraki: et.nextElementSibling === buyuk, buyukUst: Math.round(bb.top)}; }
     r.uyari = !!(d.getElementById("guncellik") && !d.getElementById("guncellik").hidden); r.etiketli = !!(hedef && d.querySelector('label[for="hedef"]')) && hedef.getAttribute("aria-describedby") === "hedef-ipucu";
     if (ETKILESIM && w === GENISLIKLER[0]) {
       const form = d.getElementById("hedef-form"), sonuc = d.getElementById("sonuc"), gir = (v) => { hedef.value = v; form.dispatchEvent(new win.Event("submit", {cancelable: true})); return {metin: sonuc.textContent, alert: !!sonuc.querySelector('[role="alert"]')}; };

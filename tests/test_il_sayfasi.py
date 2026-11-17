@@ -64,7 +64,7 @@ class IlkEkran(unittest.TestCase):
             start = dt.date.fromisoformat(re.search(r'data-baslangic="([^"]+)"', h)[1]); rate = fc.slope(o, g)
             est = tahmin_plaka(s["kod"], n + fc.advance(o, c, g, (start - ld).days, rate)); kod = f"{s['kod']:02d}"
             self.assertEqual(re.search(r'class="buyuk mono" data-live="plaka">([^<]*)<', h)[1], est, s["il"])                   # tam tahmini plaka: il kodu + 3 harf + 3 haneli sıra
-            self.assertIn('<p class="e">Tahmini güncel plaka</p>', h)
+            self.assertIn(f'<h2 class="e">{TAM.get(s["il"], s["il"])} Güncel Plaka Serisi (Tahmini)</h2>', h)
             self.assertIn(f"<span data-live=\"tarih\">{tr(start)}</span> itibarıyla · tahmindir", h)
             self.assertRegex(h, rf'<dt>Son kayıtlı gözlem</dt><dd class="v mono nw">{kod} {sr} {no:03d}</dd><dd class="k">{tr(ld)}</dd>')
             self.assertRegex(h, rf'<dt>Harf grubu</dt><dd class="v mono">{sr[0]}</dd><dd class="k">gözlenen · serinin ilk harfi</dd>')

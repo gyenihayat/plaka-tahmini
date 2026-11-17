@@ -22,7 +22,7 @@ class Il81(unittest.TestCase):
         for s in veri():
             h = sayfa(s["il"]); m = re.search(r'<p class="buyuk mono" data-live="plaka">([^<]*)</p>', h); self.assertIsNotNone(m, s["il"])
             self.assertRegex(m[1], PLAKA, s["il"]); self.assertEqual(m[1], beklenen(s, h), s["il"]); self.assertTrue(m[1].startswith(f"{s['kod']:02d} "), s["il"]); n += 1
-            self.assertIn('<p class="e">Tahmini güncel plaka</p>', h); self.assertNotIn('data-live="seri"', h)
+            self.assertIn(f'<h2 class="e">{TAM.get(s["il"], s["il"])} Güncel Plaka Serisi (Tahmini)</h2>\n<p class="buyuk mono" data-live="plaka">', h); self.assertNotIn('data-live="seri"', h)
         self.assertEqual(n, 81)
 
     def test_gozlem_tahminden_ayri_ve_degismedi(self):
