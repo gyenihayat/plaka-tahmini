@@ -81,7 +81,8 @@ class Tarayici(unittest.TestCase):
                 self.assertAlmostEqual(r["altUst"] - r["h1Alt"], 18, delta=0.6, msg=k)                                                    # başlık satırının yüksekliği büyümedi: alt başlık eski yerinde (18 px)
             else:
                 self.assertGreaterEqual(b["ust"], r["h1Alt"] - 0.6, k); self.assertLess(b["ust"] - r["h1Alt"], 4, k)                       # H1'in hemen altında
-                self.assertAlmostEqual(r["altUst"] - r["h1Alt"], 48, delta=0.6, msg=k)                                                    # sayfanın geri kalanı yalnızca 30 px aşağı kayar (18 → 48)
+                self.assertAlmostEqual(r["altUst"] - r["h1Alt"], 40, delta=0.6, msg=k)                                                    # sayfanın geri kalanı yalnızca 22 px aşağı kayar (18 → 40)
+                self.assertAlmostEqual(r["altUst"] - b["alt"], 0, delta=0.6, msg=k)                                                       # açıklama bağlantının dokunma alanının hemen altında başlar: bağlantı yazısıyla arası 9 px (üstündeki boşlukla aynı), üst üste binmez
 
     def test_baglanti_okunur_dokunulabilir_ve_h1den_geri_planda(self):
         for r in self.sonuc:

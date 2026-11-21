@@ -204,7 +204,7 @@ class TarayiciYerlesim(unittest.TestCase):
             else: self.assertGreaterEqual(r["seriPx"], 29, r["w"]); self.assertGreater(r["seriPx"], r["govdePx"] * 1.8, r["w"])
             self.assertTrue(r["seriSigar"], f"{r['w']}px: plaka kart içine sığmalı"); self.assertTrue(r["etiketli"], r["w"])
             if r["w"] <= 390:
-                self.assertLess(r["kartUst"][2], 700, f"{r['w']}px: üçüncü kart ilk ekranda başlamalı"); self.assertLess(r["ctaUst"], 930, f"{r['w']}px: ana eylem kartların hemen altında")      # 900 → 930: başlığın altına inen istatistik duyuru bağlantısı dar ekranda içeriği 30 px aşağı kaydırır (320 px'te 895 → 925)
+                self.assertLess(r["kartUst"][2], 700, f"{r['w']}px: üçüncü kart ilk ekranda başlamalı"); self.assertLess(r["ctaUst"], 922, f"{r['w']}px: ana eylem kartların hemen altında")      # 900 → 922: başlığın altına inen istatistik duyuru bağlantısı dar ekranda içeriği 22 px aşağı kaydırır (320 px'te 895 → 917)
             else: self.assertLess(r["ctaAlt"], 700, f"{r['w']}px: kartlar ve ana eylem ilk ekranda"); self.assertEqual(len(set(r["kartUst"])), 1 if r["w"] >= 768 else 3)
             for m in r["kartMetin"]: self.assertIn("Tahmindir", m); self.assertIn("itibarıyla", m); self.assertIn("Son gözlem", m)
 
