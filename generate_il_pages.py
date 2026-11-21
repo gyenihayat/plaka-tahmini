@@ -456,7 +456,7 @@ for s in iller:
             f'<form id="hedef-form" action="/" method="get" autocomplete="off" novalidate><input type="hidden" name="il" value="{s["kod"]}">'
             f'<label for="hedef">{html.escape(ad)} için hedef plaka veya seri</label>'
             f'<div class="alan"><input id="hedef" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="örn. {ll[0]}ZZ 999" aria-describedby="hedef-ipucu"><button type="submit">Hesapla</button></div>'
-            f'<p id="hedef-ipucu" class="ipucu">Harf grubu ve isteğe bağlı numara (örn. {ll} veya {ll} 500). İl bu sayfadan alınır. <a href="/?il={s["kod"]}">Ana sayfada aç</a></p>'
+            f'<p id="hedef-ipucu" class="ipucu">Yalnızca üç harf + üç rakamlı plakalar hesaplanır (örn. {ll} veya {ll} 500). Diğer biçimler (örn. {kod} AB 1234, {kod} ABC 55) hesaplanamaz. İl bu sayfadan alınır. <a href="/?il={s["kod"]}">Ana sayfada aç</a></p>'
             f'<details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary><label for="atla">Verilmeyeceğini düşündüğünüz seriler</label><input id="atla" type="text" autocapitalize="characters" spellcheck="false" placeholder="örn. SXX, TXX" aria-describedby="atla-ipucu"><p id="atla-ipucu" class="ipucu">Harf, iki harf (X joker) veya aralık: SXX, TXX, BAA-BCZ.</p></details>'
             f'</form><div id="sonuc" class="sonuc" aria-live="polite"></div></section>')
     tarih_arac = tarih_arac_html(False)

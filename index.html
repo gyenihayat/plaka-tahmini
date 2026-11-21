@@ -151,11 +151,12 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
     <div class="alan2"><label for="il">İl</label> <select id="il"></select></div>
     <label for="target">Hedef plaka veya seri</label>
     <div class="alan"><input id="target" type="text" placeholder="örn. SAA 500" spellcheck="false" autocapitalize="characters" aria-describedby="target-hint"><button class="primary" id="btn-target">Hesapla</button></div>
-    <p class="ipucu" id="target-hint">Harf grubu ve isteğe bağlı numara; il yukarıdaki seçimden alınır. İl kodunu başa yazarak da seçebilirsiniz (örn. 34 SAA 001).</p>
+    <p class="ipucu" id="target-hint">Yalnızca üç harf + üç rakamlı plakalar hesaplanır (örn. SAA veya SAA 500). Diğer biçimler (örn. 34 AB 1234, 34 ABC 55) hesaplanamaz. İl yukarıdaki seçimden alınır; il kodunu başa yazarak da seçebilirsiniz (örn. 34 SAA 001).</p>
     <div class="result" id="target-res" style="display:none" aria-live="polite">
       <span class="plate sm"><span class="bandx">TR</span><span class="num" id="target-plate"></span></span>
       <span class="meta" id="target-out"></span>
     </div>
+    <div class="note" id="target-okuma" role="status"></div>
     <div class="note" id="target-warn" role="status"></div>
     <details class="gelismis"><summary>Atlanacak seriler (isteğe bağlı)</summary>
       <label for="excl2">Verilmeyeceğini düşündüğünüz seriler</label>
@@ -214,7 +215,7 @@ table.t th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:va
 <!--/ANA:OLCUM-NOTU-->
 </main>
 <!--ANA:SURUM-->
-c3f84e0d9abafa14
+48f9aec8026dd793
 <!--/ANA:SURUM-->
 
 <script src="/assets/takvim.js"></script>
@@ -262,19 +263,21 @@ function calcTarget(){
   const raw = document.getElementById("target").value.toUpperCase().replace(/[^A-Z0-9 ]/g," ").trim();
   const m = raw.match(/^(?:(\d{1,2})\s*)?([A-Z]{3})(?:\s*(\d{1,3}))?$/);
   const tw = document.getElementById("target-warn"); tw.style.display = "none";
+  const tok = document.getElementById("target-okuma"); tok.style.display = "none";   // 1–2 rakamlı girişin nasıl okunduğu (kisaRakamNotu)
   const res = document.getElementById("target-res");
   if (m && m[1]){  // plakanın başındaki il kodu: listedeki ili ona göre değiştir
     const hit = DATA.iller.find(x => x.kod === +m[1]);
     if (!hit){ tw.style.display="block"; tw.textContent = "Geçersiz il kodu: "+m[1]+" (1–81 arası olmalı)."; res.style.display="none"; document.getElementById("btn-81").style.display="none"; return; }
     if (selIl.value !== hit.il) selIl.value = hit.il;
   }
-  if (!m){ tw.style.display="block"; tw.textContent = "Seri okunamadı. Örnek: SAA · SAA 500 · 34 SAA 001"; res.style.display="none"; document.getElementById("btn-81").style.display="none"; return; }
+  if (!m){ tw.style.display="block"; tw.textContent = "Seri okunamadı. " + (/^(?:\d{1,2}\s*)?[A-Z]{1,2}(?:\s*\d+)?$/.test(raw) ? "Yalnızca üç harf + üç rakamlı plakalar hesaplanır; tek veya iki harfli plakalar (örn. 34 AB 1234) hesaplanamaz. " : "") + "Örnek: SAA · SAA 500 · 34 SAA 001"; res.style.display="none"; document.getElementById("btn-81").style.display="none"; return; }
   const let3 = m[2]; const num = m[3] ? +m[3] : 1;
   const tN = toN(let3, num);
   if (tN == null){ tw.style.display="block"; tw.textContent = "Bu harf dizisi plakalarda kullanılmıyor (ilk ve son harfte I/O olamaz; Q, W, X hiç kullanılmaz)."; res.style.display="none"; document.getElementById("btn-81").style.display="none"; return; }
   lastTarget = {let3, num, tN};
   const s = byName[selIl.value]; const kod = String(s.kod).padStart(2,"0");
   document.getElementById("target-plate").textContent = kod+" "+let3+" "+String(num).padStart(3,"0");
+  const okuma = kisaRakamNotu(kod, let3, m[3]); if (okuma){ tok.textContent = okuma; tok.style.display = "block"; }
   const r = reachDate(s, tN);
   const out = document.getElementById("target-out");
   if (r.excluded){ out.innerHTML = "Bu seri, atlanacaklar listenizde (<b>"+r.excluded+"</b>) — bu varsayımla <b>hiç verilmeyecek</b>."; res.style.display="flex"; document.getElementById("btn-81").style.display="none"; return; }

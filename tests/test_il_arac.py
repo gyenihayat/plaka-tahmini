@@ -58,6 +58,15 @@ class GirdiSiniflandirma(unittest.TestCase):
             self.assertEqual(r["tip"], "tahmin", s["il"]); self.assertGreater(r["gun"], s["obs"][-1][0]); self.assertGreaterEqual(r["err"], 2)
             self.assertTrue(re.match(rf"{s['kod']:02d} [A-Z]{{3}} 500", r["plaka"]))
 
+    def test_kisa_rakam_notu(self):
+        # Üç harften sonra 1–2 rakam: sonuç, numaranın nasıl okunduğunu söyler; iki rakamda "üç harf + iki rakamlı plakalar hesaplanmaz" eklenir. Üç rakamda ve rakamsız girişte not yoktur.
+        s = next(x for x in veri() if x["kod"] == 34); sr = inv(s["obs"][-1][1])[0]
+        r = node_arac([{"sayfa": sayfa_yolu(s), "hedef": h} for h in (f"{sr} 55", f"{sr} 5", f"{sr} 055", sr, f"34 {sr} 07")])
+        self.assertEqual(r[0]["plaka"], f"34 {sr} 055"); self.assertEqual(r[0]["okuma"], f"55, 055 olarak okundu. Üç harf + iki rakamlı plakalar (34 {sr} 55) hesaplanmaz.")
+        self.assertEqual(r[1]["okuma"], "5, 005 olarak okundu.")
+        self.assertIsNone(r[2]["okuma"]); self.assertIsNone(r[3]["okuma"])
+        self.assertEqual(r[4]["okuma"], f"07, 007 olarak okundu. Üç harf + iki rakamlı plakalar (34 {sr} 07) hesaplanmaz.")
+
 @unittest.skipUnless(CHROME and u.NODE, "Chrome/Node yok")
 class AnaSayfaIleEslik(unittest.TestCase):
     def test_ayni_girdi_ayni_sonuc(self):

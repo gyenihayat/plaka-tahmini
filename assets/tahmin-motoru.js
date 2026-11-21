@@ -205,6 +205,12 @@ function estimateBack(s, day){
 const GERI_SINIR_ISO = "2018-02-01", GERI_SINIR_GUN = toDay(GERI_SINIR_ISO);
 // Hedef plaka aracı: modelin geriye hesapladığı tarih bu model sınırından önceye düşüyorsa tarih verilmez (tarih aracıyla aynı kural).
 const GERI_SINIR_HEDEF_MESAJI = "Bu plaka için tarih tahmini üretilemiyor: modelin hesapladığı tarih, bu aracın tahmin ürettiği alt tarih sınırından (1 Şubat 2018) önceye düşüyor. Bu, modelin uyguladığı bir sınırdır; plakanın o tarihte verilmediği anlamına gelmez.";
+// Hedef aracı (ana sayfa ve il sayfası ortak): üç harften sonra 1–2 rakam yazıldıysa numaranın nasıl okunduğunu söyleyen not; üç rakamlı ya da rakamsız girişte null.
+// İki rakamda ek cümle: "34 ABC 55" gibi üç harf + iki rakamlı plakalar ayrı bir biçimdir, araç onları hesaplamaz (girdi 055 olarak okunur).
+function kisaRakamNotu(kodTxt, let3, rakam) {
+  if (!rakam || rakam.length >= 3) return null;
+  return rakam + ", " + String(+rakam).padStart(3, "0") + " olarak okundu." + (rakam.length === 2 ? " Üç harf + iki rakamlı plakalar (" + kodTxt + " " + let3 + " " + rakam + ") hesaplanmaz." : "");
+}
 function backEstimate(s, targetN){
   const o = s.obs, F = o[0][0], dist = o[0][1] - targetN, c = cleanCum(s);
   const rate0 = backRate0(s);

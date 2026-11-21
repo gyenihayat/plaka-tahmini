@@ -10,7 +10,7 @@ const PlakaIlArac = (function () {
     const kodSayfa = s.kod, kodTxt = String(kodSayfa).padStart(2, "0");
     const raw = String(giris == null ? "" : giris).toUpperCase().replace(/[^A-Z0-9 ]/g, " ").trim();
     const m = raw.match(/^(?:(\d{1,2})\s*)?([A-Z]{3})(?:\s*(\d{1,3}))?$/);
-    if (!m) return { tip: "hata", mesaj: "Seri okunamadı. Örnek: BJB · BJB 500 · " + kodTxt + " BJB 001" };
+    if (!m) return { tip: "hata", mesaj: "Seri okunamadı. " + (/^(?:\d{1,2}\s*)?[A-Z]{1,2}(?:\s*\d+)?$/.test(raw) ? "Yalnızca üç harf + üç rakamlı plakalar hesaplanır; tek veya iki harfli plakalar (örn. " + kodTxt + " AB 1234) hesaplanamaz. " : "") + "Örnek: BJB · BJB 500 · " + kodTxt + " BJB 001" };   // tek/iki harfli giriş: yazım hatası değil kapsam dışı olduğunu söyle
     if (m[1]) {
       const k = +m[1];
       if (k < 1 || k > 81) return { tip: "hata", mesaj: "Geçersiz il kodu: " + m[1] + " (1–81 arası olmalı)." };
@@ -23,23 +23,23 @@ const PlakaIlArac = (function () {
     EXCL = px.intervals;          // motorun genel dışlama listesi (ana sayfadaki applyExcl ile aynı etki)
     let r;
     try { r = reachDate(s, tN); } finally { EXCL = []; }
-    const plaka = kodTxt + " " + let3 + " " + pad3(num), sonGun = s.obs[s.obs.length - 1][0];
+    const plaka = kodTxt + " " + let3 + " " + pad3(num), sonGun = s.obs[s.obs.length - 1][0], okuma = kisaRakamNotu(kodTxt, let3, m[3]);   // okuma: 1–2 rakamlı girişin nasıl okunduğu (yoksa null)
     if (r.excluded) return { tip: "dislanan", plaka, mesaj: "Bu seri, atlanacaklar listenizde (" + r.excluded + ") — bu varsayımla hiç verilmeyecek." };
     if (r.never) return { tip: "yok", plaka, mesaj: "Bu ilde seri ilerlemesi tespit edilemedi." };
     if (r.back && r.day < GERI_SINIR_GUN) return { tip: "yok", plaka, mesaj: GERI_SINIR_HEDEF_MESAJI };
     if (r.back) {
       const fv = invN(s.obs[0][1]);
-      return { tip: "geriye", plaka, gun: r.day, err: r.err, ilkGun: r.first[0], ilkPlaka: kodTxt + " " + fv.let + " " + pad3(fv.num),
+      return { tip: "geriye", plaka, okuma, gun: r.day, err: r.err, ilkGun: r.first[0], ilkPlaka: kodTxt + " " + fv.let + " " + pad3(fv.num),
                kalibre: r.kalibre || null,
                uyarilar: [r.kalibre === "once" ? "Bu plaka kayıtlarımızın başlangıcından önce verilmiş ve bilinen tarihsel referansın (" + r.ref.plaka + ", yaklaşık " + trTarih(toDay(r.ref.tarih)) + "; kullanıcı bildirimi, resmî kayıt değildir) da öncesinde kalıyor: referanstan önceki dönemde hız, referans çevresindeki hızla varsayımla geriye uzatıldı. Referans tek noktadır ve tarihi yaklaşıktır; sonuç yüksek belirsizlik taşır, yalnızca büyüklük sırası olarak okuyun."
                                       : r.kalibre ? "Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih, kullanıcı tarafından bildirilen tarihsel referanslarla (" + referansOzet(r.refler) + "; resmî kayıt değildir) kalibre edilmiş tahmindir; referanslar az sayıdadır ve belgesizdir."
                                       : "Bu plaka kayıtlarımızın başlangıcından önce verilmiş; tarih kayıtlı veri değil, ilk dönem hızı ve ertesi yılın aynı dönemine dayalı geriye dönük tahmindir."] };
     }
-    if (r.passed) return { tip: "gecildi", plaka, gun: r.day };
+    if (r.passed) return { tip: "gecildi", plaka, okuma, gun: r.day };
     const yil = (r.day - bugunGun) / 365.25, uyarilar = [];
     if (yil > 1.5) uyarilar.push("Uzak tarih: hız değişimi ve harf grubu atlamaları nedeniyle belirsizlik büyüktür; tahmini kaba bir sıra göstergesi olarak okuyun.");
     else if (invN(s.obs[s.obs.length - 1][1]).let[0] !== let3[0]) uyarilar.push("Hedef farklı bir harf grubunda; grup geçişindeki atlamalar tarihi öne/geriye alabilir.");
-    return { tip: "tahmin", plaka, gun: r.day, err: r.err, yil, atlanan: r.atlanan || 0, sonGun, uyarilar };
+    return { tip: "tahmin", plaka, okuma, gun: r.day, err: r.err, yil, atlanan: r.atlanan || 0, sonGun, uyarilar };
   }
 
   // Analitik olayı (olcum.js yüklü değilse ya da üretimde değilsek sessizce yok sayılır)
@@ -58,7 +58,7 @@ const PlakaIlArac = (function () {
       if (o.href) { const a = document.createElement("a"); a.href = o.href; a.textContent = "Ana sayfada aç"; const q = document.createElement("p"); q.className = "s-a"; q.appendChild(a); kutu.appendChild(q); }
       return;
     }
-    if (o.tip === "gecildi") { kutu.appendChild(satir("s-b", o.plaka + ": geçildi")); kutu.appendChild(satir("s-a", "Kayıtlara göre " + trTarih(o.gun) + " civarında verildi.")); return; }
+    if (o.tip === "gecildi") { kutu.appendChild(satir("s-b", o.plaka + ": geçildi")); kutu.appendChild(satir("s-a", "Kayıtlara göre " + trTarih(o.gun) + " civarında verildi.")); if (o.okuma) kutu.appendChild(satir("s-u", o.okuma)); return; }
     if (o.tip === "geriye") {
       kutu.appendChild(satir("s-b", o.plaka + ": ~" + trTarih(o.gun)));
       kutu.appendChild(satir("s-a", "± " + o.err + " gün · " + (o.kalibre === "once" ? "çok kaba geriye dönük tahmin" : o.kalibre ? "tarihsel referansla kalibre edilmiş tahmin" : "geriye dönük tahmin") + " (ilk kayıt: " + o.ilkPlaka + ", " + trTarih(o.ilkGun) + ")"));
@@ -66,6 +66,7 @@ const PlakaIlArac = (function () {
       kutu.appendChild(satir("s-b", o.plaka + ": ~" + trTarih(o.gun)));
       kutu.appendChild(satir("s-a", "± " + o.err + " gün · " + trTarih(o.sonGun) + " gözlemine dayalı tahmin" + (o.yil > 1 ? " · " + o.yil.toLocaleString("tr-TR", { maximumFractionDigits: 1 }) + " yıl sonra" : "") + (o.atlanan ? " · aradaki " + o.atlanan + " atlanan seri düşüldü" : "")));
     }
+    if (o.okuma) kutu.appendChild(satir("s-u", o.okuma));
     (o.uyarilar || []).forEach(u => kutu.appendChild(satir("s-u", u)));
   }
 
