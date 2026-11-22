@@ -91,6 +91,16 @@ function atC(c, day){
   const dx = c[hi][0]-c[lo][0];
   return c[lo][1] + (dx ? (c[hi][1]-c[lo][1])*(day-c[lo][0])/dx : 0);
 }
+// Hafta içi dağılım (Kasım 2026): plaka yalnızca iş günlerinde ilerler; hafta sonu birikimiyle birlikte Pazartesi diğer günlerden yoğundur. Bir haftalık ilerlemenin günlere payı
+// Pzt %26 (Cmt+Paz+Pzt birlikte) · Sal %18 · Çar %18 · Per %18 · Cum %20 · Cmt/Paz %0. Ölçüm: Şubat 2024 – Kasım 2026 arası art arda günlere denk gelen gözlem aralıkları, 81 ilin medyanı,
+// resmî tatil içeren aralıklar hariç (Pzt %25,7 · Sal %17,7 · Çar %18,3 · Per %17,9 · Cum %19,4; hafta sonu gözlemi olmadığından Cmt/Paz Pazartesi'den ayrılamaz). Geriye dönük test
+// (paylar yalnızca 2024'ten, sınama 2025+; Cuma–Cuma ara değerin aradaki gerçek gözleme göre medyan mutlak hatası, iş günü): takvim gününe eşit dağıtımda Pzt 0,90 · Sal 0,63 · Çar 0,44 · Per 0,28;
+// bu paylarla 0,17 · 0,17 · 0,17 · 0,13 (yanlılık ≈ 0). "Etkin gün": hafta 7 birimdir (haftalık hız ve Cuma–Cuma değerleri DEĞİŞMEZ), birimler günlere bu paylarla dağıtılır.
+// Kullanıldığı yerler: gözlemler arası ara değer (estimateAt geçmiş, reachDate geçilmiş) ve ileri tahmin ufku (advAt). Hız kestirimi (fit, cleanCum, eğilim) ve geriye dönük model takvim günüyle kalır.
+// Resmî tatil günleri ayrıca düşülmez (tatil günü, hafta gününün payını alır). forecast.py (etkin_gun) ile aynı sabitler ve aynı işlem sırası.
+const HAFTA_GUN_SONU = [1.82, 3.08, 4.34, 5.6, 7, 7, 7], HAFTA_GUN_PAYI = [1.82, 1.26, 1.26, 1.26, 1.4, 0, 0];     // [0]=Pazartesi (EPOCH 1 Ocak 2024 Pazartesi'dir); gün SONU birikimi ve günün payı
+function haftaKonumu(d){ const g = Math.floor(d), k = Math.floor(g/7), w = g - 7*k; return [k, HAFTA_GUN_SONU[w] + (d - g)*HAFTA_GUN_PAYI[(w+1)%7]]; }      // d. günün sonu; kesirli gün: sonraki günün payından
+function etkinGun(a, b){ const x = haftaKonumu(a), y = haftaKonumu(b); return 7*(y[0]-x[0]) + (y[1]-x[1]); }                                               // a gününün sonundan b gününün sonuna etkin gün
 // Ileri ilerleme: son 365 gun medyan hizi ile gecen yilin ayni takvim araliginin ilerlemesinin ortalamasi (temel), eğilim düzeltmesiyle.
 // Geriye donuk test (hata gun): 30g %20, 90g %25, 180g %30 daha iyi (yalniz medyan180'e gore).
 // Eğilim düzeltmesi (Kasım 2026): r = son 8 haftadaki (56 gün) gözlem aralığı hızlarının medyanı / geçen yılın aynı 8 haftasındaki medyan.
@@ -112,8 +122,8 @@ function egilimKatsayisi(o, T){
   const r = Math.max(0, med(simdi)) / g;
   return Math.min(EGILIM_MAKS, Math.max(EGILIM_MIN, 1 + EGILIM_AGIRLIK*(r - 1)));
 }
-function advAt(s, f, h){
-  const c = cleanCum(s), T = f.last[0];
+function advAt(s, f, h){      // h: takvim günü (son gözlemden beri); hesap etkin günle yapılır
+  const c = cleanCum(s), T = f.last[0]; h = etkinGun(T, T + h);
   const temel = x => { const Y = atC(c,T) - atC(c,T-365), k = Math.floor(x/365), rem = x - 365*k; const seas = k*Y + atC(c, T-365+rem) - atC(c, T-365); return 0.5*f.slope*x + 0.5*seas; };
   const a = temel(h);
   return a + (egilimKatsayisi(s.obs.filter(x => x[0] <= T), T) - 1)*(h <= EGILIM_UFUK ? a : temel(EGILIM_UFUK));
@@ -129,7 +139,7 @@ function estimateAt(s, day){
     let lo = o[0], hi = o[o.length-1];
     if (day <= o[0][0]) return {n: o[0][1], real: true};
     for (let i=1;i<o.length;i++){ if (o[i][0] >= day){ hi = o[i]; lo = o[i-1]; break; } }
-    const t = hi[0]===lo[0] ? 0 : (day-lo[0])/(hi[0]-lo[0]);
+    const te = etkinGun(lo[0], hi[0]), t = te > 0 ? etkinGun(lo[0], day)/te : (day >= hi[0] ? 1 : 0);      // ara değer etkin günle: hafta sonu ilerleme sayılmaz
     return {n: lo[1] + t*(hi[1]-lo[1]), real: true};
   }
   const f = fit(s, o[o.length-1][0]);
@@ -224,7 +234,7 @@ function backEstimate(s, targetN){
 function reachDate(s, targetN){
   const o = s.obs; const last = o[o.length-1];
   if (targetN <= last[1]){  // passed: find crossing in history
-    for (let i=0;i<o.length;i++){ if (o[i][1] >= targetN){ if (i===0) return targetN === o[0][1] ? {passed:true, day:o[0][0]} : backEstimate(s, targetN); const lo=o[i-1], hi=o[i]; const t=(targetN-lo[1])/(hi[1]-lo[1]); return {passed:true, day: Math.round(lo[0]+t*(hi[0]-lo[0]))}; } }
+    for (let i=0;i<o.length;i++){ if (o[i][1] >= targetN){ if (i===0) return targetN === o[0][1] ? {passed:true, day:o[0][0]} : backEstimate(s, targetN); const lo=o[i-1], hi=o[i]; const x=(targetN-lo[1])/(hi[1]-lo[1])*etkinGun(lo[0], hi[0]); let g=lo[0]+1; while (g < hi[0] && etkinGun(lo[0], g) < x - 1e-9) g++; return {passed:true, day: g}; } }      // plakanın verildiği gün: etkin ilerlemenin hedefe ulaştığı ilk gün (hafta sonuna düşmez)
   }
   const exLab = inExcl(targetN, EXCL);
   if (exLab) return {excluded: exLab};
@@ -236,8 +246,8 @@ function reachDate(s, targetN){
   if (advAt(s, f, hi) < dist) return {never:true};
   let lo = 0;
   for (let i=0;i<60;i++){ const m=(lo+hi)/2; if (advAt(s, f, m) < dist) lo=m; else hi=m; }
-  const d = last[0] + hi;
-  return {passed:false, day: Math.round(d), err: errDays(s, f, d - last[0]), f, atlanan: Math.round(exclOverlap(last[1], targetN, EXCL)/1000)};
+  const d = last[0] + hi;      // hedefe ulaşılan an (kesirli takvim günü); gün = o anı içeren gün (advAt hafta sonunda düz olduğundan hafta sonuna düşmez)
+  return {passed:false, day: Math.ceil(d - 1e-6), err: errDays(s, f, d - last[0]), f, atlanan: Math.round(exclOverlap(last[1], targetN, EXCL)/1000)};
 }
 
 // Türkiye yerel takvim günü (UTC+3, yaz saati yok; tarayıcı saat diliminden bağımsız).

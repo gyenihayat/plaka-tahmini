@@ -29,7 +29,15 @@ class AnaSayfaRegresyon(unittest.TestCase):
                 self.assertEqual(eski.count(a_), 1, a_); eski = eski.replace(a_, b_)
             # Bilinçli matematik değişikliği (Kasım 2026, eğilim düzeltmesi): eski kopyanın advAt'ı ortak motordaki yeni blokla (sabitler + egilimHizlari + egilimKatsayisi + advAt)
             # değiştirilir; böylece yalnızca bu değişiklik iki tarafta ortak olur, arayüzün geri kalanı birebir karşılaştırılır.
-            yeni_blok = re.search(r"const EGILIM_PENCERE.*?\nfunction advAt\(s, f, h\)\{.*?\n\}", u.oku(os.path.join(u.ROOT, "assets", "tahmin-motoru.js")), re.S)[0]
+            # Bilinçli matematik değişikliği (Kasım 2026, hafta içi dağılım): aynı blok artık etkin gün sabitlerini ve etkinGun'u da içerir (HAFTA_GUN_SONU'ndan advAt'ın sonuna);
+            # eski kopyanın gözlemler arası ara değeri (estimateAt), geçilmiş hedef günü ve ileri hedef günü (reachDate) de ortak motordaki yeni satırlarla değiştirilir.
+            motor = u.oku(os.path.join(u.ROOT, "assets", "tahmin-motoru.js"))
+            for a_, b_ in (("const t = hi[0]===lo[0] ? 0 : (day-lo[0])/(hi[0]-lo[0]);", "const te = etkinGun(lo[0], hi[0]), t = te > 0 ? etkinGun(lo[0], day)/te : (day >= hi[0] ? 1 : 0);"),
+                           ("const lo=o[i-1], hi=o[i]; const t=(targetN-lo[1])/(hi[1]-lo[1]); return {passed:true, day: Math.round(lo[0]+t*(hi[0]-lo[0]))}; } }",
+                            "const lo=o[i-1], hi=o[i]; const x=(targetN-lo[1])/(hi[1]-lo[1])*etkinGun(lo[0], hi[0]); let g=lo[0]+1; while (g < hi[0] && etkinGun(lo[0], g) < x - 1e-9) g++; return {passed:true, day: g}; } }"),
+                           ("return {passed:false, day: Math.round(d), err:", "return {passed:false, day: Math.ceil(d - 1e-6), err:")):
+                self.assertEqual(eski.count(a_), 1, a_); self.assertEqual(motor.count(b_), 1, b_); eski = eski.replace(a_, b_)
+            yeni_blok = re.search(r"const HAFTA_GUN_SONU.*?\nfunction advAt\(s, f, h\)\{.*?\n\}", motor, re.S)[0]
             eski_blok = re.findall(r"function advAt\(s, f, h\)\{\n.*?\n\}", eski, re.S); self.assertEqual(len(eski_blok), 1); eski = eski.replace(eski_blok[0], yeni_blok)
             for ad, icerik in (("index.html", yeni), ("eski.html", eski)):
                 icerik = re.sub(r'<link[^>]+fonts\.(?:googleapis|gstatic)\.com[^>]*>', "", icerik)       # harness davranışı karşılaştırır: internetten yazı tipi beklenmez (render-blocking stil dosyası betik çalışmasını geciktirip testi kararsız yapıyordu)

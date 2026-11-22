@@ -62,7 +62,7 @@ def beklenen_plaka(s, iso):
         ham = geri_n(o, o[0][0] - gun, s["kod"])
         if yuvarla(ham) < 1: return "MODEL"
     else:
-        i = next(i for i in range(1, len(o)) if o[i][0] >= gun) if gun > o[0][0] else 1; lo, hi = o[i - 1], o[i]; ham = lo[1] + ((gun - lo[0]) / (hi[0] - lo[0]) if hi[0] != lo[0] else 0) * (hi[1] - lo[1])
+        ham = fc.ara_deger(o, gun)                                                           # gözlemler arası: etkin günle ara değer (hafta sonu ilerleme sayılmaz)
     if yuvarla(ham) // 1000 >= 21 * 23 * 21: return None                                    # seri alfabesi biter (A1×A2×A3): araç hata verir, plaka uydurmaz
     return tahmin_plaka(s["kod"], ham)
 
@@ -215,10 +215,13 @@ class Tarayici(unittest.TestCase):
         self.assertNotIn("öncesinde kalıyor", a["2020-06-01"]["uyari"]); self.assertNotIn("öncesinde kalıyor", a["2023-06-01"]["uyari"])               # 2020-06-01 ve sonrası: referans öncesi açıklaması çıkmaz
 
     def test_hafta_sonu_ve_resmi_tatil_elle_secilince_onceki_is_gunune_cekilmez(self):
+        # Elle seçilen gün önceki iş gününe ÇEKİLMEZ (her gün kendi tarihiyle hesaplanır). Hafta içi dağılım (etkin gün) gereği hafta sonunda ilerleme yoktur:
+        # Cumartesi ve Pazar'ın değeri Cuma'nınkiyle aynıdır, Pazartesi hafta sonu birikimiyle ilerler. Resmî tatil (29 Ekim, Perşembe) hafta gününün payını alır: Cuma'dan farklıdır.
         e = self.s["esdeger"]["ana"]; farkli = 0
         for il in self.iller:
             cuma, cts, paz, pzt, tatil = (e[il][d]["plaka"] for d in ("2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-10-29"))
-            farkli += len({cuma, cts, paz, pzt}) == 4                                                                                  # elle seçilen günler ayrı ayrı hesaplanır (güncel tahmin kuralı burada uygulanmaz)
+            self.assertEqual((cts, paz), (cuma, cuma), il)
+            farkli += pzt != cuma
             self.assertNotEqual(tatil, cuma, il)
         self.assertGreater(farkli, 70)
 

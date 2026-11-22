@@ -1,6 +1,6 @@
 // "Belirli bir tarihte hangi plakada?" aracı: ana sayfa ve 81 il sayfasının ORTAK kodu (tek mantık, tek DOM bağlama).
 // Hesabın kendisi ortak motordan gelir (tahmin-motoru.js: estimateAt, invN, exclOverlap, toDay, trTarihGun); burada formül yoktur, yalnızca sorgunun
-// girdisi doğrulanır, sonuç ve uyarı metinleri üretilir ve form bağlanır. Elle seçilen tarih kendiliğinden önceki iş gününe ÇEKİLMEZ (motorun değeri gösterilir).
+// girdisi doğrulanır, sonuç ve uyarı metinleri üretilir ve form bağlanır. Elle seçilen tarih kendiliğinden önceki iş gününe ÇEKİLMEZ (motorun değeri gösterilir; hafta sonu ilerleme sayılmadığından Cumartesi/Pazar değeri Cuma'nınkiyle aynıdır).
 // Klasik script: tahmin-motoru.js'in global bildirimlerini (EXCL dahil) kullanır; önce o yüklenmelidir.
 // GERİYE DÖNÜK TARİH: ilk kayıtlı gözlemden önceki günler motorun geriye modeliyle (estimateBack = backEstimate'in tersi) hesaplanır ve "Geriye dönük tahmin" olarak, artan belirsizlikle gösterilir.
 // Sınırlar: (1) MODEL tarih alt sınırı 1 Şubat 2018 (bu aracın uyguladığı kural; üç harf–üç rakam plakaların fiilen dağıtılmaya başladığı gün olarak sunulmaz); (2) model geçerli plaka üretemiyorsa (sıra < 1) plaka uydurulmaz. Modelin sayısal alt sınırı ilin gerçek dağıtım başlangıcı değildir ve "o tarihte plaka dağıtılmadı" anlamına gelmez.

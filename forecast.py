@@ -1,4 +1,4 @@
-import statistics as st,bisect
+import statistics as st,bisect,math
 med=st.median
 def clean(o):
     out=[(o[0][0],float(o[0][1]))]
@@ -46,11 +46,30 @@ def egilim_orani(o,T):
     if not g>0: return None,1
     r=max(0,med(simdi))/g
     return r,min(EGILIM_MAKS,max(EGILIM_MIN,1+EGILIM_AGIRLIK*(r-1)))
-def advance(o,c,T,h,sl=None):
+# Hafta içi dağılım (Kasım 2026; assets/tahmin-motoru.js HAFTA_GUN_SONU/etkinGun ile aynı sabitler ve işlem sırası): plaka yalnızca iş günlerinde ilerler, hafta sonu birikimi Pazartesi'ye biner.
+# Haftalık ilerlemenin payı: Pzt %26 (Cmt+Paz+Pzt) · Sal/Çar/Per %18 · Cum %20. Hafta 7 "etkin gün"dür: haftalık hız ve Cuma–Cuma değerleri değişmez. Ölçüm ve geriye dönük test: JS motorundaki açıklama.
+HAFTA_GUN_SONU=(1.82,3.08,4.34,5.6,7,7,7); HAFTA_GUN_PAYI=(1.82,1.26,1.26,1.26,1.4,0,0)      # [0]=Pazartesi (gün 0 = 1 Ocak 2024 Pazartesi)
+def _hafta_konumu(d):
+    g=math.floor(d); k=g//7; w=g-7*k
+    return k,HAFTA_GUN_SONU[w]+(d-g)*HAFTA_GUN_PAYI[(w+1)%7]
+def etkin_gun(a,b):
+    """a gününün sonundan b gününün sonuna etkin gün (hafta = 7; hafta sonu 0)."""
+    (ka,pa),(kb,pb)=_hafta_konumu(a),_hafta_konumu(b)
+    return 7*(kb-ka)+(pb-pa)
+def ara_deger(o,day):
+    """Gözlemler arasında (o[0] ≤ day ≤ o[-1]) etkin günle doğrusal ara değer (JS estimateAt'in geçmiş dalı)."""
+    i=next(i for i in range(1,len(o)) if o[i][0]>=day) if day>o[0][0] else 1
+    lo,hi=o[i-1],o[i]; te=etkin_gun(lo[0],hi[0])
+    return lo[1]+(etkin_gun(lo[0],day)/te if te>0 else (1 if day>=hi[0] else 0))*(hi[1]-lo[1])
+def _ilerleme(o,c,T,h,sl=None):
+    # h: ETKİN gün
     sl=sl or slope(o,T)
     temel=lambda x:0.5*sl*x+0.5*seasonal(c,T,x)
     a=temel(h)
     return a+(egilim_orani(o,T)[1]-1)*(a if h<=EGILIM_UFUK else temel(EGILIM_UFUK))
+def advance(o,c,T,h,sl=None):
+    """T gününden h TAKVİM günü sonrasına ilerleme (hesap etkin günle yapılır)."""
+    return _ilerleme(o,c,T,etkin_gun(T,T+h),sl)
 def bterr(o,h=60,span=280):
     c=clean(o); last=o[-1][0]; errs=[]
     for k in range(0,span//7):
@@ -59,5 +78,5 @@ def bterr(o,h=60,span=280):
         if len(cc)<10 or cc[0][0]>T-365-30: continue
         act=at(c,T+h)-at(c,T)
         if act<=0: continue
-        errs.append(abs(advance(oo,cc,T,h)-act)/act*h)
+        errs.append(abs(_ilerleme(oo,cc,T,h)-act)/act*h)      # 60 günlük ufukta gerçekleşen de takvim günüyle ara değerdir: hafta içi dağılım burada uygulanmaz (bterr değişmez)
     return round(med(errs),1) if len(errs)>=8 else None
